@@ -1376,8 +1376,7 @@
                 <h3>Guia de Acesso ao Sistema Axon OS</h3>
                 <div class="window-controls">
                     <div class="window-control window-close" onclick="closeModal('help-guide-modal')"><i class="fas fa-times"></i></div>
-                </div>
-            </div>
+                </div> </div>
             <div class="modal-body">
                 <p>Bem-vindo ao Axon OS! Este guia rápido irá ajudá-lo a começar.</p>
                 
@@ -1454,15 +1453,15 @@
             fileSystem: {
                 desktop: [], // Representa os itens na área de trabalho
                 documents: [
-                    { id: 'report', name: 'Relatório Final.txt', type: 'text', icon: 'fas fa-file-alt', content: 'Conteúdo do relatório final do projeto Axon OS. Este é um documento de exemplo.', lastModified: Date.now() - 3600000 },
-                    { id: 'notes', name: 'Anotações.txt', type: 'text', icon: 'fas fa-file-alt', content: 'Minhas anotações importantes:\n- Comprar leite\n- Ligar para o suporte\n- Estudar JavaScript', lastModified: Date.now() - 7200000 }
+                    { id: 'report', name: 'Relatório Final.txt', type: 'text', icon: 'fas fa-file-alt', content: 'Conteúdo do relatório final do projeto Axon OS. Este é um documento de exemplo.' },
+                    { id: 'notes', name: 'Anotações.txt', type: 'text', icon: 'fas fa-file-alt', content: 'Minhas anotações importantes:\n- Comprar leite\n- Ligar para o suporte\n- Estudar JavaScript' }
                 ],
                 images: [
-                    { id: 'wallpaper1', name: 'Paisagem.jpg', type: 'image', icon: 'fas fa-image', src: 'https://images.unsplash.com/photo-1506744038136-465a60a35c88?w=400', lastModified: Date.now() - 10800000 },
-                    { id: 'wallpaper2', name: 'Abstrato.png', type: 'image', icon: 'fas fa-image', src: 'https://images.unsplash.com/photo-1518621736915-f3b1c811cd67?w=400', lastModified: Date.now() - 14400000 }
+                    { id: 'wallpaper1', name: 'Paisagem.jpg', type: 'image', icon: 'fas fa-image', src: 'https://images.unsplash.com/photo-1506744038136-465a60a35c88?w=400' },
+                    { id: 'wallpaper2', name: 'Abstrato.png', type: 'image', icon: 'fas fa-image', src: 'https://images.unsplash.com/photo-1518621736915-f3b1c811cd67?w=400' }
                 ],
                 downloads: [
-                    { id: 'installer', name: 'Instalador.dmg', type: 'executable', icon: 'fas fa-download', lastModified: Date.now() - 18000000 }
+                    { id: 'installer', name: 'Instalador.dmg', type: 'executable', icon: 'fas fa-download' }
                 ],
                 trash: []
             },
@@ -1471,6 +1470,7 @@
                 { command: "date", output: "Quarta-feira, 16 de Julho de 2025, 14:25:03" },
                 { command: "echo 'Bem-vindo ao Axon OS'", output: "Bem-vindo ao Axon OS" }
             ],
+            axonApps: [], // Lista de aplicativos HTML encontrados
             clipboard: null,
             settings: {
                 theme: 'axon-dark',
@@ -1497,12 +1497,14 @@
             ],
             selectedIcon: null, // Para ícones da área de trabalho
             selectedFileItem: null, // Para itens dentro do explorador de arquivos
+            currentMediaIndex: 0, // Removido, mas mantido para evitar erros
+            mediaPlaying: false, // Removido, mas mantido para evitar erros
             clipboardAction: null, // 'copy' or 'cut'
             currentDirectory: 'desktop', // Diretório atual no explorador de arquivos
             cameraStream: null,
-            recentFiles: [], // Para a aba "Recentes"
+            cameraPhotos: [], // Agora as fotos da câmera são adicionadas diretamente ao fileSystem.images
             selectedFile: null, // Para o modal de abrir arquivo
-            axonApps: [] // Para armazenar os aplicativos HTML encontrados
+            recentFiles: [] // Para a aba "Recentes" do Finder
         };
 
         // Elementos DOM
@@ -1533,7 +1535,7 @@
             executable: "fas fa-download",
             archive: "fas fa-file-archive",
             link: "fas fa-link",
-            html: "fab fa-html5" // Ícone para arquivos HTML
+            html: "fas fa-code" // Ícone para arquivos HTML
         };
 
         // Custom Alert/Prompt/Confirm functions
@@ -1627,7 +1629,7 @@
             } else {
                 loadDesktopItems();
             }
-            findAxonApps(); // Encontra os aplicativos HTML
+            findAxonApps(); // Busca por aplicativos HTML
         }
 
         // Atualizar relógio
@@ -1636,18 +1638,6 @@
             const hours = now.getHours().toString().padStart(2, '0');
             const minutes = now.getMinutes().toString().padStart(2, '0');
             clockElement.textContent = `${hours}:${minutes}`;
-        }
-
-        // Adiciona um item à lista de recentes
-        function addRecentFile(item) {
-            // Remove o item se já existir para evitar duplicatas e movê-lo para o topo
-            systemState.recentFiles = systemState.recentFiles.filter(f => f.id !== item.id);
-            // Adiciona o item no início da lista
-            systemState.recentFiles.unshift({ ...item, lastAccessed: Date.now() });
-            // Limita o número de itens recentes (ex: 20)
-            if (systemState.recentFiles.length > 20) {
-                systemState.recentFiles.pop();
-            }
         }
 
         // Configurar event listeners
@@ -1667,7 +1657,6 @@
                         i.classList.remove('selected');
                     });
                     systemState.selectedIcon = null;
-                    systemState.selectedFileItem = null; // Desseleciona também o item do finder
                 }
             });
 
@@ -1676,6 +1665,7 @@
                 const folderName = await axonPrompt("Digite o nome da nova pasta:", "Nova Pasta");
                 if (folderName) {
                     createDesktopItem('folder', folderName);
+                    addToRecentFiles({ id: 'new-folder-' + Date.now(), name: folderName, type: 'folder', icon: fileIcons.folder });
                 }
                 hideContextMenu();
             });
@@ -1684,6 +1674,7 @@
                 const fileName = await axonPrompt("Digite o nome do novo arquivo:", "Novo Documento.txt");
                 if (fileName) {
                     createDesktopItem('text', fileName);
+                    addToRecentFiles({ id: 'new-file-' + Date.now(), name: fileName, type: 'text', icon: fileIcons.text });
                 }
                 hideContextMenu();
             });
@@ -1697,7 +1688,6 @@
                 }
 
                 if (itemToOpen) {
-                    addRecentFile(itemToOpen); // Adiciona aos recentes
                     if (itemToOpen.type === 'folder') {
                         openApp('finder');
                         const finderWindow = systemState.openWindows.find(w => w.id === 'finder');
@@ -1727,12 +1717,23 @@
                         } else {
                             axonAlert("Esta imagem não possui um caminho de origem definido.");
                         }
-                    } else if (itemToOpen.type === 'html-app') {
-                        openApp('custom-html-app', itemToOpen.name, itemToOpen.path);
-                    }
-                    else {
+                    } else if (itemToOpen.type === 'html') {
+                        openApp('browser');
+                        const browserWindow = systemState.openWindows.find(w => w.id === 'browser');
+                        if (browserWindow) {
+                            const browserContent = browserWindow.element.querySelector('#browser-content');
+                            const browserUrl = browserWindow.element.querySelector('#browser-url');
+                            if (browserContent && browserUrl) {
+                                // Simula o caminho do arquivo HTML
+                                const appPath = `/AxonApps/${itemToOpen.name}`;
+                                browserUrl.value = appPath;
+                                browserContent.src = appPath;
+                            }
+                        }
+                    } else {
                         axonAlert(`Não é possível abrir o arquivo "${itemToOpen.name}". Tipo de arquivo não suportado.`);
                     }
+                    addToRecentFiles(itemToOpen);
                 }
                 hideContextMenu();
             });
@@ -1754,13 +1755,11 @@
                 let oldName = '';
                 let itemId = '';
                 let itemType = '';
-                let currentDir = systemState.currentDirectory;
 
                 if (systemState.selectedIcon) {
                     oldName = systemState.selectedIcon.querySelector('.icon-label').textContent;
                     itemId = systemState.selectedIcon.dataset.id;
                     itemType = 'desktop';
-                    currentDir = 'desktop'; // Itens do desktop são tratados como estando no diretório 'desktop'
                 } else if (systemState.selectedFileItem) {
                     oldName = systemState.selectedFileItem.name;
                     itemId = systemState.selectedFileItem.id;
@@ -1778,7 +1777,7 @@
                             }
                             updateDesktopItemName(itemId, newName.trim());
                         } else if (itemType === 'fileSystem') {
-                            updateFileItemName(itemId, currentDir, newName.trim());
+                            updateFileItemName(itemId, systemState.currentDirectory, newName.trim());
                             const finderWindow = systemState.openWindows.find(w => w.id === 'finder');
                             if (finderWindow) {
                                 const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
@@ -1788,6 +1787,7 @@
                             }
                         }
                         axonAlert(`Item renomeado para "${newName.trim()}"`);
+                        addToRecentFiles({ id: itemId, name: newName.trim(), type: itemType === 'desktop' ? systemState.selectedIcon.dataset.type : systemState.selectedFileItem.type, icon: itemType === 'desktop' ? systemState.selectedIcon.querySelector('i').className : fileIcons[systemState.selectedFileItem.type] });
                     } else if (newName && newName.trim() === oldName) {
                         axonAlert("O nome é o mesmo. Nenhuma alteração foi feita.");
                     }
@@ -1830,10 +1830,9 @@
             document.getElementById('context-paste').addEventListener('click', async () => {
                 if (systemData.clipboard) {
                     const originalItem = systemData.clipboard;
-                    let newItem = { ...originalItem };
+                    const newItem = { ...originalItem };
                     newItem.id = originalItem.id + '-' + Date.now(); // Novo ID para a cópia
                     newItem.name = `Cópia de ${originalItem.name}`;
-                    newItem.lastModified = Date.now(); // Atualiza a data de modificação
 
                     // Lógica para remover o item original se for uma operação de recorte
                     if (systemState.clipboardAction === 'cut') {
@@ -1899,6 +1898,7 @@
 
                     saveDesktopItems(); // Salva todas as alterações
                     axonAlert(`"${newItem.name}" colado com sucesso!`);
+                    addToRecentFiles(newItem);
                     systemData.clipboard = null;
                     systemState.clipboardAction = null;
                 } else {
@@ -1921,6 +1921,7 @@
                     return;
                 }
                 createDesktopItem(type, name);
+                addToRecentFiles({ id: 'new-item-' + Date.now(), name: name, type: type, icon: fileIcons[type] });
                 createModal.classList.remove('active');
             });
             
@@ -1957,13 +1958,39 @@
             }
         }
 
+        // Adicionar item aos arquivos recentes
+        function addToRecentFiles(item) {
+            // Remove o item se já existir para evitar duplicatas e trazê-lo para o topo
+            systemState.recentFiles = systemState.recentFiles.filter(recentItem => recentItem.id !== item.id);
+            // Adiciona o item no início do array
+            systemState.recentFiles.unshift({ ...item, timestamp: Date.now() });
+            // Limita o número de itens recentes para evitar que o array cresça indefinidamente
+            if (systemState.recentFiles.length > 20) {
+                systemState.recentFiles.pop();
+            }
+            saveRecentFiles();
+        }
+
+        // Salvar arquivos recentes no localStorage
+        function saveRecentFiles() {
+            localStorage.setItem('axon-recent-files', JSON.stringify(systemState.recentFiles));
+        }
+
+        // Carregar arquivos recentes do localStorage
+        function loadRecentFiles() {
+            const savedRecentFiles = localStorage.getItem('axon-recent-files');
+            if (savedRecentFiles) {
+                systemState.recentFiles = JSON.parse(savedRecentFiles);
+            }
+        }
+
         // Criar ícone na área de trabalho
         function createDesktopItem(type, name, x = null, y = null, id = null) {
             id = id || 'item-' + Date.now();
             x = x === null ? Math.random() * (desktop.clientWidth - 100) : x;
             y = y === null ? Math.random() * (desktop.clientHeight - 100) : y;
 
-            const newItem = { id, name, type, x, y, icon: fileIcons[type] || 'fas fa-file', lastModified: Date.now() };
+            const newItem = { id, name, type, x, y, icon: fileIcons[type] || 'fas fa-file' };
             if (type === 'text') {
                 newItem.content = '';
             } else if (type === 'image') {
@@ -1981,7 +2008,7 @@
             icon.className = 'desktop-icon';
             icon.dataset.id = id;
             icon.dataset.type = type;
-            icon.dataset.app = type === 'folder' ? 'finder' : (type === 'text' ? 'notes' : (type === 'image' ? 'gallery' : null));
+            icon.dataset.app = type === 'folder' ? 'finder' : (type === 'text' ? 'notes' : (type === 'image' ? 'gallery' : (type === 'html' ? 'browser' : null)));
             icon.style.left = `${x}px`;
             icon.style.top = `${y}px`;
             
@@ -2000,7 +2027,6 @@
             icon.appendChild(iconLabel);
             
             icon.addEventListener('dblclick', () => {
-                addRecentFile(newItem); // Adiciona aos recentes
                 if (icon.dataset.app) {
                     openApp(icon.dataset.app);
                     if (icon.dataset.type === 'text') {
@@ -2030,7 +2056,19 @@
                         } else {
                             axonAlert("Esta imagem não possui um caminho de origem definido.");
                         }
+                    } else if (icon.dataset.type === 'html') {
+                        const browserWindow = systemState.openWindows.find(w => w.id === 'browser');
+                        if (browserWindow) {
+                            const browserContent = browserWindow.element.querySelector('#browser-content');
+                            const browserUrl = browserWindow.element.querySelector('#browser-url');
+                            if (browserContent && browserUrl) {
+                                const appPath = `/AxonApps/${name}`; // Simula o caminho
+                                browserUrl.value = appPath;
+                                browserContent.src = appPath;
+                            }
+                        }
                     }
+                    addToRecentFiles(newItem);
                 }
             });
             
@@ -2105,7 +2143,6 @@
             if (item) {
                 item.x = x;
                 item.y = y;
-                item.lastModified = Date.now();
             }
         }
 
@@ -2114,13 +2151,11 @@
             const item = systemData.desktopItems.find(item => item.id === id);
             if (item) {
                 item.name = name;
-                item.lastModified = Date.now();
             }
             // Também atualiza no fileSystem.desktop se for um item de lá
             const fsItem = systemData.fileSystem.desktop.find(item => item.id === id);
             if (fsItem) {
                 fsItem.name = name;
-                fsItem.lastModified = Date.now();
             }
             saveDesktopItems();
         }
@@ -2149,7 +2184,6 @@
                 const item = systemData.fileSystem[directory].find(item => item.id === id);
                 if (item) {
                     item.name = name;
-                    item.lastModified = Date.now();
                 }
             }
             saveDesktopItems(); // Salva após a alteração
@@ -2182,6 +2216,7 @@
         function loadDesktopItems() {
             const savedItems = localStorage.getItem('axon-desktop-items');
             const savedFileSystem = localStorage.getItem('axon-file-system');
+            loadRecentFiles(); // Carrega os arquivos recentes
 
             // Limpa os ícones existentes no desktop antes de carregar
             systemState.desktopIcons.forEach(icon => icon.remove());
@@ -2189,22 +2224,10 @@
             systemData.desktopItems = []; // Limpa a lista de itens do desktop
             systemData.fileSystem.desktop = []; // Limpa o diretório desktop no fileSystem
 
-            if (savedFileSystem) {
-                const parsedFileSystem = JSON.parse(savedFileSystem);
-                // Mescla o fileSystem salvo com o inicial
-                for (const key in parsedFileSystem) {
-                    systemData.fileSystem[key] = parsedFileSystem[key];
-                }
-            }
-
             if (savedItems) {
                 systemData.desktopItems = JSON.parse(savedItems);
                 systemData.desktopItems.forEach(item => {
                     // Recria o ícone visual e adiciona ao fileSystem.desktop
-                    // Garante que o item exista no fileSystem.desktop antes de criar o ícone
-                    if (!systemData.fileSystem.desktop.find(dItem => dItem.id === item.id)) {
-                        systemData.fileSystem.desktop.push(item);
-                    }
                     createDesktopItem(item.type, item.name, item.x, item.y, item.id); 
                 });
             } else {
@@ -2212,6 +2235,18 @@
                 systemData.desktopItems.forEach(item => {
                     createDesktopItem(item.type, item.name, item.x, item.y, item.id);
                 });
+            }
+
+            // Carrega o fileSystem completo se houver um salvo
+            if (savedFileSystem) {
+                const parsedFileSystem = JSON.parse(savedFileSystem);
+                // Mescla o fileSystem salvo com o inicial, mas preserva os itens do desktop
+                // que já foram carregados via desktopItems para evitar duplicação
+                for (const key in parsedFileSystem) {
+                    if (key !== 'desktop') { // Não sobrescreve o desktop, que já foi tratado
+                        systemData.fileSystem[key] = parsedFileSystem[key];
+                    }
+                }
             }
             saveDesktopItems(); // Garante que o estado atual seja salvo após o carregamento
         }
@@ -2268,56 +2303,8 @@
         }
 
         // Abrir aplicativo
-        function openApp(appId, appName = null, appPath = null) {
-            // Se for um aplicativo HTML customizado
-            if (appId === 'custom-html-app' && appName && appPath) {
-                const windowId = `window-${Date.now()}`;
-                const windowElement = document.createElement('div');
-                windowElement.className = 'window';
-                windowElement.id = windowId;
-                windowElement.style.width = `800px`;
-                windowElement.style.height = `600px`;
-                
-                const left = Math.max(0, (window.innerWidth - 800) / 2 + (Math.random() * 100 - 50));
-                const top = Math.max(0, (window.innerHeight - 600) / 2 + (Math.random() * 100 - 50));
-                windowElement.style.left = `${left}px`;
-                windowElement.style.top = `${top}px`;
-
-                const header = document.createElement('div');
-                header.className = 'window-header';
-                header.innerHTML = `
-                    <div class="window-title">
-                        <i class="${fileIcons.html}"></i> ${appName}
-                    </div>
-                    <div class="window-controls">
-                        <div class="window-control window-minimize"><i class="fas fa-minus"></i></div>
-                        <div class="window-control window-maximize"><i class="fas fa-square"></i></div>
-                        <div class="window-control window-close"><i class="fas fa-times"></i></div>
-                    </div>
-                `;
-                windowElement.appendChild(header);
-
-                const content = document.createElement('div');
-                content.className = 'window-content';
-                content.style.padding = '0'; // Remove padding para o iframe
-                content.innerHTML = `<iframe src="${appPath}" style="width:100%; height:100%; border:none;"></iframe>`;
-                windowElement.appendChild(content);
-
-                windowsContainer.appendChild(windowElement);
-                
-                void windowElement.offsetWidth; // Força reflow para a transição
-                windowElement.classList.add('active');
-                
-                setupWindowEvents(windowElement, appId, windowId);
-                
-                systemState.openWindows.push({ id: appId, windowId: windowId, appName: appName, appIcon: fileIcons.html, element: windowElement });
-                systemState.activeWindow = windowId;
-                bringToFront(windowId);
-                return;
-            }
-
-
-            const existingWindow = systemState.openWindows.find(w => w.id === appId);
+        function openApp(appId, appUrl = null, appName = null, appIcon = null) {
+            const existingWindow = systemState.openWindows.find(w => w.id === appId && (appUrl ? w.appUrl === appUrl : true));
             if (existingWindow) {
                 bringToFront(existingWindow.windowId);
                 if (appId === 'finder') {
@@ -2330,17 +2317,17 @@
             }
 
             const app = systemData.apps[appId];
-            if (!app) return;
+            if (!app && !appUrl) return; // Se não é um app padrão e não tem URL, não abre
 
             const windowId = `window-${Date.now()}`;
             const windowElement = document.createElement('div');
             windowElement.className = 'window';
             windowElement.id = windowId;
-            windowElement.style.width = `${app.minWidth}px`;
-            windowElement.style.height = `${app.minHeight}px`;
+            windowElement.style.width = `${app ? app.minWidth : 800}px`;
+            windowElement.style.height = `${app ? app.minHeight : 600}px`;
             
-            const left = Math.max(0, (window.innerWidth - app.minWidth) / 2 + (Math.random() * 100 - 50));
-            const top = Math.max(0, (window.innerHeight - app.minHeight) / 2 + (Math.random() * 100 - 50));
+            const left = Math.max(0, (window.innerWidth - (app ? app.minWidth : 800)) / 2 + (Math.random() * 100 - 50));
+            const top = Math.max(0, (window.innerHeight - (app ? app.minHeight : 600)) / 2 + (Math.random() * 100 - 50));
             windowElement.style.left = `${left}px`;
             windowElement.style.top = `${top}px`;
 
@@ -2348,7 +2335,7 @@
             header.className = 'window-header';
             header.innerHTML = `
                 <div class="window-title">
-                    <i class="${app.icon}"></i> ${app.name}
+                    <i class="${appIcon || (app ? app.icon : 'fas fa-window-maximize')}"></i> ${appName || (app ? app.name : 'Aplicativo')}
                 </div>
                 <div class="window-controls">
                     <div class="window-control window-minimize"><i class="fas fa-minus"></i></div>
@@ -2360,7 +2347,7 @@
 
             const content = document.createElement('div');
             content.className = 'window-content';
-            content.innerHTML = generateAppContent(appId);
+            content.innerHTML = generateAppContent(appId, appUrl);
             windowElement.appendChild(content);
 
             windowsContainer.appendChild(windowElement);
@@ -2370,15 +2357,15 @@
             
             setupWindowEvents(windowElement, appId, windowId);
             
-            systemState.openWindows.push({ id: appId, windowId: windowId, element: windowElement, appName: app.name, appIcon: app.icon });
+            systemState.openWindows.push({ id: appId, windowId: windowId, element: windowElement, appName: appName || app.name, appIcon: appIcon || app.icon, appUrl: appUrl });
             systemState.activeWindow = windowId;
             bringToFront(windowId);
             
-            initAppContent(appId, windowElement);
+            initAppContent(appId, windowElement, appUrl);
         }
 
         // Gerar conteúdo do aplicativo
-        function generateAppContent(appId) {
+        function generateAppContent(appId, appUrl = null) {
             switch(appId) {
                 case 'finder':
                     return `
@@ -2391,12 +2378,15 @@
                                 <div class="sidebar-item" data-path="trash"><i class="fas fa-trash"></i> Lixeira</div>
                             </div>
                             <div class="main-content">
-                                <div class="tab-container" id="finder-tabs">
+                                <div class="tab-container">
                                     <div class="tab active" data-tab-content="all-items">Todos os Itens</div>
                                     <div class="tab" data-tab-content="recent-items">Recentes</div>
                                 </div>
-                                <div class="files-grid" id="explorer-grid">
+                                <div class="files-grid active" id="all-items-grid">
                                     <!-- Conteúdo será preenchido dinamicamente -->
+                                </div>
+                                <div class="files-grid" id="recent-items-grid">
+                                    <!-- Conteúdo recente será preenchido dinamicamente -->
                                 </div>
                             </div>
                         </div>
@@ -2557,7 +2547,20 @@
                             <!-- Aplicativos HTML serão adicionados dinamicamente -->
                         </div>
                     `;
+                case 'camera':
+                    return `
+                        <div class="camera-container">
+                            <div class="camera-preview" id="camera-preview">
+                                <i class="fas fa-camera" style="font-size: 48px; opacity: 0.5;"></i>
+                            </div>
+                            <button id="capture-btn" style="width: 80px; height: 80px; border-radius: 50%; font-size: 24px;">
+                                <i class="fas fa-camera"></i>
+                            </button>
+                        </div>
+                    `;
                 case 'browser':
+                    // Se appUrl for fornecido, o navegador abrirá essa URL
+                    const initialUrl = appUrl || "about:blank";
                     return `
                         <div class="browser-container">
                             <div class="browser-toolbar">
@@ -2565,12 +2568,12 @@
                                 <button id="browser-forward"><i class="fas fa-arrow-right"></i></button>
                                 <button id="browser-reload"><i class="fas fa-redo"></i></button>
                                 <div class="browser-url-bar">
-                                    <input type="text" id="browser-url" value="about:blank" style="flex: 1;">
+                                    <input type="text" id="browser-url" value="${initialUrl}" style="flex: 1;">
                                     <button id="browser-go"><i class="fas fa-arrow-right"></i></button>
                                 </div>
                                 <button id="browser-home"><i class="fas fa-home"></i></button>
                             </div>
-                            <iframe class="browser-content" id="browser-content" src="about:blank"></iframe>
+                            <iframe class="browser-content" id="browser-content" src="${initialUrl}"></iframe>
                         </div>
                     `;
                 default:
@@ -2585,7 +2588,7 @@
         }
 
         // Inicializar conteúdo do aplicativo
-        function initAppContent(appId, windowElement) {
+        function initAppContent(appId, windowElement, appUrl = null) {
             switch(appId) {
                 case 'finder':
                     initFileExplorer(windowElement);
@@ -2609,7 +2612,7 @@
                     initCamera(windowElement);
                     break;
                 case 'browser':
-                    initBrowser(windowElement);
+                    initBrowser(windowElement, appUrl);
                     break;
                 case 'settings':
                     initSettings(windowElement);
@@ -2623,19 +2626,16 @@
         // Inicializar explorador de arquivos
         function initFileExplorer(windowElement) {
             const sidebarItems = windowElement.querySelectorAll('.sidebar-item');
-            const explorerGrid = windowElement.querySelector('#explorer-grid');
-            const finderTabs = windowElement.querySelectorAll('#finder-tabs .tab');
+            const allItemsGrid = windowElement.querySelector('#all-items-grid');
+            const recentItemsGrid = windowElement.querySelector('#recent-items-grid');
+            const tabs = windowElement.querySelectorAll('.tab-container .tab');
 
+            // Função para carregar o conteúdo de um diretório
             function loadDirectory(directoryId, gridElement) {
                 gridElement.innerHTML = '';
                 systemState.currentDirectory = directoryId;
 
-                let currentDirectoryData = [];
-                if (directoryId === 'recent-items') {
-                    currentDirectoryData = systemState.recentFiles.sort((a, b) => b.lastAccessed - a.lastAccessed);
-                } else {
-                    currentDirectoryData = systemData.fileSystem[directoryId] || [];
-                }
+                const currentDirectoryData = systemData.fileSystem[directoryId] || [];
                 
                 currentDirectoryData.forEach(item => {
                     const fileItem = document.createElement('div');
@@ -2644,22 +2644,14 @@
                     fileItem.dataset.type = item.type;
                     fileItem.dataset.name = item.name;
 
-                    let iconHtml = '';
-                    if (item.type === 'image' && item.src) {
-                        iconHtml = `<img src="${item.src}" style="width: 32px; height: 32px; object-fit: cover; border-radius: 4px;">`;
-                    } else {
-                        iconHtml = `<i class="${fileIcons[item.type] || 'fas fa-file'}"></i>`;
-                    }
-
                     fileItem.innerHTML = `
-                        <div class="file-icon">${iconHtml}</div>
+                        <div class="file-icon"><i class="${fileIcons[item.type] || 'fas fa-file'}"></i></div>
                         <div class="file-name">${item.name}</div>
                     `;
                     
                     fileItem.addEventListener('dblclick', () => {
-                        addRecentFile(item); // Adiciona aos recentes
                         if (item.type === 'folder') {
-                            loadDirectory(item.id, gridElement);
+                            loadDirectory(item.id, allItemsGrid);
                         } else if (item.type === 'text') {
                             openApp('notes');
                             const notesWindow = systemState.openWindows.find(w => w.id === 'notes');
@@ -2680,16 +2672,27 @@
                             } else {
                                 axonAlert("Esta imagem não possui um caminho de origem definido.");
                             }
-                        } else if (item.type === 'html-app') {
-                            openApp('custom-html-app', item.name, item.path);
-                        }
-                        else {
+                        } else if (item.type === 'html') {
+                            openApp('browser');
+                            const browserWindow = systemState.openWindows.find(w => w.id === 'browser');
+                            if (browserWindow) {
+                                const browserContent = browserWindow.element.querySelector('#browser-content');
+                                const browserUrl = browserWindow.element.querySelector('#browser-url');
+                                if (browserContent && browserUrl) {
+                                    const appPath = `/AxonApps/${item.name}`; // Simula o caminho
+                                    browserUrl.value = appPath;
+                                    browserContent.src = appPath;
+                                }
+                            }
+                        } else {
                             axonAlert(`Não é possível abrir o arquivo "${item.name}". Tipo de arquivo não suportado.`);
                         }
+                        addToRecentFiles(item);
                     });
 
                     fileItem.addEventListener('click', () => {
-                        gridElement.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
+                        allItemsGrid.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
+                        recentItemsGrid.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
                         document.querySelectorAll('.desktop-icon').forEach(i => i.classList.remove('selected'));
                         
                         fileItem.classList.add('selected');
@@ -2699,7 +2702,8 @@
 
                     fileItem.addEventListener('contextmenu', (e) => {
                         e.preventDefault();
-                        gridElement.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
+                        allItemsGrid.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
+                        recentItemsGrid.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
                         document.querySelectorAll('.desktop-icon').forEach(i => i.classList.remove('selected'));
 
                         fileItem.classList.add('selected');
@@ -2721,33 +2725,130 @@
                     }
                 });
             }
+
+            // Função para carregar arquivos recentes
+            function loadRecentItems() {
+                recentItemsGrid.innerHTML = '';
+                systemState.recentFiles.forEach(item => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    fileItem.dataset.id = item.id;
+                    fileItem.dataset.type = item.type;
+                    fileItem.dataset.name = item.name;
+
+                    fileItem.innerHTML = `
+                        <div class="file-icon"><i class="${item.icon || fileIcons[item.type] || 'fas fa-file'}"></i></div>
+                        <div class="file-name">${item.name}</div>
+                        <div style="font-size: 10px; opacity: 0.7;">${new Date(item.timestamp).toLocaleString()}</div>
+                    `;
+
+                    fileItem.addEventListener('dblclick', () => {
+                        // Reutiliza a lógica de abertura de item
+                        const actualItem = findFileInFileSystem(item.id);
+                        if (actualItem) {
+                            if (actualItem.type === 'folder') {
+                                loadDirectory(actualItem.id, allItemsGrid);
+                                tabs.forEach(t => t.classList.remove('active'));
+                                windowElement.querySelector('[data-tab-content="all-items"]').classList.add('active');
+                                allItemsGrid.classList.add('active');
+                                recentItemsGrid.classList.remove('active');
+                            } else if (actualItem.type === 'text') {
+                                openApp('notes');
+                                const notesWindow = systemState.openWindows.find(w => w.id === 'notes');
+                                if (notesWindow) {
+                                    const textArea = notesWindow.element.querySelector('#note-content');
+                                    if (textArea) {
+                                        textArea.value = actualItem.content || '';
+                                        textArea.dataset.fileId = actualItem.id;
+                                    }
+                                }
+                            } else if (actualItem.type === 'image') {
+                                if (actualItem.src) {
+                                    openImageViewer(actualItem.src);
+                                } else {
+                                    axonAlert("Esta imagem não possui um caminho de origem definido.");
+                                }
+                            } else if (actualItem.type === 'html') {
+                                openApp('browser');
+                                const browserWindow = systemState.openWindows.find(w => w.id === 'browser');
+                                if (browserWindow) {
+                                    const browserContent = browserWindow.element.querySelector('#browser-content');
+                                    const browserUrl = browserWindow.element.querySelector('#browser-url');
+                                    if (browserContent && browserUrl) {
+                                        const appPath = `/AxonApps/${actualItem.name}`; // Simula o caminho
+                                        browserUrl.value = appPath;
+                                        browserContent.src = appPath;
+                                    }
+                                }
+                            } else {
+                                axonAlert(`Não é possível abrir o arquivo "${actualItem.name}". Tipo de arquivo não suportado.`);
+                            }
+                            addToRecentFiles(actualItem);
+                        } else {
+                            axonAlert("O arquivo recente não foi encontrado no sistema de arquivos.");
+                            // Opcional: remover o item do histórico de recentes se não for encontrado
+                            systemState.recentFiles = systemState.recentFiles.filter(ri => ri.id !== item.id);
+                            saveRecentFiles();
+                            loadRecentItems(); // Recarrega a lista de recentes
+                        }
+                    });
+
+                    fileItem.addEventListener('click', () => {
+                        allItemsGrid.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
+                        recentItemsGrid.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
+                        document.querySelectorAll('.desktop-icon').forEach(i => i.classList.remove('selected'));
+                        
+                        fileItem.classList.add('selected');
+                        systemState.selectedFileItem = item;
+                        systemState.selectedIcon = null;
+                    });
+
+                    fileItem.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        allItemsGrid.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
+                        recentItemsGrid.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
+                        document.querySelectorAll('.desktop-icon').forEach(i => i.classList.remove('selected'));
+
+                        fileItem.classList.add('selected');
+                        systemState.selectedFileItem = item;
+                        systemState.selectedIcon = null;
+                        showContextMenu(e, fileItem);
+                    });
+
+                    recentItemsGrid.appendChild(fileItem);
+                });
+            }
             
             sidebarItems.forEach(item => {
                 item.addEventListener('click', () => {
-                    sidebarItems.forEach(si => si.classList.remove('active'));
-                    item.classList.add('active');
-                    finderTabs.forEach(tab => tab.classList.remove('active'));
-                    windowElement.querySelector('[data-tab-content="all-items"]').classList.add('active'); // Ativa "Todos os Itens" por padrão
                     const directory = item.dataset.path;
-                    loadDirectory(directory, explorerGrid);
+                    loadDirectory(directory, allItemsGrid);
+                    tabs.forEach(t => t.classList.remove('active'));
+                    windowElement.querySelector('[data-tab-content="all-items"]').classList.add('active');
+                    allItemsGrid.classList.add('active');
+                    recentItemsGrid.classList.remove('active');
                 });
             });
 
-            finderTabs.forEach(tab => {
+            tabs.forEach(tab => {
                 tab.addEventListener('click', () => {
-                    finderTabs.forEach(t => t.classList.remove('active'));
+                    tabs.forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
-                    const tabContent = tab.dataset.tabContent;
-                    if (tabContent === 'all-items') {
-                        loadDirectory(systemState.currentDirectory, explorerGrid);
-                    } else if (tabContent === 'recent-items') {
-                        loadDirectory('recent-items', explorerGrid);
+
+                    const tabContentId = tab.dataset.tabContent;
+                    if (tabContentId === 'all-items') {
+                        allItemsGrid.classList.add('active');
+                        recentItemsGrid.classList.remove('active');
+                        loadDirectory(systemState.currentDirectory, allItemsGrid); // Recarrega o diretório atual
+                    } else if (tabContentId === 'recent-items') {
+                        allItemsGrid.classList.remove('active');
+                        recentItemsGrid.classList.add('active');
+                        loadRecentItems(); // Carrega os itens recentes
                     }
                 });
             });
             
-            loadDirectory('desktop', explorerGrid); // Carrega o desktop por padrão
-            windowElement.querySelector('.sidebar-item[data-path="desktop"]').classList.add('active');
+            loadDirectory('desktop', allItemsGrid); // Carrega o desktop por padrão
         }
 
         // Inicializar bloco de notas
@@ -2767,9 +2868,8 @@
                         const file = systemData.fileSystem[dir].find(f => f.id === fileId && f.type === 'text');
                         if (file) {
                             file.content = textArea.value;
-                            file.lastModified = Date.now(); // Atualiza a data de modificação
                             found = true;
-                            addRecentFile(file); // Adiciona aos recentes
+                            addToRecentFiles(file);
                             break;
                         }
                     }
@@ -2788,8 +2888,7 @@
                             name: fileName,
                             type: 'text',
                             icon: fileIcons.text,
-                            content: textArea.value,
-                            lastModified: Date.now()
+                            content: textArea.value
                         };
                         // Salva no diretório de documentos por padrão
                         if (!systemData.fileSystem.documents) {
@@ -2798,7 +2897,7 @@
                         systemData.fileSystem.documents.push(newFile);
                         textArea.dataset.fileId = id;
                         saveDesktopItems(); // Salva o fileSystem atualizado
-                        addRecentFile(newFile); // Adiciona aos recentes
+                        addToRecentFiles(newFile);
                         await axonAlert(`Arquivo "${fileName}" salvo com sucesso em Documentos!`);
                     }
                 }
@@ -2828,7 +2927,7 @@
             for (const dir in systemData.fileSystem) {
                 if (Array.isArray(systemData.fileSystem[dir])) {
                     systemData.fileSystem[dir].forEach(file => {
-                        if (file.type === 'text' || (file.type === 'image' && file.src)) { // Apenas imagens com src
+                        if (file.type === 'text' || (file.type === 'image' && file.src) || file.type === 'html') { // Inclui HTML
                             allTextAndImageFiles.push(file);
                         }
                     });
@@ -2846,15 +2945,8 @@
                 fileItem.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
                 fileItem.dataset.fileId = file.id;
 
-                let iconHtml = '';
-                if (file.type === 'image' && file.src) {
-                    iconHtml = `<img src="${file.src}" style="width: 32px; height: 32px; object-fit: cover; border-radius: 4px;">`;
-                } else {
-                    iconHtml = `<i class="${fileIcons[file.type] || 'fas fa-file'}"></i>`;
-                }
-
                 fileItem.innerHTML = `
-                    <div class="file-icon">${iconHtml}</div>
+                    <div><i class="${fileIcons[file.type] || 'fas fa-file'}"></i></div>
                     <div>${file.name}</div>
                 `;
                 
@@ -2871,14 +2963,29 @@
             
             document.getElementById('confirm-open-file').onclick = async () => {
                 if (systemState.selectedFile) {
-                    addRecentFile(systemState.selectedFile); // Adiciona aos recentes
                     if (systemState.selectedFile.type === 'text' && targetTextArea) {
                         targetTextArea.value = systemState.selectedFile.content || '';
                         targetTextArea.dataset.fileId = systemState.selectedFile.id;
                         openFileModal.classList.remove('active');
+                        addToRecentFiles(systemState.selectedFile);
                     } else if (systemState.selectedFile.type === 'image') {
                         openImageViewer(systemState.selectedFile.src);
                         openFileModal.classList.remove('active');
+                        addToRecentFiles(systemState.selectedFile);
+                    } else if (systemState.selectedFile.type === 'html') {
+                        openApp('browser');
+                        const browserWindow = systemState.openWindows.find(w => w.id === 'browser');
+                        if (browserWindow) {
+                            const browserContent = browserWindow.element.querySelector('#browser-content');
+                            const browserUrl = browserWindow.element.querySelector('#browser-url');
+                            if (browserContent && browserUrl) {
+                                const appPath = `/AxonApps/${systemState.selectedFile.name}`; // Simula o caminho
+                                browserUrl.value = appPath;
+                                browserContent.src = appPath;
+                            }
+                        }
+                        openFileModal.classList.remove('active');
+                        addToRecentFiles(systemState.selectedFile);
                     } else {
                         await axonAlert("Tipo de arquivo não suportado para esta ação.");
                     }
@@ -2972,7 +3079,7 @@
                             systemState.currentDirectory = targetDir;
                             return `Diretório alterado para: ${targetDir}`;
                         } else {
-                            return `Diretório não encontrado: ${targetDir || ''}`;
+                            return `Não é uma pasta: ${targetDir}`;
                         }
                     }
                     return `Diretório não encontrado: ${targetDir || ''}`;
@@ -2984,14 +3091,14 @@
                             return `Erro: Já existe um item com o nome "${newFolderName}" neste diretório.`;
                         }
                         const newFolderId = `folder-${Date.now()}`;
-                        const newFolder = { id: newFolderId, name: newFolderName, type: 'folder', icon: fileIcons.folder, lastModified: Date.now() };
+                        const newFolder = { id: newFolderId, name: newFolderName, type: 'folder', icon: fileIcons.folder };
                         if (!systemData.fileSystem[systemState.currentDirectory]) {
                             systemData.fileSystem[systemState.currentDirectory] = [];
                         }
                         systemData.fileSystem[systemState.currentDirectory].push(newFolder);
                         systemData.fileSystem[newFolderId] = []; // Cria o novo diretório vazio
                         saveDesktopItems(); // Salva as alterações no fileSystem
-                        addRecentFile(newFolder); // Adiciona aos recentes
+                        addToRecentFiles(newFolder);
                         return `Diretório criado: ${newFolderName}`;
                     }
                     return "Uso: mkdir <nome_da_pasta>";
@@ -3003,13 +3110,13 @@
                             return `Erro: Já existe um item com o nome "${newFileName}" neste diretório.`;
                         }
                         const newFileId = `file-${Date.now()}`;
-                        const newFile = { id: newFileId, name: newFileName, type: 'text', icon: fileIcons.text, content: '', lastModified: Date.now() };
+                        const newFile = { id: newFileId, name: newFileName, type: 'text', icon: fileIcons.text, content: '' };
                         if (!systemData.fileSystem[systemState.currentDirectory]) {
                             systemData.fileSystem[systemState.currentDirectory] = [];
                         }
                         systemData.fileSystem[systemState.currentDirectory].push(newFile);
                         saveDesktopItems(); // Salva as alterações no fileSystem
-                        addRecentFile(newFile); // Adiciona aos recentes
+                        addToRecentFiles(newFile);
                         return `Arquivo criado: ${newFileName}`;
                     }
                     return "Uso: touch <nome_do_arquivo>";
@@ -3111,6 +3218,10 @@
                 if (message.includes('explorador de arquivos') || message.includes('finder')) {
                     openApp('finder');
                     return "Abrindo o Explorador de Arquivos...";
+                }
+                if (message.includes('axon apps') || message.includes('aplicativos')) {
+                    openApp('axonapps');
+                    return "Abrindo a pasta Axon Apps...";
                 }
                 return "Qual aplicativo você gostaria de abrir?";
             } else if (message.includes('fechar') || message.includes('fecha')) {
@@ -3289,7 +3400,7 @@
                     galleryItem.querySelector('[data-action="view"]').addEventListener('click', (e) => {
                         e.stopPropagation(); // Evita que o clique no item acione outros listeners
                         openImageViewer(photo.src);
-                        addRecentFile(photo); // Adiciona aos recentes
+                        addToRecentFiles(photo);
                     });
 
                     galleryItem.querySelector('[data-action="delete"]').addEventListener('click', async (e) => {
@@ -3310,6 +3421,9 @@
                             }
                             if (foundAndRemoved) {
                                 saveDesktopItems(); // Salva as alterações no fileSystem
+                                // Remove do histórico de recentes se existir
+                                systemState.recentFiles = systemState.recentFiles.filter(item => item.id !== photo.id);
+                                saveRecentFiles();
                             }
                             loadGallery(); // Recarrega a galeria
                             axonAlert("Imagem excluída com sucesso!");
@@ -3371,30 +3485,39 @@
                     
                     const photoData = canvas.toDataURL('image/png');
                     
-                    // Salva a foto no fileSystem.images
-                    const photoId = `photo-${Date.now()}`;
-                    const newPhoto = {
-                        id: photoId,
-                        name: `Foto ${new Date().toLocaleString()}.png`,
+                    const newImageId = 'camera-photo-' + Date.now();
+                    const newImageName = `Foto ${new Date().toLocaleTimeString()}.png`;
+                    const newImage = {
+                        id: newImageId,
+                        name: newImageName,
                         type: 'image',
                         icon: fileIcons.image,
-                        src: photoData,
-                        lastModified: Date.now()
+                        src: photoData
                     };
+
+                    // Adiciona a nova imagem ao fileSystem.images
                     if (!systemData.fileSystem.images) {
                         systemData.fileSystem.images = [];
                     }
-                    systemData.fileSystem.images.push(newPhoto);
+                    systemData.fileSystem.images.push(newImage);
                     saveDesktopItems(); // Salva o fileSystem atualizado
-                    addRecentFile(newPhoto); // Adiciona aos recentes
+                    addToRecentFiles(newImage);
                     
                     // Atualiza a galeria se estiver aberta
                     const galleryWindow = systemState.openWindows.find(w => w.id === 'gallery');
                     if (galleryWindow) {
                         initGallery(galleryWindow.element);
                     }
+                    // Atualiza o Finder se estiver aberto e na aba de imagens
+                    const finderWindow = systemState.openWindows.find(w => w.id === 'finder');
+                    if (finderWindow && finderWindow.element.querySelector('.sidebar-item[data-path="images"]').classList.contains('active')) {
+                        const explorerGrid = finderWindow.element.querySelector('#all-items-grid');
+                        if (explorerGrid) {
+                            loadDirectory('images', explorerGrid);
+                        }
+                    }
                     
-                    await axonAlert('Foto capturada e salva em Imagens!');
+                    await axonAlert('Foto capturada com sucesso!');
                 });
             } catch (err) {
                 console.error('Erro ao acessar a câmera:', err);
@@ -3404,7 +3527,7 @@
         }
 
         // Inicializar navegador
-        function initBrowser(windowElement) {
+        function initBrowser(windowElement, initialUrl = "about:blank") {
             const browserUrl = windowElement.querySelector('#browser-url');
             const browserGo = windowElement.querySelector('#browser-go');
             const browserContent = windowElement.querySelector('#browser-content');
@@ -3436,7 +3559,7 @@
                 }
             }
             
-            loadUrl(browserUrl.value); // Carrega a URL inicial
+            loadUrl(initialUrl); // Carrega a URL inicial
 
             browserGo.addEventListener('click', () => {
                 loadUrl(browserUrl.value);
@@ -3471,6 +3594,59 @@
             browserHome.addEventListener('click', () => {
                 loadUrl('https://www.google.com');
             });
+        }
+
+        // Inicializar Axon Apps
+        function initAxonApps(windowElement) {
+            const axonAppsGrid = windowElement.querySelector('#axon-apps-grid');
+            axonAppsGrid.innerHTML = '';
+
+            if (systemData.axonApps.length === 0) {
+                axonAppsGrid.innerHTML = '<p style="text-align: center; width: 100%;">Nenhum aplicativo encontrado.</p>';
+                return;
+            }
+
+            systemData.axonApps.forEach(app => {
+                const appItem = document.createElement('div');
+                appItem.className = 'axon-app-item';
+                appItem.dataset.appId = app.id;
+                appItem.dataset.appUrl = app.url;
+                appItem.dataset.appName = app.name;
+                appItem.dataset.appIcon = app.icon;
+
+                let iconHtml = '';
+                if (app.icon.startsWith('fas ')) {
+                    iconHtml = `<i class="${app.icon}"></i>`;
+                } else {
+                    iconHtml = `<img src="${app.icon}" alt="${app.name} icon">`;
+                }
+
+                appItem.innerHTML = `
+                    <div class="axon-app-icon">
+                        ${iconHtml}
+                    </div>
+                    <div class="axon-app-label">${app.name}</div>
+                `;
+
+                appItem.addEventListener('click', () => {
+                    openApp('browser', app.url, app.name, app.icon); // Abre o app HTML no navegador
+                    addToRecentFiles({ id: app.id, name: app.name, type: 'html', icon: app.icon });
+                });
+
+                axonAppsGrid.appendChild(appItem);
+            });
+        }
+
+        // Buscar por aplicativos HTML (simulado)
+        function findAxonApps() {
+            // Simula a busca por arquivos HTML no diretório /AxonApps/
+            // Em um ambiente real, isso envolveria requisições AJAX ou leitura de diretórios no servidor.
+            const simulatedApps = [
+                { id: 'app-game', name: 'Jogo Simples', url: '/AxonApps/game.html', icon: 'fas fa-gamepad' },
+                { id: 'app-todo', name: 'Lista de Tarefas', url: '/AxonApps/todo.html', icon: 'fas fa-list-check' },
+                { id: 'app-clock', name: 'Relógio Digital', url: '/AxonApps/clock.html', icon: 'fas fa-clock' }
+            ];
+            systemData.axonApps = simulatedApps;
         }
 
         // Inicializar Configurações
@@ -3575,62 +3751,6 @@
                 await axonAlert(`Firewall ${e.target.checked ? 'ativado' : 'desativado'}. (Funcionalidade simulada)`, "Segurança");
             });
         }
-
-        // Inicializar Axon Apps
-        function initAxonApps(windowElement) {
-            const axonAppsGrid = windowElement.querySelector('#axon-apps-grid');
-            axonAppsGrid.innerHTML = '';
-
-            if (systemState.axonApps.length === 0) {
-                axonAppsGrid.innerHTML = '<p style="text-align: center; width: 100%;">Nenhum aplicativo encontrado. Certifique-se de que os arquivos .html estão na pasta AxonApps.</p>';
-                return;
-            }
-
-            systemState.axonApps.forEach(app => {
-                const appItem = document.createElement('div');
-                appItem.className = 'axon-app-item';
-                appItem.dataset.appName = app.name;
-                appItem.dataset.appPath = app.path;
-
-                const appIconDiv = document.createElement('div');
-                appIconDiv.className = 'axon-app-icon';
-                if (app.iconSrc) {
-                    const img = document.createElement('img');
-                    img.src = app.iconSrc;
-                    appIconDiv.appendChild(img);
-                } else {
-                    const icon = document.createElement('i');
-                    icon.className = fileIcons.html; // Ícone padrão para HTML
-                    appIconDiv.appendChild(icon);
-                }
-
-                const appLabel = document.createElement('div');
-                appLabel.className = 'axon-app-label';
-                appLabel.textContent = app.name;
-
-                appItem.appendChild(appIconDiv);
-                appItem.appendChild(appLabel);
-
-                appItem.addEventListener('click', () => {
-                    openApp('custom-html-app', app.name, app.path);
-                });
-
-                axonAppsGrid.appendChild(appItem);
-            });
-        }
-
-        // Função para encontrar aplicativos HTML
-        async function findAxonApps() {
-            // Simula a leitura de um diretório. Em um ambiente real, isso exigiria um backend.
-            // Para este exemplo, vamos simular alguns arquivos HTML.
-            const simulatedAxonApps = [
-                { name: "Meu Primeiro App", path: "./AxonApps/myfirstapp.html", iconSrc: "https://via.placeholder.com/60/FF5733/FFFFFF?text=M1" },
-                { name: "Calculadora Avançada", path: "./AxonApps/advancedcalc.html", iconSrc: "https://via.placeholder.com/60/33FF57/FFFFFF?text=CA" },
-                { name: "Jogo da Velha", path: "./AxonApps/tictactoe.html", iconSrc: "https://via.placeholder.com/60/3357FF/FFFFFF?text=JV" }
-            ];
-            systemState.axonApps = simulatedAxonApps;
-        }
-
 
         // Carregar configurações do localStorage
         function loadSettings() {
