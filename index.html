@@ -1161,22 +1161,29 @@
         /* Axon Apps Folder */
         .axon-apps-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            /* Ajustado para ter colunas de tamanho fixo e auto-ajustáveis */
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); 
             gap: 15px;
             padding: 15px;
             height: 100%;
             overflow-y: auto;
+            /* Adicionado para alinhar o conteúdo ao topo e evitar alongamento */
+            align-content: flex-start; 
         }
 
         .axon-app-item {
             display: flex;
             flex-direction: column;
             align-items: center;
-            width: 100px;
+            /* Aumentado o width para acomodar melhor o conteúdo */
+            width: 120px; 
             cursor: pointer;
             padding: 10px 5px;
             border-radius: 8px;
             transition: all 0.2s ease;
+            /* Adicionado para garantir que o item tenha uma altura mínima e seja mais quadrado */
+            height: 120px; 
+            justify-content: center;
         }
 
         .axon-app-item:hover {
@@ -1184,14 +1191,22 @@
         }
 
         .axon-app-item .icon-image {
-            width: 60px;
-            height: 60px;
-            font-size: 30px;
+            /* Aumentado o tamanho da imagem do ícone */
+            width: 70px; 
+            height: 70px;
+            font-size: 36px; /* Aumentado o tamanho do ícone dentro da imagem */
+            margin-bottom: 8px; /* Ajustado o espaçamento */
         }
 
         .axon-app-item .icon-label {
-            font-size: 11px;
+            font-size: 12px; /* Ajustado o tamanho da fonte */
             margin-top: 5px;
+            text-align: center;
+            word-break: break-word;
+            line-height: 1.2;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
     </style>
 </head>
@@ -1446,10 +1461,7 @@
                 downloads: [
                     { id: 'installer', name: 'Instalador.dmg', type: 'executable', icon: 'fas fa-download' }
                 ],
-                'axon-apps': [ // Novo diretório para aplicativos HTML
-                    // Exemplo de um aplicativo HTML que você pode criar:
-                    // { id: 'my-app', name: 'Meu Primeiro App', type: 'html-app', icon: 'fas fa-code', path: 'apps/my-first-app.html' }
-                ],
+                'axon-apps': [], // Este diretório será preenchido dinamicamente pelos apps HTML
                 trash: []
             },
             terminalHistory: [
@@ -3857,26 +3869,22 @@
             systemState.axonApps = []; // Limpa a lista existente
             systemData.fileSystem['axon-apps'] = []; // Limpa o diretório no fileSystem
 
-            // Gera caminhos de arquivos HTML de app1.html a app50.html
-            const simulatedAppFiles = [];
+            // Itera de 1 a 50 para buscar apps em subpastas numeradas
             for (let i = 1; i <= 50; i++) {
-                simulatedAppFiles.push(`apps/app${i}.html`);
-            }
-
-            for (const filePath of simulatedAppFiles) {
+                const filePath = `apps/app${i}/app.html`; // Caminho conforme solicitado
                 try {
                     const response = await fetch(filePath);
                     if (!response.ok) {
                         // Se o arquivo não existir, apenas loga um aviso e continua para o próximo
-                        console.warn(`Não foi possível carregar o aplicativo: ${filePath}. Status: ${response.status}`);
-                        continue;
+                        // console.warn(`Não foi possível carregar o aplicativo: ${filePath}. Status: ${response.status}`);
+                        continue; // Pula para a próxima iteração se o arquivo não for encontrado
                     }
                     const htmlContent = await response.text();
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(htmlContent, 'text/html');
 
                     const titleElement = doc.querySelector('title');
-                    const appName = titleElement ? titleElement.textContent : filePath.split('/').pop().replace('.html', '');
+                    const appName = titleElement ? titleElement.textContent : `App ${i}`; // Nome padrão se não houver título
 
                     let appIcon = 'fas fa-code'; // Ícone padrão
                     const linkElements = doc.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"]');
