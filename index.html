@@ -2460,7 +2460,6 @@
                                     break;
                                 }
                             }
-                        }
                         } else if (e.key === 'ArrowRight') {
                             for (let c = nextCol; c < cols; c++) {
                                 if (systemState.desktopGrid.positions[nextRow][c]) {
@@ -2506,7 +2505,6 @@
                 openApp('finder');
                 const finderWindow = systemState.openWindows.find(w => w.id === 'finder');
                 if (finderWindow) {
-                    // MODIFICAÇÃO CHAVE AQUI: Navega para o ID da pasta clicada
                     navigateToDirectory(item.id, finderWindow.element);
                 }
             } else if (item.type === 'text') {
@@ -3167,7 +3165,6 @@
                 bringToFront(existingWindow.windowId);
                 if (appId === 'finder') {
                     const finderWindow = existingWindow.element;
-                    // Ao reabrir o finder, ele deve ir para o último caminho conhecido
                     navigateToDirectory(systemState.finderCurrentPath, finderWindow);
                 } else if (appId === 'axon-apps') {
                     initAxonApps(existingWindow.element); // Recarrega a lista de apps
@@ -3543,7 +3540,6 @@
                     `;
                     
                     fileItem.addEventListener('dblclick', () => {
-                        // MODIFICAÇÃO CHAVE AQUI: Chama openItem para que pastas abram corretamente
                         openItem(item);
                     });
 
@@ -3637,9 +3633,6 @@
                 }
             });
             
-            // MODIFICAÇÃO CHAVE AQUI: Expõe navigateToDirectory para ser usada externamente
-            windowElement.navigateToDirectory = navigateToDirectory;
-
             navigateToDirectory(systemState.finderCurrentPath, windowElement); // Carrega o desktop por padrão
         }
 
@@ -3913,7 +3906,7 @@
                     return "";
                 case 'date':
                     const now = new Date();
-                    return now.toLocaleString('pt-BR', { 
+                    return now.toLocaleDateString('pt-BR', { 
                         weekday: 'long', 
                         year: 'numeric', 
                         month: 'long', 
