@@ -1,10 +1,13 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Axon OS</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
     <style>
         /* Variáveis e Reset */
         :root {
@@ -29,7 +32,8 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont,
+                "Segoe UI", sans-serif;
             user-select: none;
         }
 
@@ -279,9 +283,15 @@
             opacity: 1;
         }
 
-        .window-close { background: var(--danger); }
-        .window-minimize { background: var(--warning); }
-        .window-maximize { background: var(--success); }
+        .window-close {
+            background: var(--danger);
+        }
+        .window-minimize {
+            background: var(--warning);
+        }
+        .window-maximize {
+            background: var(--success);
+        }
 
         .window-content {
             flex: 1;
@@ -314,7 +324,10 @@
         }
 
         /* Elementos de formulário */
-        input, textarea, select, button {
+        input,
+        textarea,
+        select,
+        button {
             background: rgba(30, 30, 50, 0.5);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 8px;
@@ -325,7 +338,9 @@
             transition: all 0.2s ease;
         }
 
-        input:focus, textarea:focus, select:focus {
+        input:focus,
+        textarea:focus,
+        select:focus {
             border-color: var(--accent);
             box-shadow: 0 0 0 2px var(--highlight);
         }
@@ -381,6 +396,10 @@
             gap: 15px;
         }
 
+        .files-grid:not(.active) {
+            display: none;
+        }
+
         .file-item {
             display: flex;
             flex-direction: column;
@@ -429,7 +448,7 @@
             background: transparent;
             border: none;
             resize: none;
-            font-family: 'SF Mono', monospace;
+            font-family: "SF Mono", monospace;
             font-size: 14px;
             line-height: 1.5;
         }
@@ -488,7 +507,7 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            font-family: 'SF Mono', monospace;
+            font-family: "SF Mono", monospace;
             font-size: 14px;
         }
 
@@ -577,108 +596,6 @@
             font-size: 14px;
         }
 
-        /* Reprodutor de Mídia */
-        .media-player {
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-            padding: 20px;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .album-art {
-            width: 300px;
-            height: 300px;
-            border-radius: 10px;
-            background: linear-gradient(45deg, #6a5af9, #d66efd);
-            margin-bottom: 30px;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-        }
-
-        .album-art img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .track-info {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .track-title {
-            font-size: 24px;
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-
-        .track-artist {
-            font-size: 16px;
-            opacity: 0.8;
-        }
-
-        .player-controls {
-            display: flex;
-            gap: 20px;
-            align-items: center;
-        }
-
-        .player-btn {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: var(--accent);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .player-btn.play-btn {
-            width: 70px;
-            height: 70px;
-            font-size: 24px;
-        }
-
-        .player-btn:hover {
-            background: var(--accent-light);
-            transform: scale(1.1);
-        }
-
-        .progress-container {
-            width: 100%;
-            max-width: 500px;
-            margin-top: 20px;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 5px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            overflow: hidden;
-            cursor: pointer;
-        }
-
-        .progress {
-            height: 100%;
-            background: var(--accent);
-            width: 30%;
-            border-radius: 10px;
-        }
-
-        .time-info {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 5px;
-            font-size: 12px;
-            opacity: 0.7;
-        }
-
         /* Menu de contexto */
         .context-menu {
             position: absolute;
@@ -725,7 +642,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 4000; /* Acima de outros modais */
+            z -index: 4000; /* Acima de outros modais */
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.3s ease;
@@ -847,9 +764,8 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: 
-                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
             background-size: 20px 20px;
             z-index: -1;
         }
@@ -902,7 +818,8 @@
             overflow: hidden;
         }
 
-        .camera-preview video, .camera-preview canvas {
+        .camera-preview video,
+        .camera-preview canvas {
             width: 100%;
             height: 100%;
             object-fit: cover;
@@ -910,14 +827,24 @@
 
         /* Animações */
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
         }
 
         @keyframes float {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
-            100% { transform: translateY(0px); }
+            0% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+            100% {
+                transform: translateY(0px);
+            }
         }
 
         .floating {
@@ -930,7 +857,7 @@
             align-items: center;
             justify-content: center;
             height: 100%;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0, 0, 0, 0.8);
         }
         .image-viewer-content img {
             max-width: 90%;
@@ -965,11 +892,11 @@
             overflow: hidden;
             position: relative;
             cursor: pointer;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
             transition: transform 0.2s ease;
             display: flex;
             flex-direction: column;
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .window-thumbnail:hover {
@@ -1055,7 +982,7 @@
         .settings-section {
             margin-bottom: 25px;
             padding-bottom: 15px;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
         .settings-section:last-child {
             border-bottom: none;
@@ -1161,21 +1088,21 @@
         /* Axon Apps */
         .axon-apps-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
             gap: 15px;
             padding: 15px;
-            justify-items: center;
+            height: 100%;
+            overflow-y: auto;
         }
 
         .axon-app-item {
             display: flex;
             flex-direction: column;
             align-items: center;
-            width: 100px;
-            cursor: pointer;
-            padding: 10px 5px;
+            padding: 10px;
             border-radius: 8px;
-            transition: all 0.2s ease;
+            cursor: pointer;
+            transition: background 0.2s ease;
         }
 
         .axon-app-item:hover {
@@ -1190,16 +1117,16 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 30px;
+            font-size: 32px;
             margin-bottom: 5px;
             border: 1px solid rgba(255, 255, 255, 0.1);
-            overflow: hidden; /* Para ícones de imagem */
+            overflow: hidden; /* Para garantir que a imagem não vaze */
         }
 
         .axon-app-icon img {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: cover; /* Para cobrir o espaço do ícone */
         }
 
         .axon-app-label {
@@ -1240,17 +1167,40 @@
 
     <!-- Dock de Aplicativos -->
     <div id="dock">
-        <div class="dock-icon" data-app="finder" data-tooltip="Explorador de Arquivos"><i class="fas fa-folder"></i></div>
-        <div class="dock-icon" data-app="notes" data-tooltip="Bloco de Notas"><i class="fas fa-edit"></i></div>
-        <div class="dock-icon" data-app="terminal" data-tooltip="Terminal"><i class="fas fa-terminal"></i></div>
-        <div class="dock-icon" data-app="calculator" data-tooltip="Calculadora"><i class="fas fa-calculator"></i></div>
-        <div class="dock-icon" data-app="camera" data-tooltip="Câmera"><i class="fas fa-camera"></i></div>
-        <div class="dock-icon" data-app="gallery" data-tooltip="Galeria de Imagens"><i class="fas fa-images"></i></div>
-        <div class="dock-icon" data-app="axonapps" data-tooltip="Axon Apps"><i class="fas fa-th-large"></i></div>
-        <div class="dock-icon" data-app="browser" data-tooltip="Navegador Web"><i class="fas fa-globe"></i></div>
+        <div class="dock-icon" data-app="finder" data-tooltip="Explorador de Arquivos">
+            <i class="fas fa-folder"></i>
+        </div>
+        <div class="dock-icon" data-app="notes" data-tooltip="Bloco de Notas">
+            <i class="fas fa-edit"></i>
+        </div>
+        <div class="dock-icon" data-app="terminal" data-tooltip="Terminal">
+            <i class="fas fa-terminal"></i>
+        </div>
+        <div class="dock-icon" data-app="calculator" data-tooltip="Calculadora">
+            <i class="fas fa-calculator"></i>
+        </div>
+        <div class="dock-icon" data-app="camera" data-tooltip="Câmera">
+            <i class="fas fa-camera"></i>
+        </div>
+        <div class="dock-icon" data-app="gallery" data-tooltip="Galeria de Imagens">
+            <i class="fas fa-images"></i>
+        </div>
+        <div class="dock-icon" data-app="media" data-tooltip="Reprodutor de Mídia">
+            <i class="fas fa-play-circle"></i>
+        </div>
+        <div class="dock-icon" data-app="browser" data-tooltip="Navegador Web">
+            <i class="fas fa-globe"></i>
+        </div>
+        <div class="dock-icon" data-app="axonapps" data-tooltip="Axon Apps">
+            <i class="fas fa-th-large"></i>
+        </div>
         <div class="divider"></div>
-        <div class="dock-icon" data-app="settings" data-tooltip="Configurações"><i class="fas fa-cog"></i></div>
-        <div class="dock-icon" data-app="mielina" data-tooltip="Assistente Virtual"><i class="fas fa-robot"></i></div>
+        <div class="dock-icon" data-app="settings" data-tooltip="Configurações">
+            <i class="fas fa-cog"></i>
+        </div>
+        <div class="dock-icon" data-app="mielina" data-tooltip="Assistente Virtual">
+            <i class="fas fa-robot"></i>
+        </div>
     </div>
 
     <!-- Janelas de Aplicativos (serão criadas dinamicamente) -->
@@ -1258,17 +1208,33 @@
 
     <!-- Menu de Contexto -->
     <div class="context-menu" id="context-menu">
-        <div class="context-menu-item" id="context-open"><i class="fas fa-folder-open"></i> Abrir</div>
-        <div class="context-menu-item" id="context-rename"><i class="fas fa-edit"></i> Renomear</div>
+        <div class="context-menu-item" id="context-open">
+            <i class="fas fa-folder-open"></i> Abrir
+        </div>
+        <div class="context-menu-item" id="context-rename">
+            <i class="fas fa-edit"></i> Renomear
+        </div>
         <div class="context-menu-divider"></div>
-        <div class="context-menu-item" id="context-cut"><i class="fas fa-cut"></i> Recortar</div>
-        <div class="context-menu-item" id="context-copy"><i class="fas fa-copy"></i> Copiar</div>
-        <div class="context-menu-item" id="context-paste"><i class="fas fa-paste"></i> Colar</div>
+        <div class="context-menu-item" id="context-cut">
+            <i class="fas fa-cut"></i> Recortar
+        </div>
+        <div class="context-menu-item" id="context-copy">
+            <i class="fas fa-copy"></i> Copiar
+        </div>
+        <div class="context-menu-item" id="context-paste">
+            <i class="fas fa-paste"></i> Colar
+        </div>
         <div class="context-menu-divider"></div>
-        <div class="context-menu-item" id="context-new-folder"><i class="fas fa-folder-plus"></i> Nova Pasta</div>
-        <div class="context-menu-item" id="context-new-file"><i class="fas fa-file"></i> Novo Arquivo</div>
+        <div class="context-menu-item" id="context-new-folder">
+            <i class="fas fa-folder-plus"></i> Nova Pasta
+        </div>
+        <div class="context-menu-item" id="context-new-file">
+            <i class="fas fa-file"></i> Novo Arquivo
+        </div>
         <div class="context-menu-divider"></div>
-        <div class="context-menu-item" id="context-delete"><i class="fas fa-trash"></i> Excluir</div>
+        <div class="context-menu-item" id="context-delete">
+            <i class="fas fa-trash"></i> Excluir
+        </div>
     </div>
 
     <!-- Modal de criação de item -->
@@ -1277,22 +1243,32 @@
             <div class="modal-header">
                 <h3>Criar Novo Item</h3>
                 <div class="window-controls">
-                    <div class="window-control window-close" onclick="closeModal('create-modal')"><i class="fas fa-times"></i></div>
+                    <div
+                        class="window-control window-close"
+                        onclick="closeModal('create-modal')"
+                    >
+                        <i class="fas fa-times"></i>
+                    </div>
                 </div>
             </div>
             <div class="modal-body">
-                <div style="margin-bottom: 15px;">
+                <div style="margin-bottom: 15px">
                     <label>Tipo:</label>
-                    <select id="item-type" style="width: 100%; margin-top: 5px;">
+                    <select id="item-type" style="width: 100%; margin-top: 5px">
                         <option value="folder">Pasta</option>
                         <option value="text">Documento de Texto</option>
                         <option value="image">Imagem</option>
                         <option value="link">Link</option>
                     </select>
                 </div>
-                <div style="margin-bottom: 15px;">
+                <div style="margin-bottom: 15px">
                     <label>Nome:</label>
-                    <input type="text" id="item-name" placeholder="Nome do item" style="width: 100%; margin-top: 5px;">
+                    <input
+                        type="text"
+                        id="item-name"
+                        placeholder="Nome do item"
+                        style="width: 100%; margin-top: 5px"
+                    />
                 </div>
             </div>
             <div class="modal-footer">
@@ -1304,19 +1280,34 @@
 
     <!-- Modal para abrir arquivos -->
     <div class="modal" id="open-file-modal">
-        <div class="modal-content" style="width: 600px; height: 500px;">
+        <div class="modal-content" style="width: 600px; height: 500px">
             <div class="modal-header">
                 <h3>Abrir Arquivo</h3>
                 <div class="window-controls">
-                    <div class="window-control window-close" onclick="closeModal('open-file-modal')"><i class="fas fa-times"></i></div>
+                    <div
+                        class="window-control window-close"
+                        onclick="closeModal('open-file-modal')"
+                    >
+                        <i class="fas fa-times"></i>
+                    </div>
                 </div>
             </div>
-            <div class="modal-body" style="height: calc(100% - 100px); overflow: hidden; display: flex; flex-direction: column;">
-                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                    <input type="text" id="file-search" placeholder="Pesquisar..." style="flex: 1;">
+            <div
+                class="modal-body"
+                style="height: calc(100% - 100px); overflow: hidden; display: flex; flex-direction: column"
+            >
+                <div style="display: flex; gap: 10px; margin-bottom: 15px">
+                    <input
+                        type="text"
+                        id="file-search"
+                        placeholder="Pesquisar..."
+                        style="flex: 1"
+                    />
                     <button><i class="fas fa-search"></i></button>
                 </div>
-                <div style="flex: 1; overflow: auto; background: rgba(0,0,0,0.1); border-radius: 8px; padding: 10px;">
+                <div
+                    style="flex: 1; overflow: auto; background: rgba(0, 0, 0, 0.1); border-radius: 8px; padding: 10px"
+                >
                     <div id="file-list">
                         <!-- Lista de arquivos será preenchida aqui -->
                     </div>
@@ -1340,15 +1331,20 @@
 
     <!-- Image Viewer Modal -->
     <div class="modal" id="image-viewer-modal">
-        <div class="modal-content" style="width: 80%; height: 80%;">
+        <div class="modal-content" style="width: 80%; height: 80%">
             <div class="modal-header">
                 <h3 id="image-viewer-title">Visualizador de Imagens</h3>
                 <div class="window-controls">
-                    <div class="window-control window-close" onclick="closeModal('image-viewer-modal')"><i class="fas fa-times"></i></div>
+                    <div
+                        class="window-control window-close"
+                        onclick="closeModal('image-viewer-modal')"
+                    >
+                        <i class="fas fa-times"></i>
+                    </div>
                 </div>
             </div>
             <div class="modal-body image-viewer-content">
-                <img id="image-viewer-img" src="" alt="Imagem">
+                <img id="image-viewer-img" src="" alt="Imagem" />
             </div>
         </div>
     </div>
@@ -1375,17 +1371,26 @@
             <div class="modal-header">
                 <h3>Guia de Acesso ao Sistema Axon OS</h3>
                 <div class="window-controls">
-                    <div class="window-control window-close" onclick="closeModal('help-guide-modal')"><i class="fas fa-times"></i></div>
-                </div> </div>
+                    <div
+                        class="window-control window-close"
+                        onclick="closeModal('help-guide-modal')"
+                    >
+                        <i class="fas fa-times"></i>
+                    </div>
+                </div>
+            </div>
             <div class="modal-body">
                 <p>Bem-vindo ao Axon OS! Este guia rápido irá ajudá-lo a começar.</p>
-                
+
                 <div class="settings-section">
                     <h4><i class="fas fa-mouse-pointer"></i> Interação Básica</h4>
                     <ul>
                         <li><strong>Clique Simples:</strong> Seleciona um item.</li>
                         <li><strong>Clique Duplo:</strong> Abre um aplicativo ou item.</li>
-                        <li><strong>Botão Direito (Menu de Contexto):</strong> Abre opções para o item selecionado ou para a área de trabalho.</li>
+                        <li>
+                            <strong>Botão Direito (Menu de Contexto):</strong> Abre opções
+                            para o item selecionado ou para a área de trabalho.
+                        </li>
                         <li><strong>Arrastar e Soltar:</strong> Mova ícones na área de trabalho.</li>
                     </ul>
                 </div>
@@ -1393,11 +1398,26 @@
                 <div class="settings-section">
                     <h4><i class="fas fa-rocket"></i> Aplicativos Essenciais</h4>
                     <ul>
-                        <li><strong>Explorador de Arquivos (<i class="fas fa-folder"></i>):</strong> Gerencie seus arquivos e pastas.</li>
-                        <li><strong>Bloco de Notas (<i class="fas fa-edit"></i>):</strong> Crie e edite documentos de texto.</li>
-                        <li><strong>Terminal (<i class="fas fa-terminal"></i>):</strong> Para usuários avançados, execute comandos do sistema.</li>
-                        <li><strong>Mielina (<i class="fas fa-robot"></i>):</strong> Sua assistente virtual para ajuda rápida.</li>
-                        <li><strong>Configurações (<i class="fas fa-cog"></i>):</strong> Personalize o sistema e gerencie opções.</li>
+                        <li>
+                            <strong>Explorador de Arquivos (<i class="fas fa-folder"></i>):</strong>
+                            Gerencie seus arquivos e pastas.
+                        </li>
+                        <li>
+                            <strong>Bloco de Notas (<i class="fas fa-edit"></i>):</strong> Crie e
+                            edite documentos de texto.
+                        </li>
+                        <li>
+                            <strong>Terminal (<i class="fas fa-terminal"></i>):</strong> Para
+                            usuários avançados, execute comandos do sistema.
+                        </li>
+                        <li>
+                            <strong>Mielina (<i class="fas fa-robot"></i>):</strong> Sua
+                            assistente virtual para ajuda rápida.
+                        </li>
+                        <li>
+                            <strong>Configurações (<i class="fas fa-cog"></i>):</strong>
+                            Personalize o sistema e gerencie opções.
+                        </li>
                     </ul>
                 </div>
 
@@ -1405,7 +1425,10 @@
                     <h4><i class="fas fa-window-restore"></i> Gerenciamento de Janelas</h4>
                     <ul>
                         <li><strong>Minimizar (<i class="fas fa-minus"></i>):</strong> Oculta a janela na barra de tarefas.</li>
-                        <li><strong>Maximizar/Restaurar (<i class="fas fa-square"></i>):</strong> Alterna entre tela cheia e tamanho original.</li>
+                        <li>
+                            <strong>Maximizar/Restaurar (<i class="fas fa-square"></i>):</strong>
+                            Alterna entre tela cheia e tamanho original.
+                        </li>
                         <li><strong>Fechar (<i class="fas fa-times"></i>):</strong> Encerra o aplicativo.</li>
                         <li><strong>Menu "Janela":</strong> Visualize e gerencie todas as janelas abertas.</li>
                     </ul>
@@ -1423,8 +1446,8 @@
     <div id="login-screen">
         <div class="login-box">
             <h2>Axon OS</h2>
-            <input type="text" id="login-username" placeholder="Usuário">
-            <input type="password" id="login-password" placeholder="Senha">
+            <input type="text" id="login-username" placeholder="Usuário" />
+            <input type="password" id="login-password" placeholder="Senha" />
             <button id="login-button">Entrar</button>
         </div>
     </div>
@@ -1439,10 +1462,11 @@
                 calculator: { name: "Calculadora", icon: "fas fa-calculator", minWidth: 300, minHeight: 400 },
                 camera: { name: "Câmera", icon: "fas fa-camera", minWidth: 500, minHeight: 400 },
                 gallery: { name: "Galeria de Imagens", icon: "fas fa-images", minWidth: 800, minHeight: 500 },
-                axonapps: { name: "Axon Apps", icon: "fas fa-th-large", minWidth: 600, minHeight: 500 },
+                media: { name: "Reprodutor de Mídia", icon: "fas fa-play-circle", minWidth: 600, minHeight: 500 },
                 browser: { name: "Navegador Axon", icon: "fas fa-globe", minWidth: 900, minHeight: 600 },
                 settings: { name: "Configurações", icon: "fas fa-cog", minWidth: 700, minHeight: 500 },
-                mielina: { name: "Mielina - Assistente Virtual", icon: "fas fa-robot", minWidth: 500, minHeight: 500 }
+                mielina: { name: "Mielina - Assistente Virtual", icon: "fas fa-robot", minWidth: 500, minHeight: 500 },
+                axonapps: { name: "Axon Apps", icon: "fas fa-th-large", minWidth: 800, minHeight: 600 }
             },
             desktopItems: [
                 { id: 'documents', name: 'Documentos', type: 'folder', icon: 'fas fa-folder', x: 20, y: 20 },
@@ -1470,7 +1494,11 @@
                 { command: "date", output: "Quarta-feira, 16 de Julho de 2025, 14:25:03" },
                 { command: "echo 'Bem-vindo ao Axon OS'", output: "Bem-vindo ao Axon OS" }
             ],
-            axonApps: [], // Lista de aplicativos HTML encontrados
+            mediaFiles: [
+                { title: "Nova Era Digital", artist: "Synthwave Collective", duration: "4:22" },
+                { title: "Conexão Virtual", artist: "Neon Dreams", duration: "3:45" },
+                { title: "Futuro Presente", artist: "Quantum Beats", duration: "5:18" }
+            ],
             clipboard: null,
             settings: {
                 theme: 'axon-dark',
@@ -1481,7 +1509,8 @@
                 loginEnabled: false,
                 username: '',
                 password: ''
-            }
+            },
+            axonApps: [] // Para armazenar os apps HTML dinamicamente carregados
         };
 
         // Estado do sistema
@@ -1497,14 +1526,13 @@
             ],
             selectedIcon: null, // Para ícones da área de trabalho
             selectedFileItem: null, // Para itens dentro do explorador de arquivos
-            currentMediaIndex: 0, // Removido, mas mantido para evitar erros
-            mediaPlaying: false, // Removido, mas mantido para evitar erros
+            currentMediaIndex: 0,
+            mediaPlaying: false,
             clipboardAction: null, // 'copy' or 'cut'
             currentDirectory: 'desktop', // Diretório atual no explorador de arquivos
             cameraStream: null,
-            cameraPhotos: [], // Agora as fotos da câmera são adicionadas diretamente ao fileSystem.images
-            selectedFile: null, // Para o modal de abrir arquivo
-            recentFiles: [] // Para a aba "Recentes" do Finder
+            cameraPhotos: [],
+            selectedFile: null // Para o modal de abrir arquivo
         };
 
         // Elementos DOM
@@ -1534,8 +1562,7 @@
             presentation: "fas fa-file-powerpoint",
             executable: "fas fa-download",
             archive: "fas fa-file-archive",
-            link: "fas fa-link",
-            html: "fas fa-code" // Ícone para arquivos HTML
+            link: "fas fa-link"
         };
 
         // Custom Alert/Prompt/Confirm functions
@@ -1629,7 +1656,6 @@
             } else {
                 loadDesktopItems();
             }
-            findAxonApps(); // Busca por aplicativos HTML
         }
 
         // Atualizar relógio
@@ -1665,7 +1691,6 @@
                 const folderName = await axonPrompt("Digite o nome da nova pasta:", "Nova Pasta");
                 if (folderName) {
                     createDesktopItem('folder', folderName);
-                    addToRecentFiles({ id: 'new-folder-' + Date.now(), name: folderName, type: 'folder', icon: fileIcons.folder });
                 }
                 hideContextMenu();
             });
@@ -1674,7 +1699,6 @@
                 const fileName = await axonPrompt("Digite o nome do novo arquivo:", "Novo Documento.txt");
                 if (fileName) {
                     createDesktopItem('text', fileName);
-                    addToRecentFiles({ id: 'new-file-' + Date.now(), name: fileName, type: 'text', icon: fileIcons.text });
                 }
                 hideContextMenu();
             });
@@ -1717,23 +1741,9 @@
                         } else {
                             axonAlert("Esta imagem não possui um caminho de origem definido.");
                         }
-                    } else if (itemToOpen.type === 'html') {
-                        openApp('browser');
-                        const browserWindow = systemState.openWindows.find(w => w.id === 'browser');
-                        if (browserWindow) {
-                            const browserContent = browserWindow.element.querySelector('#browser-content');
-                            const browserUrl = browserWindow.element.querySelector('#browser-url');
-                            if (browserContent && browserUrl) {
-                                // Simula o caminho do arquivo HTML
-                                const appPath = `/AxonApps/${itemToOpen.name}`;
-                                browserUrl.value = appPath;
-                                browserContent.src = appPath;
-                            }
-                        }
                     } else {
                         axonAlert(`Não é possível abrir o arquivo "${itemToOpen.name}". Tipo de arquivo não suportado.`);
                     }
-                    addToRecentFiles(itemToOpen);
                 }
                 hideContextMenu();
             });
@@ -1787,7 +1797,6 @@
                             }
                         }
                         axonAlert(`Item renomeado para "${newName.trim()}"`);
-                        addToRecentFiles({ id: itemId, name: newName.trim(), type: itemType === 'desktop' ? systemState.selectedIcon.dataset.type : systemState.selectedFileItem.type, icon: itemType === 'desktop' ? systemState.selectedIcon.querySelector('i').className : fileIcons[systemState.selectedFileItem.type] });
                     } else if (newName && newName.trim() === oldName) {
                         axonAlert("O nome é o mesmo. Nenhuma alteração foi feita.");
                     }
@@ -1889,16 +1898,15 @@
 
                     // Atualiza o Finder se estiver aberto e no diretório correto
                     const finderWindow = systemState.openWindows.find(w => w.id === 'finder');
-                    if (finderWindow) {
+                    if (finderWindow && systemState.currentDirectory === targetDirectoryForPaste) {
                         const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
                         if (explorerGrid) {
-                            loadDirectory(systemState.currentDirectory, explorerGrid); // Recarrega o diretório atual
+                            loadDirectory(targetDirectoryForPaste, explorerGrid);
                         }
                     }
 
                     saveDesktopItems(); // Salva todas as alterações
                     axonAlert(`"${newItem.name}" colado com sucesso!`);
-                    addToRecentFiles(newItem);
                     systemData.clipboard = null;
                     systemState.clipboardAction = null;
                 } else {
@@ -1921,7 +1929,6 @@
                     return;
                 }
                 createDesktopItem(type, name);
-                addToRecentFiles({ id: 'new-item-' + Date.now(), name: name, type: type, icon: fileIcons[type] });
                 createModal.classList.remove('active');
             });
             
@@ -1958,32 +1965,6 @@
             }
         }
 
-        // Adicionar item aos arquivos recentes
-        function addToRecentFiles(item) {
-            // Remove o item se já existir para evitar duplicatas e trazê-lo para o topo
-            systemState.recentFiles = systemState.recentFiles.filter(recentItem => recentItem.id !== item.id);
-            // Adiciona o item no início do array
-            systemState.recentFiles.unshift({ ...item, timestamp: Date.now() });
-            // Limita o número de itens recentes para evitar que o array cresça indefinidamente
-            if (systemState.recentFiles.length > 20) {
-                systemState.recentFiles.pop();
-            }
-            saveRecentFiles();
-        }
-
-        // Salvar arquivos recentes no localStorage
-        function saveRecentFiles() {
-            localStorage.setItem('axon-recent-files', JSON.stringify(systemState.recentFiles));
-        }
-
-        // Carregar arquivos recentes do localStorage
-        function loadRecentFiles() {
-            const savedRecentFiles = localStorage.getItem('axon-recent-files');
-            if (savedRecentFiles) {
-                systemState.recentFiles = JSON.parse(savedRecentFiles);
-            }
-        }
-
         // Criar ícone na área de trabalho
         function createDesktopItem(type, name, x = null, y = null, id = null) {
             id = id || 'item-' + Date.now();
@@ -2008,7 +1989,7 @@
             icon.className = 'desktop-icon';
             icon.dataset.id = id;
             icon.dataset.type = type;
-            icon.dataset.app = type === 'folder' ? 'finder' : (type === 'text' ? 'notes' : (type === 'image' ? 'gallery' : (type === 'html' ? 'browser' : null)));
+            icon.dataset.app = type === 'folder' ? 'finder' : (type === 'text' ? 'notes' : (type === 'image' ? 'gallery' : null));
             icon.style.left = `${x}px`;
             icon.style.top = `${y}px`;
             
@@ -2056,19 +2037,7 @@
                         } else {
                             axonAlert("Esta imagem não possui um caminho de origem definido.");
                         }
-                    } else if (icon.dataset.type === 'html') {
-                        const browserWindow = systemState.openWindows.find(w => w.id === 'browser');
-                        if (browserWindow) {
-                            const browserContent = browserWindow.element.querySelector('#browser-content');
-                            const browserUrl = browserWindow.element.querySelector('#browser-url');
-                            if (browserContent && browserUrl) {
-                                const appPath = `/AxonApps/${name}`; // Simula o caminho
-                                browserUrl.value = appPath;
-                                browserContent.src = appPath;
-                            }
-                        }
                     }
-                    addToRecentFiles(newItem);
                 }
             });
             
@@ -2216,7 +2185,6 @@
         function loadDesktopItems() {
             const savedItems = localStorage.getItem('axon-desktop-items');
             const savedFileSystem = localStorage.getItem('axon-file-system');
-            loadRecentFiles(); // Carrega os arquivos recentes
 
             // Limpa os ícones existentes no desktop antes de carregar
             systemState.desktopIcons.forEach(icon => icon.remove());
@@ -2303,8 +2271,8 @@
         }
 
         // Abrir aplicativo
-        function openApp(appId, appUrl = null, appName = null, appIcon = null) {
-            const existingWindow = systemState.openWindows.find(w => w.id === appId && (appUrl ? w.appUrl === appUrl : true));
+        function openApp(appId, url = null, title = null, icon = null) {
+            const existingWindow = systemState.openWindows.find(w => w.id === appId && w.url === url);
             if (existingWindow) {
                 bringToFront(existingWindow.windowId);
                 if (appId === 'finder') {
@@ -2317,25 +2285,35 @@
             }
 
             const app = systemData.apps[appId];
-            if (!app && !appUrl) return; // Se não é um app padrão e não tem URL, não abre
+            if (!app) return;
 
             const windowId = `window-${Date.now()}`;
             const windowElement = document.createElement('div');
             windowElement.className = 'window';
             windowElement.id = windowId;
-            windowElement.style.width = `${app ? app.minWidth : 800}px`;
-            windowElement.style.height = `${app ? app.minHeight : 600}px`;
+            windowElement.style.width = `${app.minWidth}px`;
+            windowElement.style.height = `${app.minHeight}px`;
             
-            const left = Math.max(0, (window.innerWidth - (app ? app.minWidth : 800)) / 2 + (Math.random() * 100 - 50));
-            const top = Math.max(0, (window.innerHeight - (app ? app.minHeight : 600)) / 2 + (Math.random() * 100 - 50));
+            const left = Math.max(0, (window.innerWidth - app.minWidth) / 2 + (Math.random() * 100 - 50));
+            const top = Math.max(0, (window.innerHeight - app.minHeight) / 2 + (Math.random() * 100 - 50));
             windowElement.style.left = `${left}px`;
             windowElement.style.top = `${top}px`;
 
             const header = document.createElement('div');
             header.className = 'window-header';
+            
+            let windowTitle = title || app.name;
+            let windowIcon = icon || app.icon;
+
+            // Se for o navegador e tiver uma URL específica, ajusta o título e ícone
+            if (appId === 'browser' && url) {
+                windowTitle = title || url; // Usa o título passado ou a URL
+                windowIcon = icon || 'fas fa-globe'; // Usa o ícone passado ou o padrão do navegador
+            }
+
             header.innerHTML = `
                 <div class="window-title">
-                    <i class="${appIcon || (app ? app.icon : 'fas fa-window-maximize')}"></i> ${appName || (app ? app.name : 'Aplicativo')}
+                    ${windowIcon.startsWith('fas ') ? `<i class="${windowIcon}"></i>` : `<img src="${windowIcon}" alt="icon" style="width:16px; height:16px; border-radius: 3px;">`} ${windowTitle}
                 </div>
                 <div class="window-controls">
                     <div class="window-control window-minimize"><i class="fas fa-minus"></i></div>
@@ -2347,7 +2325,7 @@
 
             const content = document.createElement('div');
             content.className = 'window-content';
-            content.innerHTML = generateAppContent(appId, appUrl);
+            content.innerHTML = generateAppContent(appId, url);
             windowElement.appendChild(content);
 
             windowsContainer.appendChild(windowElement);
@@ -2357,15 +2335,15 @@
             
             setupWindowEvents(windowElement, appId, windowId);
             
-            systemState.openWindows.push({ id: appId, windowId: windowId, element: windowElement, appName: appName || app.name, appIcon: appIcon || app.icon, appUrl: appUrl });
+            systemState.openWindows.push({ id: appId, windowId: windowId, element: windowElement, appName: windowTitle, appIcon: windowIcon, url: url });
             systemState.activeWindow = windowId;
             bringToFront(windowId);
             
-            initAppContent(appId, windowElement, appUrl);
+            initAppContent(appId, windowElement, url);
         }
 
         // Gerar conteúdo do aplicativo
-        function generateAppContent(appId, appUrl = null) {
+        function generateAppContent(appId, url = null) {
             switch(appId) {
                 case 'finder':
                     return `
@@ -2379,14 +2357,11 @@
                             </div>
                             <div class="main-content">
                                 <div class="tab-container">
-                                    <div class="tab active" data-tab-content="all-items">Todos os Itens</div>
-                                    <div class="tab" data-tab-content="recent-items">Recentes</div>
+                                    <div class="tab active">Todos os Itens</div>
+                                    <div class="tab">Recentes</div>
                                 </div>
-                                <div class="files-grid active" id="all-items-grid">
+                                <div class="files-grid" id="explorer-grid">
                                     <!-- Conteúdo será preenchido dinamicamente -->
-                                </div>
-                                <div class="files-grid" id="recent-items-grid">
-                                    <!-- Conteúdo recente será preenchido dinamicamente -->
                                 </div>
                             </div>
                         </div>
@@ -2541,10 +2516,30 @@
                             <!-- Imagens serão adicionadas dinamicamente -->
                         </div>
                     `;
-                case 'axonapps':
+                case 'media':
                     return `
-                        <div class="axon-apps-grid" id="axon-apps-grid">
-                            <!-- Aplicativos HTML serão adicionados dinamicamente -->
+                        <div class="media-player">
+                            <div class="album-art">
+                                <img src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400" alt="Album Art">
+                            </div>
+                            <div class="track-info">
+                                <div class="track-title">Música</div>
+                                <div class="track-artist">Artista</div>
+                            </div>
+                            <div class="progress-container">
+                                <div class="progress-bar">
+                                    <div class="progress"></div>
+                                </div>
+                                <div class="time-info">
+                                    <span>0:00</span>
+                                    <span>4:30</span>
+                                </div>
+                            </div>
+                            <div class="player-controls">
+                                <div class="player-btn prev-btn"><i class="fas fa-step-backward"></i></div>
+                                <div class="player-btn play-btn"><i class="fas fa-play"></i></div>
+                                <div class="player-btn next-btn"><i class="fas fa-step-forward"></i></div>
+                            </div>
                         </div>
                     `;
                 case 'camera':
@@ -2559,8 +2554,6 @@
                         </div>
                     `;
                 case 'browser':
-                    // Se appUrl for fornecido, o navegador abrirá essa URL
-                    const initialUrl = appUrl || "about:blank";
                     return `
                         <div class="browser-container">
                             <div class="browser-toolbar">
@@ -2568,12 +2561,18 @@
                                 <button id="browser-forward"><i class="fas fa-arrow-right"></i></button>
                                 <button id="browser-reload"><i class="fas fa-redo"></i></button>
                                 <div class="browser-url-bar">
-                                    <input type="text" id="browser-url" value="${initialUrl}" style="flex: 1;">
+                                    <input type="text" id="browser-url" value="${url || 'about:blank'}" style="flex: 1;">
                                     <button id="browser-go"><i class="fas fa-arrow-right"></i></button>
                                 </div>
                                 <button id="browser-home"><i class="fas fa-home"></i></button>
                             </div>
-                            <iframe class="browser-content" id="browser-content" src="${initialUrl}"></iframe>
+                            <iframe class="browser-content" id="browser-content" src="${url || 'about:blank'}"></iframe>
+                        </div>
+                    `;
+                case 'axonapps':
+                    return `
+                        <div class="axon-apps-grid" id="axon-apps-grid">
+                            <!-- Apps HTML serão carregados aqui -->
                         </div>
                     `;
                 default:
@@ -2588,7 +2587,7 @@
         }
 
         // Inicializar conteúdo do aplicativo
-        function initAppContent(appId, windowElement, appUrl = null) {
+        function initAppContent(appId, windowElement, url = null) {
             switch(appId) {
                 case 'finder':
                     initFileExplorer(windowElement);
@@ -2612,7 +2611,7 @@
                     initCamera(windowElement);
                     break;
                 case 'browser':
-                    initBrowser(windowElement, appUrl);
+                    initBrowser(windowElement, url);
                     break;
                 case 'settings':
                     initSettings(windowElement);
@@ -2626,11 +2625,8 @@
         // Inicializar explorador de arquivos
         function initFileExplorer(windowElement) {
             const sidebarItems = windowElement.querySelectorAll('.sidebar-item');
-            const allItemsGrid = windowElement.querySelector('#all-items-grid');
-            const recentItemsGrid = windowElement.querySelector('#recent-items-grid');
-            const tabs = windowElement.querySelectorAll('.tab-container .tab');
-
-            // Função para carregar o conteúdo de um diretório
+            const explorerGrid = windowElement.querySelector('#explorer-grid');
+            
             function loadDirectory(directoryId, gridElement) {
                 gridElement.innerHTML = '';
                 systemState.currentDirectory = directoryId;
@@ -2651,7 +2647,7 @@
                     
                     fileItem.addEventListener('dblclick', () => {
                         if (item.type === 'folder') {
-                            loadDirectory(item.id, allItemsGrid);
+                            loadDirectory(item.id, gridElement);
                         } else if (item.type === 'text') {
                             openApp('notes');
                             const notesWindow = systemState.openWindows.find(w => w.id === 'notes');
@@ -2672,27 +2668,13 @@
                             } else {
                                 axonAlert("Esta imagem não possui um caminho de origem definido.");
                             }
-                        } else if (item.type === 'html') {
-                            openApp('browser');
-                            const browserWindow = systemState.openWindows.find(w => w.id === 'browser');
-                            if (browserWindow) {
-                                const browserContent = browserWindow.element.querySelector('#browser-content');
-                                const browserUrl = browserWindow.element.querySelector('#browser-url');
-                                if (browserContent && browserUrl) {
-                                    const appPath = `/AxonApps/${item.name}`; // Simula o caminho
-                                    browserUrl.value = appPath;
-                                    browserContent.src = appPath;
-                                }
-                            }
                         } else {
                             axonAlert(`Não é possível abrir o arquivo "${item.name}". Tipo de arquivo não suportado.`);
                         }
-                        addToRecentFiles(item);
                     });
 
                     fileItem.addEventListener('click', () => {
-                        allItemsGrid.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
-                        recentItemsGrid.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
+                        gridElement.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
                         document.querySelectorAll('.desktop-icon').forEach(i => i.classList.remove('selected'));
                         
                         fileItem.classList.add('selected');
@@ -2702,8 +2684,7 @@
 
                     fileItem.addEventListener('contextmenu', (e) => {
                         e.preventDefault();
-                        allItemsGrid.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
-                        recentItemsGrid.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
+                        gridElement.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
                         document.querySelectorAll('.desktop-icon').forEach(i => i.classList.remove('selected'));
 
                         fileItem.classList.add('selected');
@@ -2725,130 +2706,15 @@
                     }
                 });
             }
-
-            // Função para carregar arquivos recentes
-            function loadRecentItems() {
-                recentItemsGrid.innerHTML = '';
-                systemState.recentFiles.forEach(item => {
-                    const fileItem = document.createElement('div');
-                    fileItem.className = 'file-item';
-                    fileItem.dataset.id = item.id;
-                    fileItem.dataset.type = item.type;
-                    fileItem.dataset.name = item.name;
-
-                    fileItem.innerHTML = `
-                        <div class="file-icon"><i class="${item.icon || fileIcons[item.type] || 'fas fa-file'}"></i></div>
-                        <div class="file-name">${item.name}</div>
-                        <div style="font-size: 10px; opacity: 0.7;">${new Date(item.timestamp).toLocaleString()}</div>
-                    `;
-
-                    fileItem.addEventListener('dblclick', () => {
-                        // Reutiliza a lógica de abertura de item
-                        const actualItem = findFileInFileSystem(item.id);
-                        if (actualItem) {
-                            if (actualItem.type === 'folder') {
-                                loadDirectory(actualItem.id, allItemsGrid);
-                                tabs.forEach(t => t.classList.remove('active'));
-                                windowElement.querySelector('[data-tab-content="all-items"]').classList.add('active');
-                                allItemsGrid.classList.add('active');
-                                recentItemsGrid.classList.remove('active');
-                            } else if (actualItem.type === 'text') {
-                                openApp('notes');
-                                const notesWindow = systemState.openWindows.find(w => w.id === 'notes');
-                                if (notesWindow) {
-                                    const textArea = notesWindow.element.querySelector('#note-content');
-                                    if (textArea) {
-                                        textArea.value = actualItem.content || '';
-                                        textArea.dataset.fileId = actualItem.id;
-                                    }
-                                }
-                            } else if (actualItem.type === 'image') {
-                                if (actualItem.src) {
-                                    openImageViewer(actualItem.src);
-                                } else {
-                                    axonAlert("Esta imagem não possui um caminho de origem definido.");
-                                }
-                            } else if (actualItem.type === 'html') {
-                                openApp('browser');
-                                const browserWindow = systemState.openWindows.find(w => w.id === 'browser');
-                                if (browserWindow) {
-                                    const browserContent = browserWindow.element.querySelector('#browser-content');
-                                    const browserUrl = browserWindow.element.querySelector('#browser-url');
-                                    if (browserContent && browserUrl) {
-                                        const appPath = `/AxonApps/${actualItem.name}`; // Simula o caminho
-                                        browserUrl.value = appPath;
-                                        browserContent.src = appPath;
-                                    }
-                                }
-                            } else {
-                                axonAlert(`Não é possível abrir o arquivo "${actualItem.name}". Tipo de arquivo não suportado.`);
-                            }
-                            addToRecentFiles(actualItem);
-                        } else {
-                            axonAlert("O arquivo recente não foi encontrado no sistema de arquivos.");
-                            // Opcional: remover o item do histórico de recentes se não for encontrado
-                            systemState.recentFiles = systemState.recentFiles.filter(ri => ri.id !== item.id);
-                            saveRecentFiles();
-                            loadRecentItems(); // Recarrega a lista de recentes
-                        }
-                    });
-
-                    fileItem.addEventListener('click', () => {
-                        allItemsGrid.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
-                        recentItemsGrid.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
-                        document.querySelectorAll('.desktop-icon').forEach(i => i.classList.remove('selected'));
-                        
-                        fileItem.classList.add('selected');
-                        systemState.selectedFileItem = item;
-                        systemState.selectedIcon = null;
-                    });
-
-                    fileItem.addEventListener('contextmenu', (e) => {
-                        e.preventDefault();
-                        allItemsGrid.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
-                        recentItemsGrid.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
-                        document.querySelectorAll('.desktop-icon').forEach(i => i.classList.remove('selected'));
-
-                        fileItem.classList.add('selected');
-                        systemState.selectedFileItem = item;
-                        systemState.selectedIcon = null;
-                        showContextMenu(e, fileItem);
-                    });
-
-                    recentItemsGrid.appendChild(fileItem);
-                });
-            }
             
             sidebarItems.forEach(item => {
                 item.addEventListener('click', () => {
                     const directory = item.dataset.path;
-                    loadDirectory(directory, allItemsGrid);
-                    tabs.forEach(t => t.classList.remove('active'));
-                    windowElement.querySelector('[data-tab-content="all-items"]').classList.add('active');
-                    allItemsGrid.classList.add('active');
-                    recentItemsGrid.classList.remove('active');
-                });
-            });
-
-            tabs.forEach(tab => {
-                tab.addEventListener('click', () => {
-                    tabs.forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
-
-                    const tabContentId = tab.dataset.tabContent;
-                    if (tabContentId === 'all-items') {
-                        allItemsGrid.classList.add('active');
-                        recentItemsGrid.classList.remove('active');
-                        loadDirectory(systemState.currentDirectory, allItemsGrid); // Recarrega o diretório atual
-                    } else if (tabContentId === 'recent-items') {
-                        allItemsGrid.classList.remove('active');
-                        recentItemsGrid.classList.add('active');
-                        loadRecentItems(); // Carrega os itens recentes
-                    }
+                    loadDirectory(directory, explorerGrid);
                 });
             });
             
-            loadDirectory('desktop', allItemsGrid); // Carrega o desktop por padrão
+            loadDirectory('desktop', explorerGrid); // Carrega o desktop por padrão
         }
 
         // Inicializar bloco de notas
@@ -2869,7 +2735,6 @@
                         if (file) {
                             file.content = textArea.value;
                             found = true;
-                            addToRecentFiles(file);
                             break;
                         }
                     }
@@ -2897,7 +2762,6 @@
                         systemData.fileSystem.documents.push(newFile);
                         textArea.dataset.fileId = id;
                         saveDesktopItems(); // Salva o fileSystem atualizado
-                        addToRecentFiles(newFile);
                         await axonAlert(`Arquivo "${fileName}" salvo com sucesso em Documentos!`);
                     }
                 }
@@ -2927,7 +2791,7 @@
             for (const dir in systemData.fileSystem) {
                 if (Array.isArray(systemData.fileSystem[dir])) {
                     systemData.fileSystem[dir].forEach(file => {
-                        if (file.type === 'text' || (file.type === 'image' && file.src) || file.type === 'html') { // Inclui HTML
+                        if (file.type === 'text' || (file.type === 'image' && file.src)) { // Apenas imagens com src
                             allTextAndImageFiles.push(file);
                         }
                     });
@@ -2967,25 +2831,9 @@
                         targetTextArea.value = systemState.selectedFile.content || '';
                         targetTextArea.dataset.fileId = systemState.selectedFile.id;
                         openFileModal.classList.remove('active');
-                        addToRecentFiles(systemState.selectedFile);
                     } else if (systemState.selectedFile.type === 'image') {
                         openImageViewer(systemState.selectedFile.src);
                         openFileModal.classList.remove('active');
-                        addToRecentFiles(systemState.selectedFile);
-                    } else if (systemState.selectedFile.type === 'html') {
-                        openApp('browser');
-                        const browserWindow = systemState.openWindows.find(w => w.id === 'browser');
-                        if (browserWindow) {
-                            const browserContent = browserWindow.element.querySelector('#browser-content');
-                            const browserUrl = browserWindow.element.querySelector('#browser-url');
-                            if (browserContent && browserUrl) {
-                                const appPath = `/AxonApps/${systemState.selectedFile.name}`; // Simula o caminho
-                                browserUrl.value = appPath;
-                                browserContent.src = appPath;
-                            }
-                        }
-                        openFileModal.classList.remove('active');
-                        addToRecentFiles(systemState.selectedFile);
                     } else {
                         await axonAlert("Tipo de arquivo não suportado para esta ação.");
                     }
@@ -3098,7 +2946,6 @@
                         systemData.fileSystem[systemState.currentDirectory].push(newFolder);
                         systemData.fileSystem[newFolderId] = []; // Cria o novo diretório vazio
                         saveDesktopItems(); // Salva as alterações no fileSystem
-                        addToRecentFiles(newFolder);
                         return `Diretório criado: ${newFolderName}`;
                     }
                     return "Uso: mkdir <nome_da_pasta>";
@@ -3116,7 +2963,6 @@
                         }
                         systemData.fileSystem[systemState.currentDirectory].push(newFile);
                         saveDesktopItems(); // Salva as alterações no fileSystem
-                        addToRecentFiles(newFile);
                         return `Arquivo criado: ${newFileName}`;
                     }
                     return "Uso: touch <nome_do_arquivo>";
@@ -3221,7 +3067,7 @@
                 }
                 if (message.includes('axon apps') || message.includes('aplicativos')) {
                     openApp('axonapps');
-                    return "Abrindo a pasta Axon Apps...";
+                    return "Abrindo o Axon Apps...";
                 }
                 return "Qual aplicativo você gostaria de abrir?";
             } else if (message.includes('fechar') || message.includes('fecha')) {
@@ -3381,6 +3227,11 @@
                         });
                     }
                 }
+                // Adiciona fotos da câmera
+                systemState.cameraPhotos.forEach((photoSrc, index) => {
+                    allImages.push({ id: `camera-photo-${index}`, name: `Foto ${index + 1}`, type: 'image', src: photoSrc });
+                });
+
 
                 allImages.forEach((photo, index) => {
                     const galleryItem = document.createElement('div');
@@ -3400,30 +3251,32 @@
                     galleryItem.querySelector('[data-action="view"]').addEventListener('click', (e) => {
                         e.stopPropagation(); // Evita que o clique no item acione outros listeners
                         openImageViewer(photo.src);
-                        addToRecentFiles(photo);
                     });
 
                     galleryItem.querySelector('[data-action="delete"]').addEventListener('click', async (e) => {
                         e.stopPropagation(); // Evita que o clique no item acione outros listeners
                         const confirmDelete = await axonConfirm("Tem certeza que deseja excluir esta imagem?");
                         if (confirmDelete) {
-                            // Remove do fileSystem
-                            let foundAndRemoved = false;
-                            for (const dir in systemData.fileSystem) {
-                                if (Array.isArray(systemData.fileSystem[dir])) {
-                                    const initialLength = systemData.fileSystem[dir].length;
-                                    systemData.fileSystem[dir] = systemData.fileSystem[dir].filter(item => item.id !== photo.id);
-                                    if (systemData.fileSystem[dir].length < initialLength) {
-                                        foundAndRemoved = true;
-                                        break;
+                            // Remove da câmera photos se for uma foto da câmera
+                            if (photo.id.startsWith('camera-photo-')) {
+                                const photoIndex = parseInt(photo.id.replace('camera-photo-', ''));
+                                systemState.cameraPhotos.splice(photoIndex, 1);
+                            } else {
+                                // Remove do fileSystem
+                                let foundAndRemoved = false;
+                                for (const dir in systemData.fileSystem) {
+                                    if (Array.isArray(systemData.fileSystem[dir])) {
+                                        const initialLength = systemData.fileSystem[dir].length;
+                                        systemData.fileSystem[dir] = systemData.fileSystem[dir].filter(item => item.id !== photo.id);
+                                        if (systemData.fileSystem[dir].length < initialLength) {
+                                            foundAndRemoved = true;
+                                            break;
+                                        }
                                     }
                                 }
-                            }
-                            if (foundAndRemoved) {
-                                saveDesktopItems(); // Salva as alterações no fileSystem
-                                // Remove do histórico de recentes se existir
-                                systemState.recentFiles = systemState.recentFiles.filter(item => item.id !== photo.id);
-                                saveRecentFiles();
+                                if (foundAndRemoved) {
+                                    saveDesktopItems(); // Salva as alterações no fileSystem
+                                }
                             }
                             loadGallery(); // Recarrega a galeria
                             axonAlert("Imagem excluída com sucesso!");
@@ -3484,37 +3337,12 @@
                     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                     
                     const photoData = canvas.toDataURL('image/png');
-                    
-                    const newImageId = 'camera-photo-' + Date.now();
-                    const newImageName = `Foto ${new Date().toLocaleTimeString()}.png`;
-                    const newImage = {
-                        id: newImageId,
-                        name: newImageName,
-                        type: 'image',
-                        icon: fileIcons.image,
-                        src: photoData
-                    };
-
-                    // Adiciona a nova imagem ao fileSystem.images
-                    if (!systemData.fileSystem.images) {
-                        systemData.fileSystem.images = [];
-                    }
-                    systemData.fileSystem.images.push(newImage);
-                    saveDesktopItems(); // Salva o fileSystem atualizado
-                    addToRecentFiles(newImage);
+                    systemState.cameraPhotos.push(photoData);
                     
                     // Atualiza a galeria se estiver aberta
                     const galleryWindow = systemState.openWindows.find(w => w.id === 'gallery');
                     if (galleryWindow) {
                         initGallery(galleryWindow.element);
-                    }
-                    // Atualiza o Finder se estiver aberto e na aba de imagens
-                    const finderWindow = systemState.openWindows.find(w => w.id === 'finder');
-                    if (finderWindow && finderWindow.element.querySelector('.sidebar-item[data-path="images"]').classList.contains('active')) {
-                        const explorerGrid = finderWindow.element.querySelector('#all-items-grid');
-                        if (explorerGrid) {
-                            loadDirectory('images', explorerGrid);
-                        }
                     }
                     
                     await axonAlert('Foto capturada com sucesso!');
@@ -3527,7 +3355,7 @@
         }
 
         // Inicializar navegador
-        function initBrowser(windowElement, initialUrl = "about:blank") {
+        function initBrowser(windowElement, initialUrl = null) {
             const browserUrl = windowElement.querySelector('#browser-url');
             const browserGo = windowElement.querySelector('#browser-go');
             const browserContent = windowElement.querySelector('#browser-content');
@@ -3559,7 +3387,7 @@
                 }
             }
             
-            loadUrl(initialUrl); // Carrega a URL inicial
+            loadUrl(initialUrl || browserUrl.value); // Carrega a URL inicial ou a passada
 
             browserGo.addEventListener('click', () => {
                 loadUrl(browserUrl.value);
@@ -3597,9 +3425,65 @@
         }
 
         // Inicializar Axon Apps
-        function initAxonApps(windowElement) {
+        async function initAxonApps(windowElement) {
             const axonAppsGrid = windowElement.querySelector('#axon-apps-grid');
-            axonAppsGrid.innerHTML = '';
+            axonAppsGrid.innerHTML = '<p style="text-align: center; width: 100%;">Carregando aplicativos...</p>';
+
+            // Função para buscar arquivos .html no diretório do Axon Apps e extrair ícones
+            async function loadAxonAppsFromDirectory() {
+                // Simulação: lista de arquivos HTML no diretório (em ambiente real, substituir por API)
+                // Para um ambiente de desenvolvimento local, você pode listar manualmente ou usar um script de build
+                // Em um ambiente de produção, você precisaria de um backend para listar os arquivos de forma segura
+                const htmlFiles = [
+                    'app1.html', // Exemplo de app HTML
+                    'app2.html',
+                    'app3.html'
+                ];
+
+                const apps = [];
+
+                for (const fileName of htmlFiles) {
+                    const appUrl = `/AxonApps/${fileName}`; // Caminho relativo do app
+                    let iconUrl = null;
+                    let appName = fileName.replace('.html', '');
+
+                    try {
+                        const response = await fetch(appUrl);
+                        if (!response.ok) throw new Error('Não foi possível carregar o arquivo HTML');
+                        const text = await response.text();
+
+                        // Extrair o ícone da página HTML
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(text, 'text/html');
+                        const iconLink = doc.querySelector('link[rel="icon"], link[rel="shortcut icon"]');
+                        if (iconLink) {
+                            let href = iconLink.getAttribute('href');
+                            // Se href for relativo, ajustar para caminho absoluto
+                            if (href && !href.startsWith('http') && !href.startsWith('/')) {
+                                // Ajusta para o caminho relativo ao appUrl
+                                const basePath = appUrl.substring(0, appUrl.lastIndexOf('/') + 1);
+                                href = basePath + href;
+                            }
+                            iconUrl = href;
+                        }
+                    } catch (error) {
+                        console.warn(`Erro ao carregar app ${fileName}:`, error);
+                    }
+
+                    apps.push({
+                        id: fileName,
+                        name: appName,
+                        url: appUrl,
+                        icon: iconUrl || 'fas fa-file-code' // Ícone padrão se não encontrar
+                    });
+                }
+
+                systemData.axonApps = apps;
+            }
+
+            await loadAxonAppsFromDirectory(); // Carregar apps do diretório
+
+            axonAppsGrid.innerHTML = ''; // Limpa a mensagem de carregamento
 
             if (systemData.axonApps.length === 0) {
                 axonAppsGrid.innerHTML = '<p style="text-align: center; width: 100%;">Nenhum aplicativo encontrado.</p>';
@@ -3617,8 +3501,10 @@
                 let iconHtml = '';
                 if (app.icon.startsWith('fas ')) {
                     iconHtml = `<i class="${app.icon}"></i>`;
-                } else {
+                } else if (app.icon) {
                     iconHtml = `<img src="${app.icon}" alt="${app.name} icon">`;
+                } else {
+                    iconHtml = `<i class="fas fa-file-code"></i>`;
                 }
 
                 appItem.innerHTML = `
@@ -3630,23 +3516,11 @@
 
                 appItem.addEventListener('click', () => {
                     openApp('browser', app.url, app.name, app.icon); // Abre o app HTML no navegador
-                    addToRecentFiles({ id: app.id, name: app.name, type: 'html', icon: app.icon });
+                    // addToRecentFiles({ id: app.id, name: app.name, type: 'html', icon: app.icon }); // Se você tiver uma função para arquivos recentes
                 });
 
                 axonAppsGrid.appendChild(appItem);
             });
-        }
-
-        // Buscar por aplicativos HTML (simulado)
-        function findAxonApps() {
-            // Simula a busca por arquivos HTML no diretório /AxonApps/
-            // Em um ambiente real, isso envolveria requisições AJAX ou leitura de diretórios no servidor.
-            const simulatedApps = [
-                { id: 'app-game', name: 'Jogo Simples', url: '/AxonApps/game.html', icon: 'fas fa-gamepad' },
-                { id: 'app-todo', name: 'Lista de Tarefas', url: '/AxonApps/todo.html', icon: 'fas fa-list-check' },
-                { id: 'app-clock', name: 'Relógio Digital', url: '/AxonApps/clock.html', icon: 'fas fa-clock' }
-            ];
-            systemData.axonApps = simulatedApps;
         }
 
         // Inicializar Configurações
@@ -4016,13 +3890,22 @@
                 thumbnail.className = 'window-thumbnail';
                 thumbnail.dataset.windowId = win.windowId;
 
+                let iconHtml = '';
+                if (win.appIcon.startsWith('fas ')) {
+                    iconHtml = `<i class="${win.appIcon}"></i>`;
+                } else if (win.appIcon) {
+                    iconHtml = `<img src="${win.appIcon}" alt="icon">`;
+                } else {
+                    iconHtml = `<i class="fas fa-file-code"></i>`; // Fallback para ícone padrão
+                }
+
                 thumbnail.innerHTML = `
                     <div class="window-thumbnail-header">
-                        <i class="${win.appIcon}"></i> ${win.appName}
+                        ${iconHtml} ${win.appName}
                         <div class="close-btn"><i class="fas fa-times"></i></div>
                     </div>
                     <div class="window-thumbnail-content">
-                        <i class="${win.appIcon}"></i>
+                        ${iconHtml}
                     </div>
                 `;
 
