@@ -1,0 +1,4007 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Axon OS</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Variáveis e Reset */
+        :root {
+            --primary: #0c0c1d;
+            --secondary: #1a1a3a;
+            --accent: #6a5af9;
+            --accent-light: #7d6dfa;
+            --text: #e6e6ff;
+            --text-secondary: #a0a0c0;
+            --success: #00cc88;
+            --warning: #ffaa00;
+            --danger: #ff5577;
+            --card-bg: rgba(30, 30, 50, 0.7);
+            --glass: rgba(40, 40, 60, 0.3);
+            --terminal-green: #00ff9f;
+            --terminal-purple: #bd93f9;
+            --highlight: rgba(106, 90, 249, 0.2);
+            --border-radius: 14px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background: radial-gradient(circle at center, var(--primary), var(--secondary));
+            color: var(--text);
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Efeito de partículas para fundo futurista */
+        #particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        /* Barra de menus superior */
+        #menu-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 15px;
+            background: rgba(10, 10, 25, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            height: 30px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .menu-section {
+            display: flex;
+            gap: 20px;
+        }
+
+        .menu-item {
+            font-size: 13px;
+            cursor: pointer;
+            padding: 3px 8px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .menu-item:hover {
+            background: var(--highlight);
+        }
+
+        .status-icons {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        /* Área de trabalho */
+        #desktop {
+            position: absolute;
+            top: 30px;
+            bottom: 60px;
+            left: 0;
+            right: 0;
+            overflow: hidden;
+            padding: 20px;
+        }
+
+        .desktop-icon {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 80px;
+            cursor: pointer;
+            padding: 10px 5px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            position: absolute;
+        }
+
+        .desktop-icon:hover {
+            background: var(--highlight);
+        }
+
+        .desktop-icon.selected {
+            background: var(--highlight);
+            outline: 1px solid var(--accent);
+        }
+
+        .icon-image {
+            width: 50px;
+            height: 50px;
+            background: var(--glass);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .icon-label {
+            font-size: 12px;
+            text-align: center;
+            word-break: break-word;
+            line-height: 1.3;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Dock inferior */
+        #dock {
+            position: fixed;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 8px;
+            z-index: 999;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .dock-icon {
+            width: 50px;
+            height: 50px;
+            margin: 0 5px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        .dock-icon:hover {
+            transform: translateY(-15px) scale(1.2);
+            background: var(--accent);
+        }
+
+        .dock-icon:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            top: -35px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .divider {
+            width: 1px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            margin: 5px 10px;
+        }
+
+        /* Janelas de aplicativos */
+        .window {
+            position: absolute;
+            width: 800px;
+            height: 500px;
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            opacity: 0;
+            transform: scale(0.9);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            resize: both;
+            min-width: 300px;
+            min-height: 200px;
+        }
+
+        .window.active {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .window-header {
+            height: 40px;
+            background: rgba(20, 20, 40, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 15px;
+            cursor: move;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .window-title {
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-grow: 1; /* Permite que o título ocupe o espaço disponível */
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            padding-left: 5px; /* Adicionado para mover o texto mais para a esquerda */
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 10px;
+            flex-shrink: 0; /* Evita que os controles encolham */
+        }
+
+        .window-control {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            opacity: 0.7;
+            transition: opacity 0.2s ease;
+        }
+
+        .window-control:hover {
+            opacity: 1;
+        }
+
+        .window-close { background: var(--danger); }
+        .window-minimize { background: var(--warning); }
+        .window-maximize { background: var(--success); }
+
+        .window-content {
+            flex: 1;
+            padding: 15px;
+            overflow: auto;
+        }
+
+        /* Abas e navegação */
+        .tab-container {
+            display: flex;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 15px;
+        }
+
+        .tab {
+            padding: 10px 15px;
+            cursor: pointer;
+            font-size: 14px;
+            opacity: 0.7;
+            transition: all 0.2s ease;
+        }
+
+        .tab.active {
+            opacity: 1;
+            border-bottom: 2px solid var(--accent);
+        }
+
+        .tab:hover {
+            opacity: 1;
+        }
+
+        /* Elementos de formulário */
+        input, textarea, select, button {
+            background: rgba(30, 30, 50, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 10px 15px;
+            color: var(--text);
+            font-size: 14px;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--highlight);
+        }
+
+        button {
+            background: var(--accent);
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            padding: 10px 20px;
+        }
+
+        button:hover {
+            background: var(--accent-light);
+            transform: translateY(-2px);
+        }
+
+        /* Estilos específicos para aplicativos */
+        /* Sistema de Arquivos */
+        .file-explorer {
+            display: flex;
+            height: 100%;
+        }
+
+        .sidebar {
+            width: 200px;
+            background: rgba(20, 20, 40, 0.5);
+            padding: 15px 0;
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .sidebar-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: background 0.2s ease;
+        }
+
+        .sidebar-item:hover {
+            background: var(--highlight);
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 15px;
+        }
+
+        .files-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 15px;
+        }
+
+        .file-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            position: relative;
+        }
+
+        .file-item:hover {
+            background: var(--highlight);
+        }
+
+        .file-item.selected {
+            background: var(--highlight);
+            outline: 1px solid var(--accent);
+        }
+
+        .file-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        /* Bloco de Notas */
+        .notepad-container {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .notepad-toolbar {
+            display: flex;
+            gap: 10px;
+            padding-bottom: 10px;
+        }
+
+        .notepad-content {
+            flex: 1;
+        }
+
+        .notepad-content textarea {
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            border: none;
+            resize: none;
+            font-family: 'SF Mono', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* Assistente Virtual */
+        .assistant-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            line-height: 1.4;
+        }
+
+        .user-message {
+            background: var(--accent);
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .assistant-message {
+            background: rgba(40, 40, 60, 0.5);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-input {
+            display: flex;
+            padding: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            gap: 10px;
+        }
+
+        .chat-input input {
+            flex: 1;
+        }
+
+        /* Terminal */
+        .terminal-container {
+            background: rgba(10, 10, 20, 0.9);
+            height: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            font-family: 'SF Mono', monospace;
+            font-size: 14px;
+        }
+
+        .terminal-header {
+            padding: 10px 15px;
+            background: rgba(20, 20, 40, 0.8);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .terminal-content {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            line-height: 1.5;
+        }
+
+        .terminal-input {
+            display: flex;
+            padding: 10px 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            align-items: center;
+            gap: 10px;
+        }
+
+        .prompt {
+            color: var(--terminal-green);
+        }
+
+        .terminal-content .command {
+            color: var(--terminal-purple);
+        }
+
+        /* Galeria de Imagens */
+        .gallery-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+            padding: 15px;
+        }
+
+        .gallery-item {
+            height: 180px;
+            border-radius: 8px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+        .gallery-item:hover img {
+            transform: scale(1.05);
+        }
+
+        .gallery-item:hover .gallery-options {
+            display: flex;
+        }
+
+        .gallery-options {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            gap: 10px;
+            padding: 5px;
+        }
+
+        .gallery-option-btn {
+            background: transparent;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        /* Reprodutor de Mídia */
+        .media-player {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            padding: 20px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .album-art {
+            width: 300px;
+            height: 300px;
+            border-radius: 10px;
+            background: linear-gradient(45deg, #6a5af9, #d66efd);
+            margin-bottom: 30px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .album-art img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .track-info {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .track-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .track-artist {
+            font-size: 16px;
+            opacity: 0.8;
+        }
+
+        .player-controls {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .player-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .player-btn.play-btn {
+            width: 70px;
+            height: 70px;
+            font-size: 24px;
+        }
+
+        .player-btn:hover {
+            background: var(--accent-light);
+            transform: scale(1.1);
+        }
+
+        .progress-container {
+            width: 100%;
+            max-width: 500px;
+            margin-top: 20px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .progress {
+            height: 100%;
+            background: var(--accent);
+            width: 30%;
+            border-radius: 10px;
+        }
+
+        .time-info {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-size: 12px;
+            opacity: 0.7;
+        }
+
+        /* Menu de contexto */
+        .context-menu {
+            position: absolute;
+            background: rgba(30, 30, 50, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 8px;
+            padding: 8px 0;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            z-index: 2000;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: none;
+            min-width: 180px;
+        }
+
+        .context-menu-item {
+            padding: 8px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: background 0.2s ease;
+        }
+
+        .context-menu-item:hover {
+            background: var(--highlight);
+        }
+
+        .context-menu-divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+            margin: 5px 0;
+        }
+
+        /* Modais personalizados (Alert/Prompt/Confirm) */
+        .custom-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 4000; /* Acima de outros modais */
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .custom-modal.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .custom-modal-content {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            width: 350px;
+            max-width: 90%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+
+        .custom-modal.active .custom-modal-content {
+            transform: translateY(0);
+        }
+
+        .custom-modal-header {
+            padding: 15px 20px;
+            background: rgba(20, 20, 40, 0.8);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-weight: 500;
+        }
+
+        .custom-modal-body {
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        .custom-modal-body input {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .custom-modal-footer {
+            padding: 15px 20px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Modal de criação */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            width: 400px;
+            max-width: 90%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+        }
+
+        .modal-header {
+            padding: 15px 20px;
+            background: rgba(20, 20, 40, 0.8);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header h3 {
+            flex-grow: 1;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-footer {
+            padding: 15px 20px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Estilo para os efeitos futuristas */
+        .glow {
+            text-shadow: 0 0 10px var(--accent);
+        }
+
+        .neon-border {
+            box-shadow: 0 0 10px var(--accent);
+        }
+
+        .grid-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
+            z-index: -1;
+        }
+
+        /* Navegador Web */
+        .browser-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .browser-toolbar {
+            display: flex;
+            padding: 10px;
+            gap: 10px;
+            background: rgba(20, 20, 40, 0.5);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .browser-url-bar {
+            flex: 1;
+            display: flex;
+        }
+
+        .browser-content {
+            flex: 1;
+            border: none;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Câmera */
+        .camera-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .camera-preview {
+            width: 80%;
+            height: 70%;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .camera-preview video, .camera-preview canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Animações */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .floating {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        /* Image Viewer Modal */
+        .image-viewer-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+        }
+        .image-viewer-content img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+        }
+
+        /* Window Carousel Modal */
+        #window-carousel-modal .modal-content {
+            width: 90%;
+            max-width: 1000px;
+            height: 80%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #window-carousel-modal .modal-body {
+            flex: 1;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            align-content: flex-start;
+            overflow-y: auto;
+        }
+
+        .window-thumbnail {
+            width: 200px;
+            height: 150px;
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            transition: transform 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .window-thumbnail:hover {
+            transform: translateY(-5px);
+        }
+
+        .window-thumbnail-header {
+            background: rgba(20, 20, 40, 0.8);
+            padding: 5px 10px;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .window-thumbnail-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            opacity: 0.5;
+        }
+
+        .window-thumbnail .close-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: var(--danger);
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: white;
+            cursor: pointer;
+            opacity: 0.8;
+            transition: opacity 0.2s ease;
+        }
+
+        .window-thumbnail .close-btn:hover {
+            opacity: 1;
+        }
+
+        /* Help Guide Modal */
+        #help-guide-modal .modal-content {
+            width: 600px;
+            max-width: 90%;
+            max-height: 90vh; /* Limita a altura do modal */
+            display: flex;
+            flex-direction: column;
+        }
+        #help-guide-modal .modal-body {
+            flex: 1; /* Permite que o corpo ocupe o espaço restante */
+            overflow-y: auto; /* Adiciona barra de rolagem se o conteúdo exceder */
+        }
+        #help-guide-modal .modal-body h4 {
+            margin-top: 15px;
+            margin-bottom: 5px;
+            color: var(--accent-light);
+        }
+        #help-guide-modal .modal-body ul {
+            list-style-type: disc;
+            margin-left: 20px;
+        }
+        #help-guide-modal .modal-body li {
+            margin-bottom: 5px;
+        }
+
+        /* Settings Tabs Content */
+        .settings-tab-content {
+            display: none;
+            padding: 20px;
+        }
+        .settings-tab-content.active {
+            display: block;
+        }
+        .settings-section {
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .settings-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        .settings-section h4 {
+            margin-bottom: 15px;
+            color: var(--accent-light);
+        }
+        .settings-option {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            gap: 10px;
+        }
+        .settings-option label {
+            flex: 1;
+        }
+        .settings-option input[type="checkbox"] {
+            width: auto;
+            padding: 0;
+            margin-right: 5px;
+        }
+        .wallpaper-option {
+            width: 100px;
+            height: 60px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: border-color 0.2s ease;
+        }
+        .wallpaper-option.selected {
+            border-color: var(--accent);
+        }
+
+        /* Login Screen */
+        #login-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5000;
+            flex-direction: column;
+            gap: 20px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+        #login-screen.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .login-box {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: var(--border-radius);
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            width: 350px;
+            max-width: 90%;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .login-box h2 {
+            margin-bottom: 25px;
+            color: var(--text);
+            font-size: 28px;
+        }
+
+        .login-box input {
+            width: calc(100% - 20px);
+            margin-bottom: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: var(--text);
+        }
+
+        .login-box button {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .login-box button:hover {
+            background: var(--accent-light);
+        }
+
+        /* Axon Apps Folder */
+        .axon-apps-grid {
+            display: grid;
+            /* Ajustado para ter colunas de tamanho fixo e auto-ajustáveis */
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); 
+            gap: 15px;
+            padding: 15px;
+            height: 100%;
+            overflow-y: auto;
+            /* Adicionado para alinhar o conteúdo ao topo e evitar alongamento */
+            align-content: flex-start; 
+        }
+
+        .axon-app-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            /* Aumentado o width para acomodar melhor o conteúdo */
+            width: 120px; 
+            cursor: pointer;
+            padding: 10px 5px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            /* Adicionado para garantir que o item tenha uma altura mínima e seja mais quadrado */
+            height: 120px; 
+            justify-content: center;
+        }
+
+        .axon-app-item:hover {
+            background: var(--highlight);
+        }
+
+        .axon-app-item .icon-image {
+            /* Aumentado o tamanho da imagem do ícone */
+            width: 70px; 
+            height: 70px;
+            font-size: 36px; /* Aumentado o tamanho do ícone dentro da imagem */
+            margin-bottom: 8px; /* Ajustado o espaçamento */
+        }
+
+        .axon-app-item .icon-label {
+            font-size: 12px; /* Ajustado o tamanho da fonte */
+            margin-top: 5px;
+            text-align: center;
+            word-break: break-word;
+            line-height: 1.2;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    </style>
+</head>
+<body>
+    <!-- Efeito de partículas para fundo futurista -->
+    <canvas id="particles"></canvas>
+    <div class="grid-bg"></div>
+
+    <!-- Barra de Menu Superior -->
+    <div id="menu-bar">
+        <div class="menu-section">
+            <div class="menu-item" id="axon-menu">Axon OS</div>
+            <!-- Removidos: Arquivo, Editar, Visualizar -->
+            <div class="menu-item" id="window-carousel-btn">Janela</div>
+            <div class="menu-item" id="help-guide-btn">Ajuda</div>
+        </div>
+        <div class="status-icons">
+            <div id="wifi-icon"><i class="fas fa-wifi"></i></div>
+            <div id="battery-icon"><i class="fas fa-battery-three-quarters"></i> 87%</div>
+            <div id="clock">14:25</div>
+        </div>
+    </div>
+
+    <!-- Área de Trabalho -->
+    <div id="desktop">
+        <!-- Ícones serão adicionados dinamicamente -->
+    </div>
+
+    <!-- Dock de Aplicativos -->
+    <div id="dock">
+        <div class="dock-icon" data-app="finder" data-tooltip="Explorador de Arquivos"><i class="fas fa-folder"></i></div>
+        <div class="dock-icon" data-app="notes" data-tooltip="Bloco de Notas"><i class="fas fa-edit"></i></div>
+        <div class="dock-icon" data-app="terminal" data-tooltip="Terminal"><i class="fas fa-terminal"></i></div>
+        <div class="dock-icon" data-app="calculator" data-tooltip="Calculadora"><i class="fas fa-calculator"></i></div>
+        <div class="dock-icon" data-app="camera" data-tooltip="Câmera"><i class="fas fa-camera"></i></div>
+        <div class="dock-icon" data-app="gallery" data-tooltip="Galeria de Imagens"><i class="fas fa-images"></i></div>
+        <div class="dock-icon" data-app="axon-apps" data-tooltip="Axon Apps"><i class="fas fa-th-large"></i></div> <!-- Novo ícone para Axon Apps -->
+        <div class="dock-icon" data-app="browser" data-tooltip="Navegador Web"><i class="fas fa-globe"></i></div>
+        <div class="divider"></div>
+        <div class="dock-icon" data-app="settings" data-tooltip="Configurações"><i class="fas fa-cog"></i></div>
+        <div class="dock-icon" data-app="mielina" data-tooltip="Assistente Virtual"><i class="fas fa-robot"></i></div>
+    </div>
+
+    <!-- Janelas de Aplicativos (serão criadas dinamicamente) -->
+    <div id="windows-container"></div>
+
+    <!-- Menu de Contexto -->
+    <div class="context-menu" id="context-menu">
+        <div class="context-menu-item" id="context-open"><i class="fas fa-folder-open"></i> Abrir</div>
+        <div class="context-menu-item" id="context-rename"><i class="fas fa-edit"></i> Renomear</div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" id="context-cut"><i class="fas fa-cut"></i> Recortar</div>
+        <div class="context-menu-item" id="context-copy"><i class="fas fa-copy"></i> Copiar</div>
+        <div class="context-menu-item" id="context-paste"><i class="fas fa-paste"></i> Colar</div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" id="context-new-folder"><i class="fas fa-folder-plus"></i> Nova Pasta</div>
+        <div class="context-menu-item" id="context-new-file"><i class="fas fa-file"></i> Novo Arquivo</div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" id="context-delete"><i class="fas fa-trash"></i> Excluir</div>
+    </div>
+
+    <!-- Modal de criação de item -->
+    <div class="modal" id="create-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Criar Novo Item</h3>
+                <div class="window-controls">
+                    <div class="window-control window-close" onclick="closeModal('create-modal')"><i class="fas fa-times"></i></div>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 15px;">
+                    <label>Tipo:</label>
+                    <select id="item-type" style="width: 100%; margin-top: 5px;">
+                        <option value="folder">Pasta</option>
+                        <option value="text">Documento de Texto</option>
+                        <option value="image">Imagem</option>
+                        <option value="link">Link</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label>Nome:</label>
+                    <input type="text" id="item-name" placeholder="Nome do item" style="width: 100%; margin-top: 5px;">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancel-create">Cancelar</button>
+                <button id="confirm-create">Criar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para abrir arquivos -->
+    <div class="modal" id="open-file-modal">
+        <div class="modal-content" style="width: 600px; height: 500px;">
+            <div class="modal-header">
+                <h3>Abrir Arquivo</h3>
+                <div class="window-controls">
+                    <div class="window-control window-close" onclick="closeModal('open-file-modal')"><i class="fas fa-times"></i></div>
+                </div>
+            </div>
+            <div class="modal-body" style="height: calc(100% - 100px); overflow: hidden; display: flex; flex-direction: column;">
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <input type="text" id="file-search" placeholder="Pesquisar..." style="flex: 1;">
+                    <button><i class="fas fa-search"></i></button>
+                </div>
+                <div style="flex: 1; overflow: auto; background: rgba(0,0,0,0.1); border-radius: 8px; padding: 10px;">
+                    <div id="file-list">
+                        <!-- Lista de arquivos será preenchida aqui -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancel-open-file">Cancelar</button>
+                <button id="confirm-open-file">Abrir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Alert/Prompt/Confirm Modal -->
+    <div class="custom-modal" id="custom-alert-modal">
+        <div class="custom-modal-content">
+            <div class="custom-modal-header" id="custom-alert-header"></div>
+            <div class="custom-modal-body" id="custom-alert-body"></div>
+            <div class="custom-modal-footer" id="custom-alert-footer"></div>
+        </div>
+    </div>
+
+    <!-- Image Viewer Modal -->
+    <div class="modal" id="image-viewer-modal">
+        <div class="modal-content" style="width: 80%; height: 80%;">
+            <div class="modal-header">
+                <h3 id="image-viewer-title">Visualizador de Imagens</h3>
+                <div class="window-controls">
+                    <div class="window-control window-close" onclick="closeModal('image-viewer-modal')"><i class="fas fa-times"></i></div>
+                </div>
+            </div>
+            <div class="modal-body image-viewer-content">
+                <img id="image-viewer-img" src="" alt="Imagem">
+            </div>
+        </div>
+    </div>
+
+    <!-- Window Carousel Modal -->
+    <div class="modal" id="window-carousel-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Janelas Abertas</h3>
+                <!-- Removido o botão de fechar (X) -->
+            </div>
+            <div class="modal-body" id="window-carousel-body">
+                <!-- Thumbnails will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeModal('window-carousel-modal')">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Guide Modal -->
+    <div class="modal" id="help-guide-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Guia de Acesso ao Sistema Axon OS</h3>
+                <div class="window-controls">
+                    <div class="window-control window-close" onclick="closeModal('help-guide-modal')"><i class="fas fa-times"></i></div>
+                </div>
+            </div>
+            <div class="modal-body">
+                <p>Bem-vindo ao Axon OS! Este guia rápido irá ajudá-lo a começar.</p>
+                
+                <div class="settings-section">
+                    <h4><i class="fas fa-mouse-pointer"></i> Interação Básica</h4>
+                    <ul>
+                        <li><strong>Clique Simples:</strong> Seleciona um item.</li>
+                        <li><strong>Clique Duplo:</strong> Abre um aplicativo ou item.</li>
+                        <li><strong>Botão Direito (Menu de Contexto):</strong> Abre opções para o item selecionado ou para a área de trabalho.</li>
+                        <li><strong>Arrastar e Soltar:</strong> Mova ícones na área de trabalho.</li>
+                    </ul>
+                </div>
+
+                <div class="settings-section">
+                    <h4><i class="fas fa-rocket"></i> Aplicativos Essenciais</h4>
+                    <ul>
+                        <li><strong>Explorador de Arquivos (<i class="fas fa-folder"></i>):</strong> Gerencie seus arquivos e pastas.</li>
+                        <li><strong>Bloco de Notas (<i class="fas fa-edit"></i>):</strong> Crie e edite documentos de texto.</li>
+                        <li><strong>Terminal (<i class="fas fa-terminal"></i>):</strong> Para usuários avançados, execute comandos do sistema.</li>
+                        <li><strong>Mielina (<i class="fas fa-robot"></i>):</strong> Sua assistente virtual para ajuda rápida.</li>
+                        <li><strong>Configurações (<i class="fas fa-cog"></i>):</strong> Personalize o sistema e gerencie opções.</li>
+                    </ul>
+                </div>
+
+                <div class="settings-section">
+                    <h4><i class="fas fa-window-restore"></i> Gerenciamento de Janelas</h4>
+                    <ul>
+                        <li><strong>Minimizar (<i class="fas fa-minus"></i>):</strong> Oculta a janela na barra de tarefas.</li>
+                        <li><strong>Maximizar/Restaurar (<i class="fas fa-square"></i>):</strong> Alterna entre tela cheia e tamanho original.</li>
+                        <li><strong>Fechar (<i class="fas fa-times"></i>):</strong> Encerra o aplicativo.</li>
+                        <li><strong>Menu "Janela":</strong> Visualize e gerencie todas as janelas abertas.</li>
+                    </ul>
+                </div>
+
+                <p>Explore o Axon OS e descubra todas as suas funcionalidades!</p>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeModal('help-guide-modal')">Entendi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Screen -->
+    <div id="login-screen">
+        <div class="login-box">
+            <h2>Axon OS</h2>
+            <input type="text" id="login-username" placeholder="Usuário">
+            <input type="password" id="login-password" placeholder="Senha">
+            <button id="login-button">Entrar</button>
+        </div>
+    </div>
+
+    <script>
+        // Dados iniciais do sistema
+        const systemData = {
+            apps: {
+                finder: { name: "Explorador de Arquivos", icon: "fas fa-folder", minWidth: 700, minHeight: 500 },
+                notes: { name: "Bloco de Notas", icon: "fas fa-edit", minWidth: 600, minHeight: 500 },
+                terminal: { name: "Terminal", icon: "fas fa-terminal", minWidth: 700, minHeight: 500 },
+                calculator: { name: "Calculadora", icon: "fas fa-calculator", minWidth: 300, minHeight: 400 },
+                camera: { name: "Câmera", icon: "fas fa-camera", minWidth: 500, minHeight: 400 },
+                gallery: { name: "Galeria de Imagens", icon: "fas fa-images", minWidth: 800, minHeight: 500 },
+                'axon-apps': { name: "Axon Apps", icon: "fas fa-th-large", minWidth: 600, minHeight: 500 }, // Novo app para a pasta
+                browser: { name: "Navegador Axon", icon: "fas fa-globe", minWidth: 900, minHeight: 600 },
+                settings: { name: "Configurações", icon: "fas fa-cog", minWidth: 700, minHeight: 500 },
+                mielina: { name: "Mielina - Assistente Virtual", icon: "fas fa-robot", minWidth: 500, minHeight: 500 }
+            },
+            desktopItems: [
+                { id: 'documents', name: 'Documentos', type: 'folder', icon: 'fas fa-folder', x: 20, y: 20 },
+                { id: 'images', name: 'Imagens', type: 'folder', icon: 'fas fa-image', x: 20, y: 120 },
+                { id: 'downloads', name: 'Downloads', type: 'folder', icon: 'fas fa-download', x: 20, y: 220 },
+                { id: 'trash', name: 'Lixeira', type: 'folder', icon: 'fas fa-trash', x: 20, y: 320 }
+            ],
+            fileSystem: {
+                desktop: [], // Representa os itens na área de trabalho
+                documents: [
+                    { id: 'report', name: 'Relatório Final.txt', type: 'text', icon: 'fas fa-file-alt', content: 'Conteúdo do relatório final do projeto Axon OS. Este é um documento de exemplo.' },
+                    { id: 'notes', name: 'Anotações.txt', type: 'text', icon: 'fas fa-file-alt', content: 'Minhas anotações importantes:\n- Comprar leite\n- Ligar para o suporte\n- Estudar JavaScript' }
+                ],
+                images: [
+                    { id: 'wallpaper1', name: 'Paisagem.jpg', type: 'image', icon: 'fas fa-image', src: 'https://images.unsplash.com/photo-1506744038136-465a60a35c88?w=400' },
+                    { id: 'wallpaper2', name: 'Abstrato.png', type: 'image', icon: 'fas fa-image', src: 'https://images.unsplash.com/photo-1518621736915-f3b1c811cd67?w=400' }
+                ],
+                downloads: [
+                    { id: 'installer', name: 'Instalador.dmg', type: 'executable', icon: 'fas fa-download' }
+                ],
+                'axon-apps': [], // Este diretório será preenchido dinamicamente pelos apps HTML
+                trash: []
+            },
+            terminalHistory: [
+                { command: "help", output: "Comandos disponíveis: ls, cd, mkdir, touch, echo, clear, date, help" },
+                { command: "date", output: "Quarta-feira, 16 de Julho de 2025, 14:25:03" },
+                { command: "echo 'Bem-vindo ao Axon OS'", output: "Bem-vindo ao Axon OS" }
+            ],
+            // mediaFiles removido, pois o reprodutor de mídia foi substituído
+            clipboard: null,
+            settings: {
+                theme: 'axon-dark',
+                wallpaper: 'default',
+                animations: true,
+                transparency: true,
+                particles: true,
+                loginEnabled: false,
+                username: '',
+                password: ''
+            }
+        };
+
+        // Estado do sistema
+        const systemState = {
+            openWindows: [],
+            activeWindow: null,
+            desktopIcons: [],
+            dockIcons: document.querySelectorAll('.dock-icon'),
+            currentPath: ['~'],
+            terminalHistory: [...systemData.terminalHistory],
+            chatHistory: [
+                { role: "assistant", content: "Olá! Eu sou a Mielina, sua assistente virtual integrada ao Axon OS. Como posso ajudar você hoje?" }
+            ],
+            selectedIcon: null, // Para ícones da área de trabalho
+            selectedFileItem: null, // Para itens dentro do explorador de arquivos
+            currentMediaIndex: 0, // Mantido para compatibilidade, mas não usado pelo media player
+            mediaPlaying: false, // Mantido para compatibilidade
+            clipboardAction: null, // 'copy' or 'cut'
+            currentDirectory: 'desktop', // Diretório atual no explorador de arquivos
+            cameraStream: null,
+            cameraPhotos: [],
+            selectedFile: null, // Para o modal de abrir arquivo
+            axonApps: [] // Lista de aplicativos HTML dinamicamente carregados
+        };
+
+        // Elementos DOM
+        const desktop = document.getElementById('desktop');
+        const dock = document.getElementById('dock');
+        const windowsContainer = document.getElementById('windows-container');
+        const clockElement = document.getElementById('clock');
+        const contextMenu = document.getElementById('context-menu');
+        const createModal = document.getElementById('create-modal');
+        const openFileModal = document.getElementById('open-file-modal');
+        const customAlertModal = document.getElementById('custom-alert-modal');
+        const customAlertHeader = document.getElementById('custom-alert-header');
+        const customAlertBody = document.getElementById('custom-alert-body');
+        const customAlertFooter = document.getElementById('custom-alert-footer');
+        const loginScreen = document.getElementById('login-screen');
+        const loginUsernameInput = document.getElementById('login-username');
+        const loginPasswordInput = document.getElementById('login-password');
+        const loginButton = document.getElementById('login-button');
+
+        // Ícones para tipos de arquivo
+        const fileIcons = {
+            folder: "fas fa-folder",
+            text: "fas fa-file-alt",
+            image: "fas fa-file-image",
+            pdf: "fas fa-file-pdf",
+            spreadsheet: "fas fa-file-excel",
+            presentation: "fas fa-file-powerpoint",
+            executable: "fas fa-download",
+            archive: "fas fa-file-archive",
+            link: "fas fa-link",
+            'html-app': "fas fa-code" // Ícone para aplicativos HTML
+        };
+
+        // Custom Alert/Prompt/Confirm functions
+        function showCustomModal(type, title, message, callback, defaultValue = '') {
+            return new Promise((resolve) => {
+                customAlertHeader.textContent = title;
+                customAlertBody.innerHTML = `<p>${message}</p>`;
+                customAlertFooter.innerHTML = '';
+
+                if (type === 'alert') {
+                    const okButton = document.createElement('button');
+                    okButton.textContent = 'OK';
+                    okButton.onclick = () => {
+                        customAlertModal.classList.remove('active');
+                        resolve(true);
+                        if (callback) callback(true);
+                    };
+                    customAlertFooter.appendChild(okButton);
+                } else if (type === 'confirm') {
+                    const cancelButton = document.createElement('button');
+                    cancelButton.textContent = 'Cancelar';
+                    cancelButton.onclick = () => {
+                        customAlertModal.classList.remove('active');
+                        resolve(false);
+                        if (callback) callback(false);
+                    };
+                    const okButton = document.createElement('button');
+                    okButton.textContent = 'Confirmar';
+                    okButton.onclick = () => {
+                        customAlertModal.classList.remove('active');
+                        resolve(true);
+                        if (callback) callback(true);
+                    };
+                    customAlertFooter.appendChild(cancelButton);
+                    customAlertFooter.appendChild(okButton);
+                } else if (type === 'prompt') {
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.value = defaultValue;
+                    customAlertBody.appendChild(input);
+
+                    const cancelButton = document.createElement('button');
+                    cancelButton.textContent = 'Cancelar';
+                    cancelButton.onclick = () => {
+                        customAlertModal.classList.remove('active');
+                        resolve(null);
+                        if (callback) callback(null);
+                    };
+                    const okButton = document.createElement('button');
+                    okButton.textContent = 'OK';
+                    okButton.onclick = () => {
+                        customAlertModal.classList.remove('active');
+                        resolve(input.value);
+                        if (callback) callback(input.value);
+                    };
+                    customAlertFooter.appendChild(cancelButton);
+                    customAlertFooter.appendChild(okButton);
+                    input.focus(); // Foco automático no input do prompt
+                }
+                customAlertModal.classList.add('active');
+            });
+        }
+
+        // Wrapper para alert, prompt, confirm
+        window.axonAlert = (message, title = 'Axon OS') => showCustomModal('alert', title, message);
+        window.axonConfirm = (message, title = 'Axon OS') => showCustomModal('confirm', title, message);
+        window.axonPrompt = (message, defaultValue = '', title = 'Axon OS') => showCustomModal('prompt', title, message, null, defaultValue);
+        window.closeModal = (modalId) => {
+            document.getElementById(modalId).classList.remove('active');
+        };
+
+        // Inicialização do sistema
+        async function initSystem() {
+            loadSettings(); // Carrega as configurações salvas
+            applySettings(); // Aplica as configurações
+            updateClock();
+            setInterval(updateClock, 60000);
+            createParticles();
+            await loadAxonApps(); // Carrega os aplicativos HTML antes de configurar os event listeners
+            setupEventListeners();
+            
+            // Certifica-se de que os itens padrão do desktop estão no fileSystem.desktop
+            // Isso garante que o fileSystem.desktop seja populado corretamente na inicialização
+            systemData.desktopItems.forEach(item => {
+                if (!systemData.fileSystem.desktop.find(dItem => dItem.id === item.id)) {
+                    systemData.fileSystem.desktop.push(item);
+                }
+            });
+
+            if (systemData.settings.loginEnabled) {
+                showLoginScreen();
+            } else {
+                loadDesktopItems();
+            }
+        }
+
+        // Atualizar relógio
+        function updateClock() {
+            const now = new Date();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            clockElement.textContent = `${hours}:${minutes}`;
+        }
+
+        // Configurar event listeners
+        function setupEventListeners() {
+            // Ícones do dock
+            systemState.dockIcons.forEach(icon => {
+                icon.addEventListener('click', () => {
+                    const app = icon.dataset.app;
+                    openApp(app);
+                });
+            });
+
+            // Clique na área de trabalho para desselecionar ícones
+            desktop.addEventListener('click', (e) => {
+                if (e.target === desktop) {
+                    document.querySelectorAll('.desktop-icon').forEach(i => {
+                        i.classList.remove('selected');
+                    });
+                    systemState.selectedIcon = null;
+                }
+            });
+
+            // Context menu items
+            document.getElementById('context-new-folder').addEventListener('click', async () => {
+                const folderName = await axonPrompt("Digite o nome da nova pasta:", "Nova Pasta");
+                if (folderName) {
+                    createDesktopItem('folder', folderName);
+                }
+                hideContextMenu();
+            });
+            
+            document.getElementById('context-new-file').addEventListener('click', async () => {
+                const fileName = await axonPrompt("Digite o nome do novo arquivo:", "Novo Documento.txt");
+                if (fileName) {
+                    createDesktopItem('text', fileName);
+                }
+                hideContextMenu();
+            });
+            
+            document.getElementById('context-open').addEventListener('click', () => {
+                let itemToOpen = null;
+                if (systemState.selectedIcon) {
+                    itemToOpen = systemData.desktopItems.find(i => i.id === systemState.selectedIcon.dataset.id);
+                } else if (systemState.selectedFileItem) {
+                    itemToOpen = systemState.selectedFileItem;
+                }
+
+                if (itemToOpen) {
+                    if (itemToOpen.type === 'folder') {
+                        openApp('finder');
+                        const finderWindow = systemState.openWindows.find(w => w.id === 'finder');
+                        if (finderWindow) {
+                            const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
+                            if (explorerGrid) {
+                                loadDirectory(itemToOpen.id, explorerGrid);
+                            }
+                        }
+                    } else if (itemToOpen.type === 'text') {
+                        openApp('notes');
+                        const notesWindow = systemState.openWindows.find(w => w.id === 'notes');
+                        if (notesWindow) {
+                            const textArea = notesWindow.element.querySelector('#note-content');
+                            if (textArea) {
+                                const file = findFileInFileSystem(itemToOpen.id);
+                                if (file) {
+                                    textArea.value = file.content || '';
+                                    textArea.dataset.fileId = file.id;
+                                }
+                            }
+                        }
+                    } else if (itemToOpen.type === 'image') {
+                        // Para imagens criadas sem src, não há o que abrir
+                        if (itemToOpen.src) {
+                            openImageViewer(itemToOpen.src);
+                        } else {
+                            axonAlert("Esta imagem não possui um caminho de origem definido.");
+                        }
+                    } else if (itemToOpen.type === 'html-app') {
+                        openHtmlApp(itemToOpen.path, itemToOpen.name, itemToOpen.icon);
+                    } else {
+                        axonAlert(`Não é possível abrir o arquivo "${itemToOpen.name}". Tipo de arquivo não suportado.`);
+                    }
+                }
+                hideContextMenu();
+            });
+            
+            document.getElementById('context-delete').addEventListener('click', async () => {
+                const confirmDelete = await axonConfirm("Tem certeza que deseja excluir este item?");
+                if (confirmDelete) {
+                    if (systemState.selectedIcon) {
+                        const iconId = systemState.selectedIcon.dataset.id;
+                        deleteDesktopItem(iconId);
+                    } else if (systemState.selectedFileItem) {
+                        deleteFileItem(systemState.selectedFileItem.id, systemState.currentDirectory);
+                    }
+                }
+                hideContextMenu();
+            });
+            
+            document.getElementById('context-rename').addEventListener('click', async () => {
+                let oldName = '';
+                let itemId = '';
+                let itemType = '';
+
+                if (systemState.selectedIcon) {
+                    oldName = systemState.selectedIcon.querySelector('.icon-label').textContent;
+                    itemId = systemState.selectedIcon.dataset.id;
+                    itemType = 'desktop';
+                } else if (systemState.selectedFileItem) {
+                    oldName = systemState.selectedFileItem.name;
+                    itemId = systemState.selectedFileItem.id;
+                    itemType = 'fileSystem';
+                }
+
+                if (itemId) {
+                    const newName = await axonPrompt("Digite o novo nome:", oldName);
+                    if (newName && newName.trim() !== '' && newName.trim() !== oldName) {
+                        if (itemType === 'desktop') {
+                            // Atualiza o nome no DOM
+                            const desktopIconElement = document.querySelector(`.desktop-icon[data-id="${itemId}"]`);
+                            if (desktopIconElement) {
+                                desktopIconElement.querySelector('.icon-label').textContent = newName.trim();
+                            }
+                            updateDesktopItemName(itemId, newName.trim());
+                        } else if (itemType === 'fileSystem') {
+                            updateFileItemName(itemId, systemState.currentDirectory, newName.trim());
+                            const finderWindow = systemState.openWindows.find(w => w.id === 'finder');
+                            if (finderWindow) {
+                                const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
+                                if (explorerGrid) {
+                                    loadDirectory(systemState.currentDirectory, explorerGrid);
+                                }
+                            }
+                        }
+                        axonAlert(`Item renomeado para "${newName.trim()}"`);
+                    } else if (newName && newName.trim() === oldName) {
+                        axonAlert("O nome é o mesmo. Nenhuma alteração foi feita.");
+                    }
+                }
+                hideContextMenu();
+            });
+            
+            document.getElementById('context-copy').addEventListener('click', () => {
+                if (systemState.selectedIcon) {
+                    const item = systemData.desktopItems.find(i => i.id === systemState.selectedIcon.dataset.id);
+                    if (item) {
+                        systemData.clipboard = { ...item };
+                        systemState.clipboardAction = 'copy';
+                        axonAlert(`"${item.name}" copiado para a área de transferência.`);
+                    }
+                } else if (systemState.selectedFileItem) {
+                    systemData.clipboard = { ...systemState.selectedFileItem };
+                    systemState.clipboardAction = 'copy';
+                    axonAlert(`"${systemState.selectedFileItem.name}" copiado para a área de transferência.`);
+                }
+                hideContextMenu();
+            });
+            
+            document.getElementById('context-cut').addEventListener('click', () => {
+                if (systemState.selectedIcon) {
+                    const item = systemData.desktopItems.find(i => i.id === systemState.selectedIcon.dataset.id);
+                    if (item) {
+                        systemData.clipboard = { ...item };
+                        systemState.clipboardAction = 'cut';
+                        axonAlert(`"${item.name}" recortado para a área de transferência.`);
+                    }
+                } else if (systemState.selectedFileItem) {
+                    systemData.clipboard = { ...systemState.selectedFileItem };
+                    systemState.clipboardAction = 'cut';
+                    axonAlert(`"${systemState.selectedFileItem.name}" recortado para a área de transferência.`);
+                }
+                hideContextMenu();
+            });
+            
+            document.getElementById('context-paste').addEventListener('click', async () => {
+                if (systemData.clipboard) {
+                    const originalItem = systemData.clipboard;
+                    const newItem = { ...originalItem };
+                    newItem.id = originalItem.id + '-' + Date.now(); // Novo ID para a cópia
+                    newItem.name = `Cópia de ${originalItem.name}`;
+
+                    // Lógica para remover o item original se for uma operação de recorte
+                    if (systemState.clipboardAction === 'cut') {
+                        let originalDir = null;
+                        // Tenta encontrar o item no desktopItems
+                        if (systemData.desktopItems.some(item => item.id === originalItem.id)) {
+                            originalDir = 'desktop';
+                        } else {
+                            // Procura em outros diretórios do fileSystem
+                            for (const dirKey in systemData.fileSystem) {
+                                if (Array.isArray(systemData.fileSystem[dirKey])) {
+                                    if (systemData.fileSystem[dirKey].some(item => item.id === originalItem.id)) {
+                                        originalDir = dirKey;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if (originalDir) {
+                            if (originalDir === 'desktop') {
+                                deleteDesktopItem(originalItem.id, false); // Não salva ainda
+                            } else {
+                                deleteFileItem(originalItem.id, originalDir, false); // Não salva ainda
+                            }
+                        }
+                    }
+                    
+                    // Lógica para colar o item
+                    let targetDirectoryForPaste = systemState.currentDirectory; // Padrão para o diretório atual do Finder
+
+                    if (systemState.selectedIcon === null && systemState.selectedFileItem === null) {
+                        // Colar na área de trabalho se nada estiver selecionado
+                        targetDirectoryForPaste = 'desktop';
+                    } else if (systemState.selectedFileItem && systemState.selectedFileItem.type === 'folder') {
+                        // Colar dentro da pasta selecionada no explorador de arquivos
+                        targetDirectoryForPaste = systemState.selectedFileItem.id;
+                    }
+                    // Se um ícone do desktop estiver selecionado, mas não for uma pasta, ainda cola no desktop
+                    // Se um arquivo no finder estiver selecionado, mas não for uma pasta, ainda cola no diretório atual do finder
+
+                    if (!systemData.fileSystem[targetDirectoryForPaste]) {
+                        systemData.fileSystem[targetDirectoryForPaste] = [];
+                    }
+                    systemData.fileSystem[targetDirectoryForPaste].push(newItem);
+
+                    // Se colando no desktop, também cria o ícone visual
+                    if (targetDirectoryForPaste === 'desktop') {
+                        newItem.x = Math.random() * (desktop.clientWidth - 100);
+                        newItem.y = Math.random() * (desktop.clientHeight - 100);
+                        systemData.desktopItems.push(newItem); // Adiciona ao desktopItems
+                        createDesktopItem(newItem.type, newItem.name, newItem.x, newItem.y, newItem.id); // Recria o ícone visual
+                    }
+
+                    // Atualiza o Finder se estiver aberto e no diretório correto
+                    const finderWindow = systemState.openWindows.find(w => w.id === 'finder');
+                    if (finderWindow) {
+                        const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
+                        if (explorerGrid) {
+                            loadDirectory(systemState.currentDirectory, explorerGrid);
+                        }
+                    }
+
+                    saveDesktopItems(); // Salva todas as alterações
+                    axonAlert(`"${newItem.name}" colado com sucesso!`);
+                    systemData.clipboard = null;
+                    systemState.clipboardAction = null;
+                } else {
+                    axonAlert("Nenhum item para colar na área de transferência.");
+                }
+                hideContextMenu();
+            });
+
+            // Modal events
+            document.getElementById('cancel-create').addEventListener('click', () => {
+                createModal.classList.remove('active');
+            });
+            
+            document.getElementById('confirm-create').addEventListener('click', async () => {
+                const type = document.getElementById('item-type').value;
+                const name = document.getElementById('item-name').value.trim();
+                
+                if (!name) {
+                    await axonAlert("Por favor, digite um nome para o item.");
+                    return;
+                }
+                createDesktopItem(type, name);
+                createModal.classList.remove('active');
+            });
+            
+            // Context menu for desktop
+            desktop.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                document.querySelectorAll('.desktop-icon').forEach(i => i.classList.remove('selected'));
+                systemState.selectedIcon = null;
+                systemState.selectedFileItem = null;
+                showContextMenu(e, null);
+            });
+            
+            // Botão Axon OS (minimiza todas as janelas)
+            document.getElementById('axon-menu').addEventListener('click', () => {
+                systemState.openWindows.forEach(window => {
+                    minimizeWindow(window.windowId);
+                });
+            });
+
+            // Botão Janela (Carrossel)
+            document.getElementById('window-carousel-btn').addEventListener('click', showWindowCarousel);
+
+            // Botão Ajuda
+            document.getElementById('help-guide-btn').addEventListener('click', () => {
+                document.getElementById('help-guide-modal').classList.add('active');
+            });
+
+            // Login button (only if login screen is active)
+            if (loginButton) { // Check if element exists (it won't if login is disabled)
+                loginButton.addEventListener('click', handleLogin);
+                loginPasswordInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') handleLogin();
+                });
+            }
+        }
+
+        // Criar ícone na área de trabalho
+        function createDesktopItem(type, name, x = null, y = null, id = null) {
+            id = id || 'item-' + Date.now();
+            x = x === null ? Math.random() * (desktop.clientWidth - 100) : x;
+            y = y === null ? Math.random() * (desktop.clientHeight - 100) : y;
+
+            const newItem = { id, name, type, x, y, icon: fileIcons[type] || 'fas fa-file' };
+            if (type === 'text') {
+                newItem.content = '';
+            } else if (type === 'image') {
+                newItem.src = ''; // Placeholder para imagens criadas
+            } else if (type === 'folder') {
+                systemData.fileSystem[id] = []; // Cria um novo diretório vazio
+            }
+
+            // Adiciona ao desktopItems (para persistência de posição e nome no desktop)
+            systemData.desktopItems.push(newItem);
+            // Adiciona ao fileSystem.desktop (para ser listado no Finder e para consistência)
+            systemData.fileSystem.desktop.push(newItem);
+            
+            const icon = document.createElement('div');
+            icon.className = 'desktop-icon';
+            icon.dataset.id = id;
+            icon.dataset.type = type;
+            icon.dataset.app = type === 'folder' ? 'finder' : (type === 'text' ? 'notes' : (type === 'image' ? 'gallery' : (type === 'html-app' ? 'html-app-launcher' : null))); // Adicionado html-app-launcher
+            icon.style.left = `${x}px`;
+            icon.style.top = `${y}px`;
+            
+            const iconImage = document.createElement('div');
+            iconImage.className = 'icon-image';
+            
+            const iconElement = document.createElement('i');
+            iconElement.className = fileIcons[type] || 'fas fa-file';
+            iconImage.appendChild(iconElement);
+            
+            const iconLabel = document.createElement('div');
+            iconLabel.className = 'icon-label';
+            iconLabel.textContent = name;
+            
+            icon.appendChild(iconImage);
+            icon.appendChild(iconLabel);
+            
+            icon.addEventListener('dblclick', () => {
+                if (icon.dataset.app) {
+                    if (icon.dataset.type === 'folder') {
+                        openApp('finder');
+                        const finderWindow = systemState.openWindows.find(w => w.id === 'finder');
+                        if (finderWindow) {
+                            const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
+                            if (explorerGrid) {
+                                loadDirectory(id, explorerGrid);
+                            }
+                        }
+                    } else if (icon.dataset.type === 'text') {
+                        openApp('notes');
+                        const notesWindow = systemState.openWindows.find(w => w.id === 'notes');
+                        if (notesWindow) {
+                            const textArea = notesWindow.element.querySelector('#note-content');
+                            if (textArea) {
+                                const file = findFileInFileSystem(id);
+                                if (file) {
+                                    textArea.value = file.content || '';
+                                    textArea.dataset.fileId = file.id;
+                                }
+                            }
+                        }
+                    } else if (icon.dataset.type === 'image') {
+                        const imageItem = findFileInFileSystem(id);
+                        if (imageItem && imageItem.src) {
+                            openImageViewer(imageItem.src);
+                        } else {
+                            axonAlert("Esta imagem não possui um caminho de origem definido.");
+                        }
+                    } else if (icon.dataset.type === 'html-app') {
+                        const appItem = findFileInFileSystem(id);
+                        if (appItem && appItem.path) {
+                            openHtmlApp(appItem.path, appItem.name, appItem.icon);
+                        } else {
+                            axonAlert("Este aplicativo HTML não possui um caminho definido.");
+                        }
+                    } else {
+                        openApp(icon.dataset.app); // Para apps nativos como calculadora, etc.
+                    }
+                }
+            });
+            
+            icon.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                document.querySelectorAll('.desktop-icon').forEach(i => i.classList.remove('selected'));
+                document.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
+                icon.classList.add('selected');
+                systemState.selectedIcon = icon;
+                systemState.selectedFileItem = null;
+                showContextMenu(e, icon);
+            });
+            
+            icon.addEventListener('click', (e) => {
+                document.querySelectorAll('.desktop-icon').forEach(i => {
+                    i.classList.remove('selected');
+                });
+                document.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
+                icon.classList.add('selected');
+                systemState.selectedIcon = icon;
+                systemState.selectedFileItem = null;
+            });
+            
+            let isDragging = false;
+            let offsetX, offsetY;
+            
+            icon.addEventListener('mousedown', (e) => {
+                if (e.button === 0) {
+                    isDragging = true;
+                    offsetX = e.clientX - icon.getBoundingClientRect().left;
+                    offsetY = e.clientY - icon.getBoundingClientRect().top;
+                    icon.style.cursor = 'grabbing';
+                    icon.style.zIndex = '100';
+                    // Anexar listeners ao document para arrastar fora do desktop
+                    document.addEventListener('mousemove', elementDragIcon);
+                    document.addEventListener('mouseup', stopDragIcon);
+                }
+            });
+
+            function elementDragIcon(e) {
+                if (!isDragging) return;
+                let newX = e.clientX - offsetX;
+                let newY = e.clientY - offsetY;
+
+                newX = Math.max(0, Math.min(newX, desktop.clientWidth - icon.offsetWidth));
+                newY = Math.max(0, Math.min(newY, desktop.clientHeight - icon.offsetHeight));
+
+                icon.style.left = `${newX}px`;
+                icon.style.top = `${newY}px`;
+            }
+
+            function stopDragIcon() {
+                if (isDragging) {
+                    isDragging = false;
+                    icon.style.cursor = 'pointer';
+                    icon.style.zIndex = '';
+                    updateDesktopItemPosition(id, parseInt(icon.style.left), parseInt(icon.style.top));
+                    saveDesktopItems();
+                    document.removeEventListener('mousemove', elementDragIcon);
+                    document.removeEventListener('mouseup', stopDragIcon);
+                }
+            }
+            
+            desktop.appendChild(icon);
+            systemState.desktopIcons.push(icon);
+            saveDesktopItems(); // Salva o novo item
+        }
+
+        // Atualizar posição do item na área de trabalho
+        function updateDesktopItemPosition(id, x, y) {
+            const item = systemData.desktopItems.find(item => item.id === id);
+            if (item) {
+                item.x = x;
+                item.y = y;
+            }
+        }
+
+        // Atualizar nome do item na área de trabalho
+        function updateDesktopItemName(id, name) {
+            const item = systemData.desktopItems.find(item => item.id === id);
+            if (item) {
+                item.name = name;
+            }
+            // Também atualiza no fileSystem.desktop se for um item de lá
+            const fsItem = systemData.fileSystem.desktop.find(item => item.id === id);
+            if (fsItem) {
+                fsItem.name = name;
+            }
+            saveDesktopItems();
+        }
+
+        // Excluir item da área de trabalho
+        function deleteDesktopItem(id, save = true) {
+            const icon = document.querySelector(`.desktop-icon[data-id="${id}"]`);
+            if (icon) {
+                icon.remove();
+            }
+            
+            systemData.desktopItems = systemData.desktopItems.filter(item => item.id !== id);
+            systemData.fileSystem.desktop = systemData.fileSystem.desktop.filter(item => item.id !== id);
+            
+            // Se for uma pasta, remove também o diretório do fileSystem
+            if (systemData.fileSystem[id]) {
+                delete systemData.fileSystem[id];
+            }
+
+            if (save) saveDesktopItems();
+        }
+
+        // Atualizar nome do item no sistema de arquivos
+        function updateFileItemName(id, directory, name) {
+            if (systemData.fileSystem[directory]) {
+                const item = systemData.fileSystem[directory].find(item => item.id === id);
+                if (item) {
+                    item.name = name;
+                }
+            }
+            saveDesktopItems(); // Salva após a alteração
+        }
+
+        // Excluir item do sistema de arquivos
+        function deleteFileItem(id, directory, save = true) {
+            if (systemData.fileSystem[directory]) {
+                systemData.fileSystem[directory] = systemData.fileSystem[directory].filter(item => item.id !== id);
+            }
+            // Se for uma pasta, remove também o diretório do fileSystem
+            if (systemData.fileSystem[id]) {
+                delete systemData.fileSystem[id];
+            }
+            if (save) saveDesktopItems();
+        }
+
+        // Encontrar arquivo em qualquer diretório do sistema de arquivos
+        function findFileInFileSystem(fileId) {
+            for (const dir in systemData.fileSystem) {
+                if (Array.isArray(systemData.fileSystem[dir])) {
+                    const file = systemData.fileSystem[dir].find(f => f.id === fileId);
+                    if (file) return file;
+                }
+            }
+            return null;
+        }
+
+        // Carregar itens da área de trabalho
+        function loadDesktopItems() {
+            const savedItems = localStorage.getItem('axon-desktop-items');
+            const savedFileSystem = localStorage.getItem('axon-file-system');
+
+            // Limpa os ícones existentes no desktop antes de carregar
+            systemState.desktopIcons.forEach(icon => icon.remove());
+            systemState.desktopIcons = [];
+            systemData.desktopItems = []; // Limpa a lista de itens do desktop
+            systemData.fileSystem.desktop = []; // Limpa o diretório desktop no fileSystem
+
+            if (savedItems) {
+                systemData.desktopItems = JSON.parse(savedItems);
+                systemData.desktopItems.forEach(item => {
+                    // Recria o ícone visual e adiciona ao fileSystem.desktop
+                    createDesktopItem(item.type, item.name, item.x, item.y, item.id); 
+                });
+            } else {
+                // Se não houver itens salvos, usa os itens padrão e os cria
+                systemData.desktopItems.forEach(item => {
+                    createDesktopItem(item.type, item.name, item.x, item.y, item.id);
+                });
+            }
+
+            // Carrega o fileSystem completo se houver um salvo
+            if (savedFileSystem) {
+                const parsedFileSystem = JSON.parse(savedFileSystem);
+                // Mescla o fileSystem salvo com o inicial, mas preserva os itens do desktop
+                // que já foram carregados via desktopItems para evitar duplicação
+                for (const key in parsedFileSystem) {
+                    if (key !== 'desktop') { // Não sobrescreve o desktop, que já foi tratado
+                        systemData.fileSystem[key] = parsedFileSystem[key];
+                    }
+                }
+            }
+            saveDesktopItems(); // Garante que o estado atual seja salvo após o carregamento
+        }
+
+        // Salvar itens da área de trabalho
+        function saveDesktopItems() {
+            localStorage.setItem('axon-desktop-items', JSON.stringify(systemData.desktopItems));
+            localStorage.setItem('axon-file-system', JSON.stringify(systemData.fileSystem));
+        }
+
+        // Mostrar menu de contexto
+        function showContextMenu(e, target) {
+            contextMenu.style.display = 'block';
+            
+            // Ajusta a posição para não sair da tela
+            let x = e.pageX;
+            let y = e.pageY;
+            const menuWidth = contextMenu.offsetWidth;
+            const menuHeight = contextMenu.offsetHeight;
+
+            if (x + menuWidth > window.innerWidth) {
+                x = window.innerWidth - menuWidth - 10; // 10px de margem
+            }
+            if (y + menuHeight > window.innerHeight) {
+                y = window.innerHeight - menuHeight - 10; // 10px de margem
+            }
+
+            contextMenu.style.left = `${x}px`;
+            contextMenu.style.top = `${y}px`;
+            
+            // Habilita/desabilita opções com base no item selecionado
+            const isItemSelected = systemState.selectedIcon || systemState.selectedFileItem;
+            const isFolderSelected = (systemState.selectedIcon && systemState.selectedIcon.dataset.type === 'folder') || 
+                                     (systemState.selectedFileItem && systemState.selectedFileItem.type === 'folder');
+
+            document.getElementById('context-open').style.display = isItemSelected ? 'flex' : 'none';
+            document.getElementById('context-rename').style.display = isItemSelected ? 'flex' : 'none';
+            document.getElementById('context-delete').style.display = isItemSelected ? 'flex' : 'none';
+            document.getElementById('context-cut').style.display = isItemSelected ? 'flex' : 'none';
+            document.getElementById('context-copy').style.display = isItemSelected ? 'flex' : 'none';
+            
+            // Novas opções de pasta/arquivo só aparecem se nada estiver selecionado ou se uma pasta estiver selecionada
+            document.getElementById('context-new-folder').style.display = (!isItemSelected || isFolderSelected) ? 'flex' : 'none';
+            document.getElementById('context-new-file').style.display = (!isItemSelected || isFolderSelected) ? 'flex' : 'none';
+            
+            // Colar só aparece se houver algo na área de transferência E se for um local válido para colar
+            const canPaste = systemData.clipboard && (!isItemSelected || isFolderSelected);
+            document.getElementById('context-paste').style.display = canPaste ? 'flex' : 'none';
+        }
+
+        // Esconder menu de contexto
+        function hideContextMenu() {
+            contextMenu.style.display = 'none';
+        }
+
+        // Abrir aplicativo
+        function openApp(appId) {
+            const existingWindow = systemState.openWindows.find(w => w.id === appId);
+            if (existingWindow) {
+                bringToFront(existingWindow.windowId);
+                if (appId === 'finder') {
+                    const explorerGrid = existingWindow.element.querySelector('#explorer-grid');
+                    if (explorerGrid) {
+                        loadDirectory(systemState.currentDirectory, explorerGrid);
+                    }
+                } else if (appId === 'axon-apps') {
+                    initAxonApps(existingWindow.element); // Recarrega a lista de apps
+                }
+                return;
+            }
+
+            const app = systemData.apps[appId];
+            if (!app) return;
+
+            const windowId = `window-${Date.now()}`;
+            const windowElement = document.createElement('div');
+            windowElement.className = 'window';
+            windowElement.id = windowId;
+            windowElement.style.width = `${app.minWidth}px`;
+            windowElement.style.height = `${app.minHeight}px`;
+            
+            const left = Math.max(0, (window.innerWidth - app.minWidth) / 2 + (Math.random() * 100 - 50));
+            const top = Math.max(0, (window.innerHeight - app.minHeight) / 2 + (Math.random() * 100 - 50));
+            windowElement.style.left = `${left}px`;
+            windowElement.style.top = `${top}px`;
+
+            const header = document.createElement('div');
+            header.className = 'window-header';
+            header.innerHTML = `
+                <div class="window-title">
+                    <i class="${app.icon}"></i> ${app.name}
+                </div>
+                <div class="window-controls">
+                    <div class="window-control window-minimize"><i class="fas fa-minus"></i></div>
+                    <div class="window-control window-maximize"><i class="fas fa-square"></i></div>
+                    <div class="window-control window-close"><i class="fas fa-times"></i></div>
+                </div>
+            `;
+            windowElement.appendChild(header);
+
+            const content = document.createElement('div');
+            content.className = 'window-content';
+            content.innerHTML = generateAppContent(appId);
+            windowElement.appendChild(content);
+
+            windowsContainer.appendChild(windowElement);
+            
+            void windowElement.offsetWidth; // Força reflow para a transição
+            windowElement.classList.add('active');
+            
+            setupWindowEvents(windowElement, appId, windowId);
+            
+            systemState.openWindows.push({ id: appId, windowId: windowId, element: windowElement, appName: app.name, appIcon: app.icon });
+            systemState.activeWindow = windowId;
+            bringToFront(windowId);
+            
+            initAppContent(appId, windowElement);
+        }
+
+        // Gerar conteúdo do aplicativo
+        function generateAppContent(appId) {
+            switch(appId) {
+                case 'finder':
+                    return `
+                        <div class="file-explorer">
+                            <div class="sidebar">
+                                <div class="sidebar-item" data-path="desktop"><i class="fas fa-desktop"></i> Área de Trabalho</div>
+                                <div class="sidebar-item" data-path="documents"><i class="fas fa-folder"></i> Documentos</div>
+                                <div class="sidebar-item" data-path="images"><i class="fas fa-image"></i> Imagens</div>
+                                <div class="sidebar-item" data-path="downloads"><i class="fas fa-download"></i> Downloads</div>
+                                <div class="sidebar-item" data-path="axon-apps"><i class="fas fa-th-large"></i> Axon Apps</div>
+                                <div class="sidebar-item" data-path="trash"><i class="fas fa-trash"></i> Lixeira</div>
+                            </div>
+                            <div class="main-content">
+                                <div class="tab-container">
+                                    <div class="tab active">Todos os Itens</div>
+                                    <div class="tab">Recentes</div>
+                                </div>
+                                <div class="files-grid" id="explorer-grid">
+                                    <!-- Conteúdo será preenchido dinamicamente -->
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                case 'notes':
+                    return `
+                        <div class="notepad-container">
+                            <div class="notepad-toolbar">
+                                <button id="new-note"><i class="fas fa-file"></i> Novo</button>
+                                <button id="open-note"><i class="fas fa-folder-open"></i> Abrir</button>
+                                <button id="save-note"><i class="fas fa-save"></i> Salvar</button>
+                            </div>
+                            <div class="notepad-content">
+                                <textarea id="note-content" placeholder="Comece a digitar..."></textarea>
+                            </div>
+                        </div>
+                    `;
+                case 'terminal':
+                    return `
+                        <div class="terminal-container">
+                            <div class="terminal-header">
+                                <div>Terminal</div>
+                                <div>
+                                    <i class="fas fa-minus"></i>
+                                    <i class="fas fa-square"></i>
+                                    <i class="fas fa-times"></i>
+                                </div>
+                            </div>
+                            <div class="terminal-content" id="terminal-content">
+                                <!-- O histórico do terminal será preenchido aqui -->
+                            </div>
+                            <div class="terminal-input">
+                                <span class="prompt">axon@os:~$</span>
+                                <input type="text" id="terminal-input" autocomplete="off">
+                            </div>
+                        </div>
+                    `;
+                case 'mielina':
+                    return `
+                        <div class="assistant-container">
+                            <div class="chat-messages" id="chat-messages">
+                                <!-- As mensagens do chat serão preenchidas aqui -->
+                            </div>
+                            <div class="chat-input">
+                                <input type="text" id="chat-input" placeholder="Digite uma mensagem para Mielina...">
+                                <button id="send-message"><i class="fas fa-paper-plane"></i></button>
+                            </div>
+                        </div>
+                    `;
+                case 'settings':
+                    return `
+                        <div class="tab-container" id="settings-tabs">
+                            <div class="tab active" data-tab="appearance">Aparência</div>
+                            <div class="tab" data-tab="security">Segurança</div>
+                        </div>
+                        <div id="settings-content">
+                            <div class="settings-tab-content active" id="settings-appearance">
+                                <div class="settings-section">
+                                    <h4>Tema</h4>
+                                    <div class="settings-option">
+                                        <label for="theme-select">Selecione um tema:</label>
+                                        <select id="theme-select">
+                                            <option value="axon-dark">Axon Dark (padrão)</option>
+                                            <option value="axon-light">Axon Light</option>
+                                            <option value="terminal-green">Terminal Verde</option>
+                                            <option value="purple-haze">Purple Haze</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="settings-section">
+                                    <h4>Papel de Parede</h4>
+                                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                                        <div class="wallpaper-option" data-wallpaper="default" style="background: radial-gradient(circle at center, #0c0c1d, #1a1a3a);"></div>
+                                        <div class="wallpaper-option" data-wallpaper="gradient1" style="background: linear-gradient(135deg, #6a5af9, #d66efd);"></div>
+                                        <div class="wallpaper-option" data-wallpaper="gradient2" style="background: linear-gradient(135deg, #00cc88, #00b4ff);"></div>
+                                    </div>
+                                </div>
+                                <div class="settings-section">
+                                    <h4>Efeitos Visuais</h4>
+                                    <div class="settings-option">
+                                        <label for="animations-toggle">Animações de Interface</label>
+                                        <input type="checkbox" id="animations-toggle">
+                                    </div>
+                                    <div class="settings-option">
+                                        <label for="transparency-toggle">Transparências (Glassmorphism)</label>
+                                        <input type="checkbox" id="transparency-toggle">
+                                    </div>
+                                    <div class="settings-option">
+                                        <label for="particles-toggle">Efeitos de Partículas de Fundo</label>
+                                        <input type="checkbox" id="particles-toggle">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="settings-tab-content" id="settings-security">
+                                <div class="settings-section">
+                                    <h4>Login do Sistema</h4>
+                                    <div class="settings-option">
+                                        <label for="login-enabled-toggle">Habilitar Login</label>
+                                        <input type="checkbox" id="login-enabled-toggle">
+                                    </div>
+                                    <button id="set-credentials-btn" style="margin-top: 10px;">Definir/Alterar Credenciais</button>
+                                </div>
+                                <div class="settings-section">
+                                    <h4>Firewall</h4>
+                                    <p>Controle o acesso à rede para seus aplicativos.</p>
+                                    <div class="settings-option">
+                                        <label for="firewall-toggle">Ativar Firewall</label>
+                                        <input type="checkbox" id="firewall-toggle">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                case 'calculator':
+                    return `
+                        <div style="display: flex; justify-content: center; align-items: center; height: 100%;">
+                            <div style="background: rgba(30, 30, 50, 0.5); border-radius: 16px; padding: 20px; width: 300px;">
+                                <div id="calc-display" style="background: rgba(0, 0, 0, 0.2); padding: 15px; text-align: right; font-size: 32px; border-radius: 8px; margin-bottom: 20px; height: 60px; overflow: hidden;">
+                                    0
+                                </div>
+                                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
+                                    <button class="calc-btn" data-action="clear" style="background: #ff5577;">C</button>
+                                    <button class="calc-btn" data-action="backspace"><i class="fas fa-backspace"></i></button>
+                                    <button class="calc-btn" data-action="percent">%</button>
+                                    <button class="calc-btn" data-action="divide" style="background: #6a5af9;">÷</button>
+                                    
+                                    <button class="calc-btn" data-action="7">7</button>
+                                    <button class="calc-btn" data-action="8">8</button>
+                                    <button class="calc-btn" data-action="9">9</button>
+                                    <button class="calc-btn" data-action="multiply" style="background: #6a5af9;">×</button>
+                                    
+                                    <button class="calc-btn" data-action="4">4</button>
+                                    <button class="calc-btn" data-action="5">5</button>
+                                    <button class="calc-btn" data-action="6">6</button>
+                                    <button class="calc-btn" data-action="subtract" style="background: #6a5af9;">-</button>
+                                    
+                                    <button class="calc-btn" data-action="1">1</button>
+                                    <button class="calc-btn" data-action="2">2</button>
+                                    <button class="calc-btn" data-action="3">3</button>
+                                    <button class="calc-btn" data-action="add" style="background: #6a5af9;">+</button>
+                                    
+                                    <button class="calc-btn" data-action="0">0</button>
+                                    <button class="calc-btn" data-action="decimal">.</button>
+                                    <button class="calc-btn" data-action="equals">=</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                case 'gallery':
+                    return `
+                        <div class="gallery-container" id="gallery-container">
+                            <!-- Imagens serão adicionadas dinamicamente -->
+                        </div>
+                    `;
+                case 'camera':
+                    return `
+                        <div class="camera-container">
+                            <div class="camera-preview" id="camera-preview">
+                                <i class="fas fa-camera" style="font-size: 48px; opacity: 0.5;"></i>
+                            </div>
+                            <button id="capture-btn" style="width: 80px; height: 80px; border-radius: 50%; font-size: 24px;">
+                                <i class="fas fa-camera"></i>
+                            </button>
+                        </div>
+                    `;
+                case 'browser':
+                    return `
+                        <div class="browser-container">
+                            <div class="browser-toolbar">
+                                <button id="browser-back"><i class="fas fa-arrow-left"></i></button>
+                                <button id="browser-forward"><i class="fas fa-arrow-right"></i></button>
+                                <button id="browser-reload"><i class="fas fa-redo"></i></button>
+                                <div class="browser-url-bar">
+                                    <input type="text" id="browser-url" value="about:blank" style="flex: 1;">
+                                    <button id="browser-go"><i class="fas fa-arrow-right "></i></button>
+                                </div>
+                                <button id="browser-home"><i class="fas fa-home"></i></button>
+                            </div>
+                            <iframe class="browser-content" id="browser-content" src="about:blank"></iframe>
+                        </div>
+                    `;
+                case 'axon-apps':
+                    return `
+                        <div class="axon-apps-grid" id="axon-apps-grid">
+                            <!-- Aplicativos HTML serão carregados aqui -->
+                        </div>
+                    `;
+                default:
+                    return `<div style="display: flex; justify-content: center; align-items: center; height: 100%;">
+                        <div style="text-align: center;">
+                            <i class="fas fa-cog fa-spin" style="font-size: 48px; margin-bottom: 20px;"></i>
+                            <h3>Aplicativo em desenvolvimento</h3>
+                            <p>Esta funcionalidade estará disponível em breve!</p>
+                        </div>
+                    </div>`;
+            }
+        }
+
+        // Inicializar conteúdo do aplicativo
+        function initAppContent(appId, windowElement) {
+            switch(appId) {
+                case 'finder':
+                    initFileExplorer(windowElement);
+                    break;
+                case 'notes':
+                    initNotepad(windowElement);
+                    break;
+                case 'terminal':
+                    initTerminal(windowElement);
+                    break;
+                case 'mielina':
+                    initMielina(windowElement);
+                    break;
+                case 'calculator':
+                    initCalculator(windowElement);
+                    break;
+                case 'gallery':
+                    initGallery(windowElement);
+                    break;
+                case 'camera':
+                    initCamera(windowElement);
+                    break;
+                case 'browser':
+                    initBrowser(windowElement);
+                    break;
+                case 'settings':
+                    initSettings(windowElement);
+                    break;
+                case 'axon-apps':
+                    initAxonApps(windowElement);
+                    break;
+            }
+        }
+
+        // Inicializar explorador de arquivos
+        function initFileExplorer(windowElement) {
+            const sidebarItems = windowElement.querySelectorAll('.sidebar-item');
+            const explorerGrid = windowElement.querySelector('#explorer-grid');
+            
+            function loadDirectory(directoryId, gridElement) {
+                gridElement.innerHTML = '';
+                systemState.currentDirectory = directoryId;
+
+                const currentDirectoryData = systemData.fileSystem[directoryId] || [];
+                
+                currentDirectoryData.forEach(item => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    fileItem.dataset.id = item.id;
+                    fileItem.dataset.type = item.type;
+                    fileItem.dataset.name = item.name;
+
+                    fileItem.innerHTML = `
+                        <div class="file-icon"><i class="${fileIcons[item.type] || 'fas fa-file'}"></i></div>
+                        <div class="file-name">${item.name}</div>
+                    `;
+                    
+                    fileItem.addEventListener('dblclick', () => {
+                        if (item.type === 'folder') {
+                            loadDirectory(item.id, gridElement);
+                        } else if (item.type === 'text') {
+                            openApp('notes');
+                            const notesWindow = systemState.openWindows.find(w => w.id === 'notes');
+                            if (notesWindow) {
+                                const textArea = notesWindow.element.querySelector('#note-content');
+                                if (textArea) {
+                                    const file = findFileInFileSystem(item.id);
+                                    if (file) {
+                                        textArea.value = file.content || '';
+                                        textArea.dataset.fileId = file.id;
+                                    }
+                                }
+                            }
+                        } else if (item.type === 'image') {
+                            // Verifica se a imagem tem um src antes de tentar abrir
+                            if (item.src) {
+                                openImageViewer(item.src);
+                            } else {
+                                axonAlert("Esta imagem não possui um caminho de origem definido.");
+                            }
+                        } else if (item.type === 'html-app') {
+                            openHtmlApp(item.path, item.name, item.icon);
+                        } else {
+                            axonAlert(`Não é possível abrir o arquivo "${item.name}". Tipo de arquivo não suportado.`);
+                        }
+                    });
+
+                    fileItem.addEventListener('click', () => {
+                        gridElement.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
+                        document.querySelectorAll('.desktop-icon').forEach(i => i.classList.remove('selected'));
+                        
+                        fileItem.classList.add('selected');
+                        systemState.selectedFileItem = item;
+                        systemState.selectedIcon = null;
+                    });
+
+                    fileItem.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        gridElement.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
+                        document.querySelectorAll('.desktop-icon').forEach(i => i.classList.remove('selected'));
+
+                        fileItem.classList.add('selected');
+                        systemState.selectedFileItem = item;
+                        systemState.selectedIcon = null;
+                        showContextMenu(e, fileItem);
+                    });
+                    
+                    gridElement.appendChild(fileItem);
+                });
+
+                gridElement.addEventListener('contextmenu', (e) => {
+                    if (e.target === gridElement) {
+                        e.preventDefault();
+                        document.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
+                        systemState.selectedFileItem = null;
+                        systemState.selectedIcon = null;
+                        showContextMenu(e, null);
+                    }
+                });
+            }
+            
+            sidebarItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    const directory = item.dataset.path;
+                    loadDirectory(directory, explorerGrid);
+                });
+            });
+            
+            loadDirectory('desktop', explorerGrid); // Carrega o desktop por padrão
+        }
+
+        // Inicializar bloco de notas
+        function initNotepad(windowElement) {
+            const saveBtn = windowElement.querySelector('#save-note');
+            const newBtn = windowElement.querySelector('#new-note');
+            const openBtn = windowElement.querySelector('#open-note');
+            const textArea = windowElement.querySelector('#note-content');
+            
+            textArea.focus(); // Foco automático
+
+            saveBtn.addEventListener('click', async () => {
+                const fileId = textArea.dataset.fileId;
+                if (fileId) {
+                    let found = false;
+                    for (const dir in systemData.fileSystem) {
+                        const file = systemData.fileSystem[dir].find(f => f.id === fileId && f.type === 'text');
+                        if (file) {
+                            file.content = textArea.value;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (found) {
+                        saveDesktopItems(); // Salva o fileSystem atualizado
+                        await axonAlert(`Arquivo salvo com sucesso!`);
+                    } else {
+                        await axonAlert("Erro: Arquivo não encontrado para salvar. Tente salvar como um novo arquivo.");
+                    }
+                } else {
+                    const fileName = await axonPrompt("Digite o nome do arquivo:", "Sem título.txt");
+                    if (fileName) {
+                        const id = 'file-' + Date.now();
+                        const newFile = {
+                            id,
+                            name: fileName,
+                            type: 'text',
+                            icon: fileIcons.text,
+                            content: textArea.value
+                        };
+                        // Salva no diretório de documentos por padrão
+                        if (!systemData.fileSystem.documents) {
+                            systemData.fileSystem.documents = [];
+                        }
+                        systemData.fileSystem.documents.push(newFile);
+                        textArea.dataset.fileId = id;
+                        saveDesktopItems(); // Salva o fileSystem atualizado
+                        await axonAlert(`Arquivo "${fileName}" salvo com sucesso em Documentos!`);
+                    }
+                }
+            });
+            
+            newBtn.addEventListener('click', async () => {
+                const confirmNew = await axonConfirm('Deseja criar uma nova nota? O conteúdo atual será perdido.');
+                if (confirmNew) {
+                    textArea.value = '';
+                    textArea.dataset.fileId = '';
+                    textArea.focus();
+                }
+            });
+            
+            openBtn.addEventListener('click', () => {
+                showOpenFileModal(textArea);
+            });
+        }
+
+        // Mostrar modal para abrir arquivo
+        function showOpenFileModal(targetTextArea) {
+            const fileList = document.getElementById('file-list');
+            fileList.innerHTML = '';
+            systemState.selectedFile = null; // Reseta a seleção anterior
+
+            const allTextAndImageFiles = [];
+            for (const dir in systemData.fileSystem) {
+                if (Array.isArray(systemData.fileSystem[dir])) {
+                    systemData.fileSystem[dir].forEach(file => {
+                        if (file.type === 'text' || (file.type === 'image' && file.src)) { // Apenas imagens com src
+                            allTextAndImageFiles.push(file);
+                        }
+                    });
+                }
+            }
+
+            allTextAndImageFiles.forEach(file => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.style.width = '100%';
+                fileItem.style.flexDirection = 'row';
+                fileItem.style.alignItems = 'center';
+                fileItem.style.gap = '10px';
+                fileItem.style.padding = '10px';
+                fileItem.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
+                fileItem.dataset.fileId = file.id;
+
+                fileItem.innerHTML = `
+                    <div><i class="${fileIcons[file.type] || 'fas fa-file'}"></i></div>
+                    <div>${file.name}</div>
+                `;
+                
+                fileItem.addEventListener('click', () => {
+                    document.querySelectorAll('#file-list .file-item').forEach(item => {
+                        item.classList.remove('selected');
+                    });
+                    fileItem.classList.add('selected');
+                    systemState.selectedFile = file;
+                });
+                
+                fileList.appendChild(fileItem);
+            });
+            
+            document.getElementById('confirm-open-file').onclick = async () => {
+                if (systemState.selectedFile) {
+                    if (systemState.selectedFile.type === 'text' && targetTextArea) {
+                        targetTextArea.value = systemState.selectedFile.content || '';
+                        targetTextArea.dataset.fileId = systemState.selectedFile.id;
+                        openFileModal.classList.remove('active');
+                    } else if (systemState.selectedFile.type === 'image') {
+                        openImageViewer(systemState.selectedFile.src);
+                        openFileModal.classList.remove('active');
+                    } else {
+                        await axonAlert("Tipo de arquivo não suportado para esta ação.");
+                    }
+                    systemState.selectedFile = null; // Limpa a seleção após a ação
+                } else {
+                    await axonAlert("Por favor, selecione um arquivo.");
+                }
+            };
+            
+            document.getElementById('cancel-open-file').onclick = () => {
+                openFileModal.classList.remove('active');
+                systemState.selectedFile = null; // Limpa a seleção ao cancelar
+            };
+            
+            openFileModal.classList.add('active');
+        }
+
+        // Inicializar terminal
+        function initTerminal(windowElement) {
+            const terminalContent = windowElement.querySelector('#terminal-content');
+            const terminalInput = windowElement.querySelector('#terminal-input');
+            
+            terminalInput.focus(); // Foco automático
+
+            systemState.terminalHistory.forEach(item => {
+                terminalContent.innerHTML += `
+                    <div class="prompt">axon@os:~$ <span class="command">${item.command}</span></div>
+                `;
+                if (item.output) {
+                    terminalContent.innerHTML += `<div>${item.output}</div>`;
+                }
+            });
+            
+            terminalContent.scrollTop = terminalContent.scrollHeight;
+            
+            terminalInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    const command = terminalInput.value.trim();
+                    if (command) {
+                        terminalContent.innerHTML += `
+                            <div class="prompt">axon@os:~$ <span class="command">${command}</span></div>
+                        `;
+                        
+                        let output = processCommand(command);
+                        
+                        if (output) {
+                            terminalContent.innerHTML += `<div>${output}</div>`;
+                        }
+                        
+                        terminalInput.value = '';
+                        terminalContent.scrollTop = terminalContent.scrollHeight;
+                        
+                        systemState.terminalHistory.push({ command, output });
+                    }
+                }
+            });
+        }
+
+        // Processar comando do terminal
+        function processCommand(command) {
+            const cmd = command.split(' ')[0].toLowerCase();
+            const args = command.split(' ').slice(1);
+            
+            switch(cmd) {
+                case 'help':
+                    return "Comandos disponíveis: ls, cd, mkdir, touch, echo, clear, date, help";
+                case 'ls':
+                    const currentDirContent = systemData.fileSystem[systemState.currentDirectory] || [];
+                    if (currentDirContent.length === 0) return "Diretório vazio.";
+                    return currentDirContent.map(item => {
+                        const icon = fileIcons[item.type] || 'fas fa-file';
+                        return `<i class="${icon}"></i> ${item.name}`;
+                    }).join('<br>'); // Usar <br> para quebrar linha no HTML
+                case 'cd':
+                    const targetDir = args[0];
+                    if (targetDir === '..') {
+                        // Lógica para voltar ao diretório pai
+                        const pathParts = systemState.currentDirectory.split('/');
+                        if (pathParts.length > 1) {
+                            pathParts.pop(); // Remove o último elemento
+                            systemState.currentDirectory = pathParts.join('/');
+                            if (systemState.currentDirectory === '') systemState.currentDirectory = 'desktop'; // Garante que não fique vazio
+                            return `Diretório alterado para: ${systemState.currentDirectory}`;
+                        } else {
+                            return "Já está no diretório raiz (desktop).";
+                        }
+                    } else if (targetDir && systemData.fileSystem[targetDir]) {
+                        // Verifica se o targetDir é realmente uma pasta
+                        const itemInCurrentDir = (systemData.fileSystem[systemState.currentDirectory] || []).find(item => item.id === targetDir && item.type === 'folder');
+                        if (itemInCurrentDir || systemData.fileSystem[targetDir]) { // Permite cd para diretórios padrão como 'documents'
+                            systemState.currentDirectory = targetDir;
+                            return `Diretório alterado para: ${targetDir}`;
+                        } else {
+                            return `Não é uma pasta: ${targetDir}`;
+                        }
+                    }
+                    return `Diretório não encontrado: ${targetDir || ''}`;
+                case 'mkdir':
+                    const newFolderName = args[0];
+                    if (newFolderName) {
+                        // Validação básica para nome de pasta
+                        if (systemData.fileSystem[systemState.currentDirectory].some(item => item.name === newFolderName)) {
+                            return `Erro: Já existe um item com o nome "${newFolderName}" neste diretório.`;
+                        }
+                        const newFolderId = `folder-${Date.now()}`;
+                        const newFolder = { id: newFolderId, name: newFolderName, type: 'folder', icon: fileIcons.folder };
+                        if (!systemData.fileSystem[systemState.currentDirectory]) {
+                            systemData.fileSystem[systemState.currentDirectory] = [];
+                        }
+                        systemData.fileSystem[systemState.currentDirectory].push(newFolder);
+                        systemData.fileSystem[newFolderId] = []; // Cria o novo diretório vazio
+                        saveDesktopItems(); // Salva as alterações no fileSystem
+                        return `Diretório criado: ${newFolderName}`;
+                    }
+                    return "Uso: mkdir <nome_da_pasta>";
+                case 'touch':
+                    const newFileName = args[0];
+                    if (newFileName) {
+                        // Validação básica para nome de arquivo
+                        if (systemData.fileSystem[systemState.currentDirectory].some(item => item.name === newFileName)) {
+                            return `Erro: Já existe um item com o nome "${newFileName}" neste diretório.`;
+                        }
+                        const newFileId = `file-${Date.now()}`;
+                        const newFile = { id: newFileId, name: newFileName, type: 'text', icon: fileIcons.text, content: '' };
+                        if (!systemData.fileSystem[systemState.currentDirectory]) {
+                            systemData.fileSystem[systemState.currentDirectory] = [];
+                        }
+                        systemData.fileSystem[systemState.currentDirectory].push(newFile);
+                        saveDesktopItems(); // Salva as alterações no fileSystem
+                        return `Arquivo criado: ${newFileName}`;
+                    }
+                    return "Uso: touch <nome_do_arquivo>";
+                case 'echo':
+                    return args.join(' ');
+                case 'clear':
+                    const terminalContent = document.querySelector('#terminal-content');
+                    if (terminalContent) terminalContent.innerHTML = '';
+                    return "";
+                case 'date':
+                    const now = new Date();
+                    return now.toLocaleString('pt-BR', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                default:
+                    return `Comando não encontrado: ${cmd}. Digite 'help' para ver os comandos disponíveis.`;
+            }
+        }
+
+        // Inicializar assistente virtual
+        function initMielina(windowElement) {
+            const chatMessages = windowElement.querySelector('#chat-messages');
+            const chatInput = windowElement.querySelector('#chat-input');
+            const sendButton = windowElement.querySelector('#send-message');
+            
+            chatInput.focus(); // Foco automático
+
+            systemState.chatHistory.forEach(msg => {
+                const messageElement = document.createElement('div');
+                messageElement.className = `message ${msg.role === 'user' ? 'user-message' : 'assistant-message'}`;
+                messageElement.textContent = msg.content;
+                chatMessages.appendChild(messageElement);
+            });
+            
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            function sendMessage() {
+                const message = chatInput.value.trim();
+                if (message) {
+                    const userMessage = document.createElement('div');
+                    userMessage.className = 'message user-message';
+                    userMessage.textContent = message;
+                    chatMessages.appendChild(userMessage);
+                    
+                    systemState.chatHistory.push({ role: 'user', content: message });
+                    
+                    chatInput.value = '';
+                    
+                    setTimeout(() => {
+                        const response = mielinaResponse(message);
+                        const assistantMessage = document.createElement('div');
+                        assistantMessage.className = 'message assistant-message';
+                        assistantMessage.textContent = response;
+                        chatMessages.appendChild(assistantMessage);
+                        
+                        systemState.chatHistory.push({ role: 'assistant', content: response });
+                        
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                    }, 1000);
+                }
+            }
+            
+            sendButton.addEventListener('click', sendMessage);
+            chatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendMessage();
+            });
+        }
+
+        // Resposta da Mielina
+        function mielinaResponse(message) {
+            message = message.toLowerCase();
+            
+            if (message.includes('ola') || message.includes('olá') || message.includes('oi')) {
+                return "Olá! Como posso ajudar você hoje?";
+            } else if (message.includes('ajuda') || message.includes('comandos')) {
+                return "Posso ajudar com:\n- Abrir aplicativos (Ex: 'Abra o navegador')\n- Gerenciar arquivos (Ex: 'Crie uma pasta')\n- Configurar o sistema (Ex: 'Mude o papel de parede')\n- Responder perguntas\n- E muito mais!";
+            } else if (message.includes('abrir') || message.includes('abre')) {
+                if (message.includes('navegador')) {
+                    openApp('browser');
+                    return "Abrindo o navegador...";
+                }
+                if (message.includes('terminal')) {
+                    openApp('terminal');
+                    return "Abrindo o terminal...";
+                }
+                if (message.includes('config')) {
+                    openApp('settings');
+                    return "Abrindo as configurações...";
+                }
+                if (message.includes('bloco de notas') || message.includes('notas')) {
+                    openApp('notes');
+                    return "Abrindo o Bloco de Notas...";
+                }
+                if (message.includes('explorador de arquivos') || message.includes('finder')) {
+                    openApp('finder');
+                    return "Abrindo o Explorador de Arquivos...";
+                }
+                if (message.includes('axon apps') || message.includes('aplicativos')) {
+                    openApp('axon-apps');
+                    return "Abrindo a pasta Axon Apps...";
+                }
+                return "Qual aplicativo você gostaria de abrir?";
+            } else if (message.includes('fechar') || message.includes('fecha')) {
+                return "Para fechar uma aplicação, clique no 'X' vermelho na barra de título da janela.";
+            } else if (message.includes('criar') || message.includes('crie')) {
+                if (message.includes('pasta') || message.includes('diretório')) {
+                    // Não chama showCreateModal diretamente, pois é um modal global
+                    // Mielina deve instruir o usuário ou chamar uma função interna que simule a criação
+                    axonAlert("Para criar uma nova pasta, clique com o botão direito na área de trabalho e selecione 'Nova Pasta'.", "Mielina");
+                    return "Você pode criar uma nova pasta clicando com o botão direito na área de trabalho.";
+                }
+                if (message.includes('arquivo')) {
+                    axonAlert("Para criar um novo arquivo, clique com o botão direito na área de trabalho e selecione 'Novo Arquivo'.", "Mielina");
+                    return "Você pode criar um novo arquivo clicando com o botão direito na área de trabalho.";
+                }
+                return "O que você gostaria que eu criasse?";
+            } else if (message.includes('hora')) {
+                return `Agora são ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+            } else if (message.includes('data')) {
+                return `Hoje é ${new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`;
+            } else if (message.includes('obrigado') || message.includes('obrigada')) {
+                return "De nada! Estou sempre à disposição para ajudar.";
+            } else {
+                return "Desculpe, não entendi completamente. Você pode reformular sua pergunta? Estou aqui para ajudar com o sistema operacional Axon OS!";
+            }
+        }
+
+        // Inicializar calculadora
+        function initCalculator(windowElement) {
+            const display = windowElement.querySelector('#calc-display');
+            const buttons = windowElement.querySelectorAll('.calc-btn');
+            
+            let currentInput = '0';
+            let previousInput = '';
+            let operation = null;
+            let resetDisplay = false; // Flag para resetar o display após uma operação
+
+            function updateDisplay() {
+                display.textContent = currentInput;
+            }
+            
+            function handleNumberInput(value) {
+                if (resetDisplay) {
+                    currentInput = '0';
+                    resetDisplay = false;
+                }
+
+                if (value === 'decimal') {
+                    if (!currentInput.includes('.')) {
+                        currentInput += '.';
+                    }
+                } else {
+                    if (currentInput === '0') {
+                        currentInput = value;
+                    } else {
+                        currentInput += value;
+                    }
+                }
+            }
+            
+            function handleOperation(op) {
+                if (op === 'clear') {
+                    currentInput = '0';
+                    previousInput = '';
+                    operation = null;
+                    resetDisplay = false;
+                    return;
+                }
+                if (op === 'backspace') {
+                    currentInput = currentInput.slice(0, -1) || '0';
+                    return;
+                }
+                if (op === 'percent') {
+                    currentInput = (parseFloat(currentInput) / 100).toString();
+                    return;
+                }
+
+                if (previousInput !== '' && operation && !resetDisplay) { // Se já tem uma operação pendente e não é um novo número
+                    calculate();
+                }
+                
+                operation = op;
+                previousInput = currentInput;
+                resetDisplay = true; // Prepara para o próximo número
+            }
+            
+            function calculate() {
+                const prev = parseFloat(previousInput);
+                const current = parseFloat(currentInput);
+                
+                if (isNaN(prev) || isNaN(current)) return;
+                
+                let result;
+                switch(operation) {
+                    case 'add':
+                        result = prev + current;
+                        break;
+                    case 'subtract':
+                        result = prev - current;
+                        break;
+                    case 'multiply':
+                        result = prev * current;
+                        break;
+                    case 'divide':
+                        if (current === 0) {
+                            axonAlert("Divisão por zero não é permitida.");
+                            result = 'Erro';
+                        } else {
+                            result = prev / current;
+                        }
+                        break;
+                    default:
+                        return;
+                }
+                
+                currentInput = result.toString();
+                operation = null;
+                previousInput = '';
+                resetDisplay = true; // Para que o próximo número comece um novo cálculo
+            }
+
+            buttons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const action = button.dataset.action;
+                    
+                    if (!isNaN(action) || action === 'decimal') {
+                        handleNumberInput(action);
+                    } else if (action === 'equals') {
+                        calculate();
+                        resetDisplay = true; // Após o '=', o próximo número deve iniciar um novo cálculo
+                    } else {
+                        handleOperation(action);
+                    }
+                    
+                    updateDisplay();
+                });
+            });
+
+            updateDisplay(); // Inicializa o display
+        }
+
+        // Inicializar galeria
+        function initGallery(windowElement) {
+            const galleryContainer = windowElement.querySelector('#gallery-container');
+            
+            function loadGallery() {
+                galleryContainer.innerHTML = '';
+                
+                const allImages = [];
+                // Adiciona imagens do fileSystem
+                for (const dir in systemData.fileSystem) {
+                    if (Array.isArray(systemData.fileSystem[dir])) {
+                        systemData.fileSystem[dir].forEach(file => {
+                            if (file.type === 'image' && file.src) {
+                                allImages.push(file);
+                            }
+                        });
+                    }
+                }
+                // Adiciona fotos da câmera
+                systemState.cameraPhotos.forEach((photoSrc, index) => {
+                    allImages.push({ id: `camera-photo-${index}`, name: `Foto ${index + 1}`, type: 'image', src: photoSrc });
+                });
+
+
+                allImages.forEach((photo, index) => {
+                    const galleryItem = document.createElement('div');
+                    galleryItem.className = 'gallery-item';
+                    galleryItem.dataset.id = photo.id;
+                    galleryItem.dataset.src = photo.src;
+                    
+                    galleryItem.innerHTML = `
+                        <img src="${photo.src}" alt="${photo.name}">
+                        <div class="gallery-options">
+                            <button class="gallery-option-btn" data-action="view"><i class="fas fa-eye"></i></button>
+                            <button class="gallery-option-btn" data-action="delete"><i class="fas fa-trash"></i></button>
+                            <button class="gallery-option-btn" data-action="copy"><i class="fas fa-copy"></i></button>
+                        </div>
+                    `;
+                    
+                    galleryItem.querySelector('[data-action="view"]').addEventListener('click', (e) => {
+                        e.stopPropagation(); // Evita que o clique no item acione outros listeners
+                        openImageViewer(photo.src);
+                    });
+
+                    galleryItem.querySelector('[data-action="delete"]').addEventListener('click', async (e) => {
+                        e.stopPropagation(); // Evita que o clique no item acione outros listeners
+                        const confirmDelete = await axonConfirm("Tem certeza que deseja excluir esta imagem?");
+                        if (confirmDelete) {
+                            // Remove da câmera photos se for uma foto da câmera
+                            if (photo.id.startsWith('camera-photo-')) {
+                                const photoIndex = parseInt(photo.id.replace('camera-photo-', ''));
+                                systemState.cameraPhotos.splice(photoIndex, 1);
+                            } else {
+                                // Remove do fileSystem
+                                let foundAndRemoved = false;
+                                for (const dir in systemData.fileSystem) {
+                                    if (Array.isArray(systemData.fileSystem[dir])) {
+                                        const initialLength = systemData.fileSystem[dir].length;
+                                        systemData.fileSystem[dir] = systemData.fileSystem[dir].filter(item => item.id !== photo.id);
+                                        if (systemData.fileSystem[dir].length < initialLength) {
+                                            foundAndRemoved = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                                if (foundAndRemoved) {
+                                    saveDesktopItems(); // Salva as alterações no fileSystem
+                                }
+                            }
+                            loadGallery(); // Recarrega a galeria
+                            axonAlert("Imagem excluída com sucesso!");
+                        }
+                    });
+
+                    galleryItem.querySelector('[data-action="copy"]').addEventListener('click', (e) => {
+                        e.stopPropagation(); // Evita que o clique no item acione outros listeners
+                        systemData.clipboard = { ...photo, name: `Cópia de ${photo.name}` };
+                        systemState.clipboardAction = 'copy';
+                        axonAlert(`"${photo.name}" copiada para a área de transferência.`);
+                    });
+
+                    galleryContainer.appendChild(galleryItem);
+                });
+            }
+            
+            loadGallery();
+        }
+
+        // Abrir visualizador de imagens
+        function openImageViewer(src) {
+            const viewerModal = document.getElementById('image-viewer-modal');
+            const viewerImg = document.getElementById('image-viewer-img');
+            viewerImg.src = src;
+            viewerModal.classList.add('active');
+        }
+
+        // Inicializar câmera
+        async function initCamera(windowElement) {
+            const cameraPreview = windowElement.querySelector('#camera-preview');
+            const captureBtn = windowElement.querySelector('#capture-btn');
+            
+            // Tenta parar o stream anterior se houver
+            if (systemState.cameraStream) {
+                systemState.cameraStream.getTracks().forEach(track => track.stop());
+                systemState.cameraStream = null;
+            }
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                systemState.cameraStream = stream;
+                
+                const video = document.createElement('video');
+                video.srcObject = stream;
+                video.autoplay = true;
+                video.style.width = '100%';
+                video.style.height = '100%';
+                
+                cameraPreview.innerHTML = '';
+                cameraPreview.appendChild(video);
+                
+                captureBtn.addEventListener('click', async () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    
+                    const photoData = canvas.toDataURL('image/png');
+                    systemState.cameraPhotos.push(photoData);
+                    
+                    // Atualiza a galeria se estiver aberta
+                    const galleryWindow = systemState.openWindows.find(w => w.id === 'gallery');
+                    if (galleryWindow) {
+                        initGallery(galleryWindow.element);
+                    }
+                    
+                    await axonAlert('Foto capturada com sucesso!');
+                });
+            } catch (err) {
+                console.error('Erro ao acessar a câmera:', err);
+                cameraPreview.innerHTML = '<p>Não foi possível acessar a câmera. Verifique as permissões.</p>';
+                await axonAlert('Não foi possível acessar a câmera. Verifique as permissões do navegador.', 'Erro de Câmera');
+            }
+        }
+
+        // Inicializar navegador
+        function initBrowser(windowElement) {
+            const browserUrl = windowElement.querySelector('#browser-url');
+            const browserGo = windowElement.querySelector('#browser-go');
+            const browserContent = windowElement.querySelector('#browser-content');
+            const browserBack = windowElement.querySelector('#browser-back');
+            const browserForward = windowElement.querySelector('#browser-forward');
+            const browserReload = windowElement.querySelector('#browser-reload');
+            const browserHome = windowElement.querySelector('#browser-home');
+
+            let history = [];
+            let historyIndex = -1;
+            
+            browserUrl.focus(); // Foco automático
+
+            function loadUrl(url) {
+                try {
+                    // Adiciona http:// ou https:// se não houver protocolo
+                    if (!url.match(/^(https?:\/\/|file:\/\/|data:)/)) {
+                        url = 'https://' + url; // Tenta adicionar HTTPS por padrão
+                    }
+                    browserContent.src = url;
+                    if (historyIndex < history.length - 1) {
+                        history = history.slice(0, historyIndex + 1);
+                    }
+                    history.push(url);
+                    historyIndex = history.length - 1;
+                    browserUrl.value = url;
+                } catch (e) {
+                    browserContent.srcdoc = `<html><body><p>Não foi possível carregar o site: ${url}</p><p>Isso pode ocorrer devido a restrições de segurança (X-Frame-Options) ou URL inválida.</p></body></html>`;
+                }
+            }
+            
+            loadUrl(browserUrl.value); // Carrega a URL inicial
+
+            browserGo.addEventListener('click', () => {
+                loadUrl(browserUrl.value);
+            });
+            
+            browserUrl.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    loadUrl(browserUrl.value);
+                }
+            });
+
+            browserBack.addEventListener('click', () => {
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    browserContent.src = history[historyIndex];
+                    browserUrl.value = history[historyIndex];
+                }
+            });
+
+            browserForward.addEventListener('click', () => {
+                if (historyIndex < history.length - 1) {
+                    historyIndex++;
+                    browserContent.src = history[historyIndex];
+                    browserUrl.value = history[historyIndex];
+                }
+            });
+
+            browserReload.addEventListener('click', () => {
+                browserContent.contentWindow.location.reload();
+            });
+
+            browserHome.addEventListener('click', () => {
+                loadUrl('https://www.google.com');
+            });
+        }
+
+        // Inicializar Configurações
+        function initSettings(windowElement) {
+            const tabs = windowElement.querySelectorAll('#settings-tabs .tab');
+            const tabContents = windowElement.querySelectorAll('.settings-tab-content');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tabContents.forEach(tc => tc.classList.remove('active'));
+
+                    tab.classList.add('active');
+                    document.getElementById(`settings-${tab.dataset.tab}`).classList.add('active');
+                });
+            });
+
+            // Aparência
+            const themeSelect = windowElement.querySelector('#theme-select');
+            const wallpaperOptions = windowElement.querySelectorAll('.wallpaper-option');
+            const animationsToggle = windowElement.querySelector('#animations-toggle');
+            const transparencyToggle = windowElement.querySelector('#transparency-toggle');
+            const particlesToggle = windowElement.querySelector('#particles-toggle');
+
+            // Carregar configurações atuais
+            themeSelect.value = systemData.settings.theme;
+            wallpaperOptions.forEach(opt => {
+                if (opt.dataset.wallpaper === systemData.settings.wallpaper) {
+                    opt.classList.add('selected');
+                } else {
+                    opt.classList.remove('selected');
+                }
+            });
+            animationsToggle.checked = systemData.settings.animations;
+            transparencyToggle.checked = systemData.settings.transparency;
+            particlesToggle.checked = systemData.settings.particles;
+
+            // Event Listeners para Aparência
+            themeSelect.addEventListener('change', () => {
+                systemData.settings.theme = themeSelect.value;
+                applySettings();
+                saveSettings();
+            });
+
+            wallpaperOptions.forEach(opt => {
+                opt.addEventListener('click', () => {
+                    wallpaperOptions.forEach(o => o.classList.remove('selected'));
+                    opt.classList.add('selected');
+                    systemData.settings.wallpaper = opt.dataset.wallpaper;
+                    applySettings();
+                    saveSettings();
+                });
+            });
+
+            animationsToggle.addEventListener('change', () => {
+                systemData.settings.animations = animationsToggle.checked;
+                applySettings();
+                saveSettings();
+            });
+
+            transparencyToggle.addEventListener('change', () => {
+                systemData.settings.transparency = transparencyToggle.checked;
+                applySettings();
+                saveSettings();
+            });
+
+            particlesToggle.addEventListener('change', () => {
+                systemData.settings.particles = particlesToggle.checked;
+                applySettings();
+                saveSettings();
+            });
+
+            // Segurança
+            const loginEnabledToggle = windowElement.querySelector('#login-enabled-toggle');
+            const setCredentialsBtn = windowElement.querySelector('#set-credentials-btn');
+            const firewallToggle = windowElement.querySelector('#firewall-toggle');
+
+            // Carregar configurações de segurança
+            loginEnabledToggle.checked = systemData.settings.loginEnabled;
+
+            // Event Listeners para Segurança
+            loginEnabledToggle.addEventListener('change', () => {
+                systemData.settings.loginEnabled = loginEnabledToggle.checked;
+                saveSettings();
+                axonAlert(`Login do sistema ${loginEnabledToggle.checked ? 'habilitado' : 'desabilitado'}.`, "Segurança");
+            });
+
+            setCredentialsBtn.addEventListener('click', async () => {
+                const newUsername = await axonPrompt("Digite o novo nome de usuário:", systemData.settings.username || "admin", "Definir Credenciais");
+                if (newUsername === null) return; // Usuário cancelou
+
+                const newPassword = await axonPrompt("Digite a nova senha:", "", "Definir Credenciais");
+                if (newPassword === null) return; // Usuário cancelou
+
+                systemData.settings.username = newUsername;
+                systemData.settings.password = newPassword;
+                saveSettings();
+                axonAlert("Credenciais de login atualizadas com sucesso!", "Segurança");
+            });
+
+            firewallToggle.addEventListener('change', async (e) => {
+                await axonAlert(`Firewall ${e.target.checked ? 'ativado' : 'desativado'}. (Funcionalidade simulada)`, "Segurança");
+            });
+        }
+
+        // Carregar configurações do localStorage
+        function loadSettings() {
+            const savedSettings = localStorage.getItem('axon-settings');
+            if (savedSettings) {
+                Object.assign(systemData.settings, JSON.parse(savedSettings));
+            }
+        }
+
+        // Salvar configurações no localStorage
+        function saveSettings() {
+            localStorage.setItem('axon-settings', JSON.stringify(systemData.settings));
+        }
+
+        // Aplicar configurações visuais
+        function applySettings() {
+            const root = document.documentElement;
+            const body = document.body;
+            const particlesCanvas = document.getElementById('particles');
+            const gridBg = document.querySelector('.grid-bg');
+
+            // Tema
+            switch (systemData.settings.theme) {
+                case 'axon-dark':
+                    root.style.setProperty('--primary', '#0c0c1d');
+                    root.style.setProperty('--secondary', '#1a1a3a');
+                    root.style.setProperty('--accent', '#6a5af9');
+                    root.style.setProperty('--text', '#e6e6ff');
+                    root.style.setProperty('--card-bg', 'rgba(30, 30, 50, 0.7)');
+                    root.style.setProperty('--glass', 'rgba(40, 40, 60, 0.3)');
+                    root.style.setProperty('--accent-light', '#7d6dfa');
+                    root.style.setProperty('--highlight', 'rgba(106, 90, 249, 0.2)');
+                    break;
+                case 'axon-light':
+                    root.style.setProperty('--primary', '#f0f0f5');
+                    root.style.setProperty('--secondary', '#e0e0e5');
+                    root.style.setProperty('--accent', '#4a3af9');
+                    root.style.setProperty('--text', '#1a1a1a');
+                    root.style.setProperty('--card-bg', 'rgba(255, 255, 255, 0.8)');
+                    root.style.setProperty('--glass', 'rgba(255, 255, 255, 0.5)');
+                    root.style.setProperty('--accent-light', '#5c4af9');
+                    root.style.setProperty('--highlight', 'rgba(74, 58, 249, 0.1)');
+                    break;
+                case 'terminal-green':
+                    root.style.setProperty('--primary', '#000000');
+                    root.style.setProperty('--secondary', '#0a0a0a');
+                    root.style.setProperty('--accent', '#00ff00');
+                    root.style.setProperty('--text', '#00ff00');
+                    root.style.setProperty('--card-bg', 'rgba(0, 20, 0, 0.8)');
+                    root.style.setProperty('--glass', 'rgba(0, 30, 0, 0.5)');
+                    root.style.setProperty('--accent-light', '#33ff33');
+                    root.style.setProperty('--highlight', 'rgba(0, 255, 0, 0.1)');
+                    break;
+                case 'purple-haze':
+                    root.style.setProperty('--primary', '#2a0a3a');
+                    root.style.setProperty('--secondary', '#3a1a4a');
+                    root.style.setProperty('--accent', '#d66efd');
+                    root.style.setProperty('--text', '#f0e0ff');
+                    root.style.setProperty('--card-bg', 'rgba(40, 10, 50, 0.7)');
+                    root.style.setProperty('--glass', 'rgba(50, 20, 60, 0.3)');
+                    root.style.setProperty('--accent-light', '#e67eff');
+                    root.style.setProperty('--highlight', 'rgba(214, 110, 253, 0.2)');
+                    break;
+            }
+
+            // Papel de Parede
+            switch (systemData.settings.wallpaper) {
+                case 'default':
+                    body.style.background = 'radial-gradient(circle at center, var(--primary), var(--secondary))';
+                    break;
+                case 'gradient1':
+                    body.style.background = 'linear-gradient(135deg, #6a5af9, #d66efd)';
+                    break;
+                case 'gradient2':
+                    body.style.background = 'linear-gradient(135deg, #00cc88, #00b4ff)';
+                    break;
+            }
+
+            // Animações
+            // Remove a propriedade transition se animações estiverem desabilitadas
+            if (!systemData.settings.animations) {
+                const style = document.createElement('style');
+                style.id = 'no-transitions-style';
+                style.innerHTML = `
+                    * {
+                        transition: none !important;
+                    }
+                `;
+                document.head.appendChild(style);
+            } else {
+                const existingStyle = document.getElementById('no-transitions-style');
+                if (existingStyle) {
+                    existingStyle.remove();
+                }
+            }
+
+            // Transparências
+            const elementsWithGlass = document.querySelectorAll('.window, #dock, #menu-bar, .custom-modal-content, .modal-content, .login-box');
+            if (systemData.settings.transparency) {
+                elementsWithGlass.forEach(el => {
+                    el.style.backdropFilter = 'blur(10px)';
+                    el.style.webkitBackdropFilter = 'blur(10px)';
+                });
+            } else {
+                elementsWithGlass.forEach(el => {
+                    el.style.backdropFilter = 'none';
+                    el.style.webkitBackdropFilter = 'none';
+                });
+            }
+
+            // Partículas
+            if (systemData.settings.particles) {
+                particlesCanvas.style.display = 'block';
+                gridBg.style.display = 'block';
+            } else {
+                particlesCanvas.style.display = 'none';
+                gridBg.style.display = 'none';
+            }
+        }
+
+        // Configurar eventos da janela
+        function setupWindowEvents(windowElement, appId, windowId) {
+            const closeBtn = windowElement.querySelector('.window-close');
+            const minimizeBtn = windowElement.querySelector('.window-minimize');
+            const maximizeBtn = windowElement.querySelector('.window-maximize');
+            
+            closeBtn.addEventListener('click', () => closeWindow(windowId));
+            minimizeBtn.addEventListener('click', () => minimizeWindow(windowId));
+            maximizeBtn.addEventListener('click', () => toggleMaximizeWindow(windowId));
+            
+            const header = windowElement.querySelector('.window-header');
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            
+            header.addEventListener('mousedown', dragMouseDown);
+            
+            function dragMouseDown(e) {
+                e.preventDefault();
+                bringToFront(windowId);
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                // Anexar listeners ao document para arrastar fora da janela
+                document.addEventListener('mouseup', closeDragElement);
+                document.addEventListener('mousemove', elementDrag);
+            }
+            
+            function elementDrag(e) {
+                e.preventDefault();
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                windowElement.style.top = (windowElement.offsetTop - pos2) + "px";
+                windowElement.style.left = (windowElement.offsetLeft - pos1) + "px";
+            }
+            
+            function closeDragElement() {
+                document.removeEventListener('mouseup', closeDragElement);
+                document.removeEventListener('mousemove', elementDrag);
+            }
+
+            windowElement.addEventListener('mousedown', () => {
+                bringToFront(windowId);
+            });
+        }
+
+        // Funções de gerenciamento de janelas
+        function closeWindow(windowId) {
+            const windowElement = document.getElementById(windowId);
+            if (windowElement) {
+                windowElement.classList.remove('active');
+                setTimeout(() => {
+                    const app = systemState.openWindows.find(w => w.windowId === windowId);
+                    if (app && app.id === 'camera' && systemState.cameraStream) {
+                        systemState.cameraStream.getTracks().forEach(track => track.stop());
+                        systemState.cameraStream = null;
+                    }
+                    
+                    windowElement.remove();
+                    systemState.openWindows = systemState.openWindows.filter(w => w.windowId !== windowId);
+                    if (systemState.activeWindow === windowId) {
+                        // Se a janela ativa foi fechada, define a próxima janela no topo como ativa
+                        if (systemState.openWindows.length > 0) {
+                            const highestZWindow = systemState.openWindows.reduce((prev, current) => {
+                                const prevZ = parseInt(document.getElementById(prev.windowId).style.zIndex || 0);
+                                const currentZ = parseInt(document.getElementById(current.windowId).style.zIndex || 0);
+                                return (prevZ > currentZ) ? prev : current;
+                            });
+                            systemState.activeWindow = highestZWindow.windowId;
+                            bringToFront(systemState.activeWindow);
+                        } else {
+                            systemState.activeWindow = null;
+                        }
+                    }
+                }, 300);
+            }
+        }
+
+        function minimizeWindow(windowId) {
+            const windowElement = document.getElementById(windowId);
+            if (windowElement) {
+                windowElement.classList.remove('active');
+                setTimeout(() => {
+                    windowElement.style.display = 'none';
+                }, 300);
+            }
+        }
+
+        function toggleMaximizeWindow(windowId) {
+            const windowElement = document.getElementById(windowId);
+            if (windowElement) {
+                if (windowElement.classList.contains('maximized')) {
+                    windowElement.classList.remove('maximized');
+                    windowElement.style.width = '';
+                    windowElement.style.height = '';
+                    windowElement.style.left = '';
+                    windowElement.style.top = '';
+                    windowElement.style.transform = ''; // Remove transform para restaurar posição original
+                } else {
+                    windowElement.classList.add('maximized');
+                    windowElement.style.width = 'calc(100% - 40px)';
+                    windowElement.style.height = 'calc(100% - 100px)';
+                    windowElement.style.left = '20px';
+                    windowElement.style.top = '50px';
+                    windowElement.style.transform = 'none'; // Garante que não haja transform de escala
+                }
+            }
+        }
+
+        function bringToFront(windowId) {
+            let maxZIndex = 100;
+            systemState.openWindows.forEach(w => {
+                const win = document.getElementById(w.windowId);
+                if (win) {
+                    const currentZ = parseInt(win.style.zIndex) || 100;
+                    if (currentZ > maxZIndex) {
+                        maxZIndex = currentZ;
+                    }
+                }
+            });
+
+            const targetWindow = document.getElementById(windowId);
+            if (targetWindow) {
+                targetWindow.style.zIndex = maxZIndex + 1;
+                systemState.activeWindow = windowId;
+                targetWindow.style.display = 'flex'; // Garante que a janela esteja visível
+                targetWindow.classList.add('active');
+            }
+        }
+
+        // Mostrar carrossel de janelas
+        function showWindowCarousel() {
+            const carouselBody = document.getElementById('window-carousel-body');
+            carouselBody.innerHTML = '';
+
+            if (systemState.openWindows.length === 0) {
+                carouselBody.innerHTML = '<p style="text-align: center; width: 100%;">Nenhuma janela aberta.</p>';
+                document.getElementById('window-carousel-modal').classList.add('active');
+                return;
+            }
+
+            systemState.openWindows.forEach(win => {
+                const thumbnail = document.createElement('div');
+                thumbnail.className = 'window-thumbnail';
+                thumbnail.dataset.windowId = win.windowId;
+
+                thumbnail.innerHTML = `
+                    <div class="window-thumbnail-header">
+                        <i class="${win.appIcon}"></i> ${win.appName}
+                        <div class="close-btn"><i class="fas fa-times"></i></div>
+                    </div>
+                    <div class="window-thumbnail-content">
+                        <i class="${win.appIcon}"></i>
+                    </div>
+                `;
+
+                thumbnail.addEventListener('click', (e) => {
+                    if (!e.target.closest('.close-btn')) {
+                        bringToFront(win.windowId);
+                        closeModal('window-carousel-modal');
+                    }
+                });
+
+                thumbnail.querySelector('.close-btn').addEventListener('click', (e) => {
+                    e.stopPropagation(); // Evita que o clique no botão feche o modal
+                    closeWindow(win.windowId);
+                    // A miniatura será removida automaticamente quando a janela for fechada
+                    // Mas para feedback imediato, podemos remover aqui também
+                    thumbnail.remove(); 
+                    if (systemState.openWindows.length === 0) {
+                        carouselBody.innerHTML = '<p style="text-align: center; width: 100%;">Nenhuma janela aberta.</p>';
+                    }
+                });
+
+                carouselBody.appendChild(thumbnail);
+            });
+
+            document.getElementById('window-carousel-modal').classList.add('active');
+        }
+
+        // Criar efeito de partículas
+        function createParticles() {
+            const canvas = document.getElementById('particles');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            const particles = [];
+            const particleCount = 100;
+            
+            for (let i = 0; i < particleCount; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    radius: Math.random() * 2 + 1,
+                    speedX: (Math.random() - 0.5) * 0.5,
+                    speedY: (Math.random() - 0.5) * 0.5,
+                    color: `rgba(106, 90, 249, ${Math.random() * 0.5 + 0.1})`
+                });
+            }
+            
+            function drawParticles() {
+                if (!systemData.settings.particles) { // Para de desenhar se desabilitado
+                    return;
+                }
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                particles.forEach(p => {
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = p.color;
+                    ctx.fill();
+                    
+                    p.x += p.speedX;
+                    p.y += p.speedY;
+                    
+                    if (p.x < 0 || p.x > canvas.width) p.speedX *= -1;
+                    if (p.y < 0 || p.y > canvas.height) p.speedY *= -1;
+                });
+                
+                requestAnimationFrame(drawParticles);
+            }
+            
+            drawParticles();
+            
+            window.addEventListener('resize', () => {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            });
+        }
+
+        // Funções de Login
+        function showLoginScreen() {
+            loginScreen.classList.add('active');
+            document.getElementById('menu-bar').style.display = 'none';
+            document.getElementById('dock').style.display = 'none';
+            document.getElementById('desktop').style.display = 'none';
+            document.getElementById('windows-container').style.display = 'none';
+            loginUsernameInput.focus();
+        }
+
+        function hideLoginScreen() {
+            loginScreen.classList.remove('active');
+            document.getElementById('menu-bar').style.display = 'flex';
+            document.getElementById('dock').style.display = 'flex';
+            document.getElementById('desktop').style.display = 'block';
+            document.getElementById('windows-container').style.display = 'block';
+            loadDesktopItems(); // Carrega os itens da área de trabalho após o login
+        }
+
+        async function handleLogin() {
+            const username = loginUsernameInput.value;
+            const password = loginPasswordInput.value;
+
+            if (username === systemData.settings.username && password === systemData.settings.password) {
+                hideLoginScreen();
+            } else {
+                await axonAlert("Usuário ou senha incorretos.", "Erro de Login");
+                loginPasswordInput.value = '';
+                loginUsernameInput.focus();
+            }
+        }
+
+        // --- Novas funções para Axon Apps ---
+
+        // Carregar aplicativos HTML do diretório 'apps/'
+        async function loadAxonApps() {
+            systemState.axonApps = []; // Limpa a lista existente
+            systemData.fileSystem['axon-apps'] = []; // Limpa o diretório no fileSystem
+
+            // Itera de 1 a 50 para buscar apps em subpastas numeradas
+            for (let i = 1; i <= 50; i++) {
+                const filePath = `apps/app${i}/app.html`; // Caminho conforme solicitado
+                try {
+                    const response = await fetch(filePath);
+                    if (!response.ok) {
+                        // Se o arquivo não existir, apenas loga um aviso e continua para o próximo
+                        // console.warn(`Não foi possível carregar o aplicativo: ${filePath}. Status: ${response.status}`);
+                        continue; // Pula para a próxima iteração se o arquivo não for encontrado
+                    }
+                    const htmlContent = await response.text();
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(htmlContent, 'text/html');
+
+                    const titleElement = doc.querySelector('title');
+                    const appName = titleElement ? titleElement.textContent : `App ${i}`; // Nome padrão se não houver título
+
+                    let appIcon = 'fas fa-code'; // Ícone padrão
+                    const linkElements = doc.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"]');
+                    for (const link of linkElements) {
+                        if (link.href) {
+                            // Para simplificar, vamos usar o caminho do favicon como o ícone,
+                            // mas em um sistema real, você pode carregar a imagem e exibi-la.
+                            // Aqui, apenas verificamos se existe um favicon.
+                            appIcon = 'fas fa-file-code'; // Indica que tem um ícone, mas ainda usa um FontAwesome
+                            break;
+                        }
+                    }
+
+                    const appId = `html-app-${appName.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}`;
+                    const appItem = {
+                        id: appId,
+                        name: appName,
+                        type: 'html-app',
+                        icon: appIcon,
+                        path: filePath,
+                        minWidth: 800, // Tamanho padrão para apps HTML
+                        minHeight: 600
+                    };
+                    systemState.axonApps.push(appItem);
+                    systemData.fileSystem['axon-apps'].push(appItem); // Adiciona ao fileSystem
+                } catch (error) {
+                    console.error(`Erro ao processar o aplicativo HTML ${filePath}:`, error);
+                }
+            }
+            saveDesktopItems(); // Salva o fileSystem atualizado com os apps
+        }
+
+        // Inicializar a pasta Axon Apps
+        function initAxonApps(windowElement) {
+            const axonAppsGrid = windowElement.querySelector('#axon-apps-grid');
+            axonAppsGrid.innerHTML = ''; // Limpa o grid
+
+            if (systemState.axonApps.length === 0) {
+                axonAppsGrid.innerHTML = '<p style="text-align: center; width: 100%;">Nenhum aplicativo HTML encontrado na pasta "apps/".</p>';
+                return;
+            }
+
+            systemState.axonApps.forEach(app => {
+                const appItemDiv = document.createElement('div');
+                appItemDiv.className = 'axon-app-item';
+                appItemDiv.dataset.appId = app.id;
+
+                appItemDiv.innerHTML = `
+                    <div class="icon-image">
+                        <i class="${app.icon}"></i>
+                    </div>
+                    <div class="icon-label">${app.name}</div>
+                `;
+
+                appItemDiv.addEventListener('click', () => {
+                    openHtmlApp(app.path, app.name, app.icon);
+                });
+
+                axonAppsGrid.appendChild(appItemDiv);
+            });
+        }
+
+        // Abrir um aplicativo HTML em uma nova janela do Axon OS
+        function openHtmlApp(appPath, appName, appIcon) {
+            const windowId = `html-app-window-${Date.now()}`;
+            const windowElement = document.createElement('div');
+            windowElement.className = 'window';
+            windowElement.id = windowId;
+            windowElement.style.width = `800px`; // Tamanho padrão para apps HTML
+            windowElement.style.height = `600px`;
+            
+            const left = Math.max(0, (window.innerWidth - 800) / 2 + (Math.random() * 100 - 50));
+            const top = Math.max(0, (window.innerHeight - 600) / 2 + (Math.random() * 100 - 50));
+            windowElement.style.left = `${left}px`;
+            windowElement.style.top = `${top}px`;
+
+            const header = document.createElement('div');
+            header.className = 'window-header';
+            header.innerHTML = `
+                <div class="window-title">
+                    <i class="${appIcon}"></i> ${appName}
+                </div>
+                <div class="window-controls">
+                    <div class="window-control window-minimize"><i class="fas fa-minus"></i></div>
+                    <div class="window-control window-maximize"><i class="fas fa-square"></i></div>
+                    <div class="window-control window-close"><i class="fas fa-times"></i></div>
+                </div>
+            `;
+            windowElement.appendChild(header);
+
+            const content = document.createElement('div');
+            content.className = 'window-content';
+            content.style.padding = '0'; // Remover padding para o iframe ocupar 100%
+            content.innerHTML = `<iframe src="${appPath}" style="width: 100%; height: 100%; border: none;"></iframe>`;
+            windowElement.appendChild(content);
+
+            windowsContainer.appendChild(windowElement);
+            
+            void windowElement.offsetWidth; // Força reflow para a transição
+            windowElement.classList.add('active');
+            
+            setupWindowEvents(windowElement, 'html-app-launcher', windowId); // Usa um ID genérico para o tipo de app
+            
+            systemState.openWindows.push({ id: 'html-app-launcher', windowId: windowId, element: windowElement, appName: appName, appIcon: appIcon });
+            systemState.activeWindow = windowId;
+            bringToFront(windowId);
+        }
+
+        // Iniciar o sistema quando a página carregar
+        window.addEventListener('load', initSystem);
+        
+        // Esconder menu de contexto quando clicar fora
+        document.addEventListener('click', (e) => {
+            if (!contextMenu.contains(e.target) && !e.target.closest('.desktop-icon') && !e.target.closest('.file-item')) {
+                hideContextMenu();
+            }
+        });
+    </script>
+</body>
+</html>
