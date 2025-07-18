@@ -1705,7 +1705,7 @@
             desktopIcons: [],
             dockIcons: document.querySelectorAll('.dock-icon'),
             currentPath: 'axon', // Usado para o terminal, agora reflete o ID do diretório
-            finderCurrentPath: 'axon/desktop', // Caminho atual do Finder (ID do diretório)
+            // finderCurrentPath: 'axon/desktop', // Removido, cada Finder terá seu próprio currentPath
             terminalHistory: [...systemData.terminalHistory],
             chatHistory: [
                 { role: "assistant", content: "Olá! Eu sou a Mielina, sua assistente virtual integrada ao Axon OS. Como posso ajudar você hoje?" }
@@ -1986,7 +1986,8 @@
             systemState.dockIcons.forEach(icon => {
                 icon.addEventListener('click', () => {
                     const app = icon.dataset.app;
-                    openApp(app);
+                    // Ao clicar no Finder no dock, sempre abre o desktop
+                    openApp(app, app === 'finder' ? 'axon/desktop' : null);
                 });
             });
 
@@ -1999,17 +2000,25 @@
 
             // Context menu items
             document.getElementById('context-new-folder').addEventListener('click', async () => {
+                // Pega o diretório da janela do Finder ativa, ou o desktop se não houver Finder ativo
+                const activeFinderWindow = systemState.openWindows.find(w => w.id === 'finder' && w.element.classList.contains('active'));
+                const targetDirectoryId = activeFinderWindow ? activeFinderWindow.currentPath : 'axon/desktop';
+
                 const folderName = await axonPrompt("Digite o nome da nova pasta:", "Nova Pasta");
                 if (folderName) {
-                    createFileItem(systemState.finderCurrentPath, 'folder', folderName);
+                    createFileItem(targetDirectoryId, 'folder', folderName);
                 }
                 hideContextMenu();
             });
             
             document.getElementById('context-new-file').addEventListener('click', async () => {
+                // Pega o diretório da janela do Finder ativa, ou o desktop se não houver Finder ativo
+                const activeFinderWindow = systemState.openWindows.find(w => w.id === 'finder' && w.element.classList.contains('active'));
+                const targetDirectoryId = activeFinderWindow ? activeFinderWindow.currentPath : 'axon/desktop';
+
                 const fileName = await axonPrompt("Digite o nome do novo arquivo:", "Novo Documento.txt");
                 if (fileName) {
-                    createFileItem(systemState.finderCurrentPath, 'text', fileName);
+                    createFileItem(targetDirectoryId, 'text', fileName);
                 }
                 hideContextMenu();
             });
@@ -2044,39 +2053,56 @@
 
                     if (itemIdToDelete && parentIdToDelete) {
                         deleteFileItem(itemIdToDelete, parentIdToDelete);
-                        // Atualiza o desktop e o finder após a exclusão
+                        // Atualiza o desktop e todas as janelas do finder após a exclusão
                         loadDesktopItems(); // Recarrega os ícones do desktop
-                        const finderWindow = systemState.openWindows.find(w => w.id === 'finder');
-                        if (finderWindow) {
+                        systemState.openWindows.filter(w => w.id === 'finder').forEach(finderWindow => {
                             const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
                             if (explorerGrid) {
-                                loadDirectory(systemState.finderCurrentPath, explorerGrid);
+                                loadDirectory(finderWindow.currentPath, explorerGrid);
                             }
-                        }
+                        });
                     }
                 }
                 hideContextMenu();
             });
 
             document.getElementById('context-restore').addEventListener('click', async () => {
-                if (systemState.selectedFileItem && systemState.finderCurrentPath === 'axon/trash') {
+                // Pega o diretório da janela do Finder ativa
+                const activeFinderWindow = systemState.openWindows.find(w => w.id === 'finder' && w.element.classList.contains('active'));
+                const currentFinderPath = activeFinderWindow ? activeFinderWindow.currentPath : null;
+
+                if (systemState.selectedFileItem && currentFinderPath === 'axon/trash') {
                     const confirmRestore = await axonConfirm("Tem certeza que deseja restaurar este item?");
                     if (confirmRestore) {
                         restoreTrashItem(systemState.selectedFileItem.id);
-                        const fileItemElement = document.querySelector(`.file-item[data-id="${systemState.selectedFileItem.id}"]`);
-                        if (fileItemElement) fileItemElement.remove(); // Remove visualmente da lixeira
+                        // Atualiza todas as janelas do finder que estão na lixeira
+                        systemState.openWindows.filter(w => w.id === 'finder' && w.currentPath === 'axon/trash').forEach(finderWindow => {
+                            const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
+                            if (explorerGrid) {
+                                loadDirectory('axon/trash', explorerGrid);
+                            }
+                        });
                     }
                 }
                 hideContextMenu();
             });
 
             document.getElementById('context-delete-permanent').addEventListener('click', async () => {
-                if (systemState.selectedFileItem && systemState.finderCurrentPath === 'axon/trash') {
+                // Pega o diretório da janela do Finder ativa
+                const activeFinderWindow = systemState.openWindows.find(w => w.id === 'finder' && w.element.classList.contains('active'));
+                const currentFinderPath = activeFinderWindow ? activeFinderWindow.currentPath : null;
+
+                if (systemState.selectedFileItem && currentFinderPath === 'axon/trash') {
                     const confirmDelete = await axonConfirm("Tem certeza que deseja excluir permanentemente este item? Esta ação não pode ser desfeita.");
                     if (confirmDelete) {
                         deletePermanentTrashItem(systemState.selectedFileItem.id);
-                        const fileItemElement = document.querySelector(`.file-item[data-id="${systemState.selectedFileItem.id}"]`);
-                        if (fileItemElement) fileItemElement.remove(); // Remove visualmente da lixeira
+                        // Atualiza todas as janelas do finder que estão na lixeira
+                        systemState.openWindows.filter(w => w.id === 'finder' && w.currentPath === 'axon/trash').forEach(finderWindow => {
+                            const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
+                            if (explorerGrid) {
+                                loadDirectory('axon/trash', explorerGrid);
+                            }
+                        });
                     }
                 }
                 hideContextMenu();
@@ -2108,14 +2134,13 @@
                             desktopIconElement.querySelector('.icon-label').textContent = newName.trim();
                         }
 
-                        // Atualiza o Finder se estiver aberto e no diretório correto
-                        const finderWindow = systemState.openWindows.find(w => w.id === 'finder');
-                        if (finderWindow) {
+                        // Atualiza todas as janelas do Finder
+                        systemState.openWindows.filter(w => w.id === 'finder').forEach(finderWindow => {
                             const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
                             if (explorerGrid) {
-                                loadDirectory(systemState.finderCurrentPath, explorerGrid);
+                                loadDirectory(finderWindow.currentPath, explorerGrid);
                             }
-                        }
+                        });
                         axonAlert(`Item renomeado para "${newName.trim()}"`);
                     } else if (newName && newName.trim() === oldName) {
                         axonAlert("O nome é o mesmo. Nenhuma alteração foi feita.");
@@ -2159,7 +2184,9 @@
             document.getElementById('context-paste').addEventListener('click', async () => {
                 if (systemData.clipboard) {
                     const originalItem = systemData.clipboard;
-                    const targetDirectoryId = systemState.finderCurrentPath; // Cola no diretório atual do Finder
+                    // Pega o diretório da janela do Finder ativa, ou o desktop se não houver Finder ativo
+                    const activeFinderWindow = systemState.openWindows.find(w => w.id === 'finder' && w.element.classList.contains('active'));
+                    const targetDirectoryId = activeFinderWindow ? activeFinderWindow.currentPath : 'axon/desktop';
 
                     // Verifica se o item está sendo colado em sua própria pasta pai (se for cut)
                     if (systemState.clipboardAction === 'cut' && originalItem.parentId === targetDirectoryId) {
@@ -2227,14 +2254,13 @@
                         createDesktopItem(newItem.type, newItem.name, null, null, newItem.id); // Recria o ícone visual na próxima posição disponível
                     }
 
-                    // Atualiza o Finder se estiver aberto e no diretório correto
-                    const finderWindow = systemState.openWindows.find(w => w.id === 'finder');
-                    if (finderWindow) {
+                    // Atualiza todas as janelas do Finder
+                    systemState.openWindows.filter(w => w.id === 'finder').forEach(finderWindow => {
                         const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
                         if (explorerGrid) {
-                            loadDirectory(systemState.finderCurrentPath, explorerGrid);
+                            loadDirectory(finderWindow.currentPath, explorerGrid);
                         }
-                    }
+                    });
 
                     saveDesktopItems(); // Salva todas as alterações
                     axonAlert(`"${newItem.name}" colado com sucesso!`);
@@ -2259,7 +2285,11 @@
                     await axonAlert("Por favor, digite um nome para o item.");
                     return;
                 }
-                createFileItem(systemState.finderCurrentPath, type, name);
+                // Pega o diretório da janela do Finder ativa, ou o desktop se não houver Finder ativo
+                const activeFinderWindow = systemState.openWindows.find(w => w.id === 'finder' && w.element.classList.contains('active'));
+                const targetDirectoryId = activeFinderWindow ? activeFinderWindow.currentPath : 'axon/desktop';
+
+                createFileItem(targetDirectoryId, type, name);
                 createModal.classList.remove('active');
             });
             
@@ -2322,8 +2352,9 @@
             }
 
             const desktopIcons = Array.from(document.querySelectorAll('.desktop-icon'));
-            const finderWindow = systemState.openWindows.find(w => w.id === 'finder');
-            const fileExplorerGrid = finderWindow ? finderWindow.element.querySelector('#explorer-grid') : null;
+            // Pega a janela do Finder ativa para navegação por teclado
+            const activeFinderWindow = systemState.openWindows.find(w => w.id === 'finder' && w.element.classList.contains('active'));
+            const fileExplorerGrid = activeFinderWindow ? activeFinderWindow.element.querySelector('#explorer-grid') : null;
             const fileItems = fileExplorerGrid ? Array.from(fileExplorerGrid.querySelectorAll('.file-item')) : [];
 
             let currentSelectedElement = null;
@@ -2502,11 +2533,8 @@
             addRecentFile(item);
 
             if (item.type === 'folder') {
-                openApp('finder');
-                const finderWindow = systemState.openWindows.find(w => w.id === 'finder');
-                if (finderWindow) {
-                    navigateToDirectory(item.id, finderWindow.element);
-                }
+                // Abre uma nova janela do Finder para a pasta
+                openApp('finder', item.id); 
             } else if (item.type === 'text') {
                 openApp('notes');
                 const notesWindow = systemState.openWindows.find(w => w.id === 'notes');
@@ -2572,9 +2600,14 @@
         function selectFileItem(fileItemElement) {
             deselectAllIcons();
             fileItemElement.classList.add('selected');
-            // Encontra o item no diretório atual do finder
-            const currentDir = getDirectoryById(systemState.finderCurrentPath);
-            systemState.selectedFileItem = currentDir.children.find(item => item.id === fileItemElement.dataset.id);
+            // Encontra o item no diretório da janela do Finder ativa
+            const activeFinderWindow = systemState.openWindows.find(w => w.id === 'finder' && w.element.classList.contains('active'));
+            if (activeFinderWindow) {
+                const currentDir = getDirectoryById(activeFinderWindow.currentPath);
+                systemState.selectedFileItem = currentDir.children.find(item => item.id === fileItemElement.dataset.id);
+            } else {
+                systemState.selectedFileItem = null; // Não há Finder ativo para selecionar item
+            }
             systemState.selectedIcon = null;
             fileItemElement.focus(); // Garante que o elemento tenha foco para acessibilidade
         }
@@ -2758,14 +2791,13 @@
                 createDesktopItem(type, name, null, null, newItem.id);
             }
 
-            // Atualiza o Finder se estiver aberto e no diretório correto
-            const finderWindow = systemState.openWindows.find(w => w.id === 'finder');
-            if (finderWindow) {
+            // Atualiza todas as janelas do Finder
+            systemState.openWindows.filter(w => w.id === 'finder').forEach(finderWindow => {
                 const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
-                if (explorerGrid && systemState.finderCurrentPath === directoryId) {
+                if (explorerGrid && finderWindow.currentPath === directoryId) {
                     loadDirectory(directoryId, explorerGrid);
                 }
-            }
+            });
             axonAlert(`"${name}" criado em "${parentDir.path}"`);
         }
 
@@ -2982,14 +3014,13 @@
             saveDesktopItems();
             await axonAlert(`"${itemToRestore.name}" restaurado para "${targetDir.path}".`, "Restauração Concluída");
 
-            // Atualiza o Finder se estiver aberto e no diretório da lixeira
-            const finderWindow = systemState.openWindows.find(w => w.id === 'finder');
-            if (finderWindow) {
+            // Atualiza todas as janelas do Finder
+            systemState.openWindows.filter(w => w.id === 'finder').forEach(finderWindow => {
                 const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
-                if (explorerGrid && systemState.finderCurrentPath === 'axon/trash') {
-                    loadDirectory('axon/trash', explorerGrid);
+                if (explorerGrid) {
+                    loadDirectory(finderWindow.currentPath, explorerGrid);
                 }
-            }
+            });
         }
 
         // Excluir permanentemente item da lixeira
@@ -3017,14 +3048,13 @@
             saveDesktopItems();
             await axonAlert(`"${itemToDelete.name}" excluído permanentemente.`, "Exclusão Concluída");
 
-            // Atualiza o Finder se estiver aberto e no diretório da lixeira
-            const finderWindow = systemState.openWindows.find(w => w.id === 'finder');
-            if (finderWindow) {
+            // Atualiza todas as janelas do Finder
+            systemState.openWindows.filter(w => w.id === 'finder').forEach(finderWindow => {
                 const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
-                if (explorerGrid && systemState.finderCurrentPath === 'axon/trash') {
-                    loadDirectory('axon/trash', explorerGrid);
+                if (explorerGrid) {
+                    loadDirectory(finderWindow.currentPath, explorerGrid);
                 }
-            }
+            });
         }
 
         // Encontrar arquivo em qualquer diretório do sistema de arquivos
@@ -3132,7 +3162,11 @@
             const isItemSelected = systemState.selectedIcon || systemState.selectedFileItem;
             const isFolderSelected = (systemState.selectedIcon && systemState.selectedIcon.dataset.type === 'folder') || 
                                      (systemState.selectedFileItem && systemState.selectedFileItem.type === 'folder');
-            const isInTrash = systemState.finderCurrentPath === 'axon/trash';
+            
+            // Pega o diretório da janela do Finder ativa, ou o desktop se não houver Finder ativo
+            const activeFinderWindow = systemState.openWindows.find(w => w.id === 'finder' && w.element.classList.contains('active'));
+            const currentFinderPath = activeFinderWindow ? activeFinderWindow.currentPath : 'axon/desktop';
+            const isInTrash = currentFinderPath === 'axon/trash';
 
             document.getElementById('context-open').style.display = isItemSelected && !isInTrash ? 'flex' : 'none';
             document.getElementById('context-rename').style.display = isItemSelected && !isInTrash ? 'flex' : 'none';
@@ -3159,14 +3193,67 @@
         }
 
         // Abrir aplicativo
-        function openApp(appId) {
+        // Adicionado um parâmetro `initialPath` para o Finder
+        function openApp(appId, initialPath = null) {
+            // Para o Finder, sempre abre uma nova janela
+            if (appId === 'finder') {
+                const app = systemData.apps[appId];
+                if (!app) return;
+
+                const windowId = `window-${appId}-${Date.now()}`; // ID único para cada instância do Finder
+                const windowElement = document.createElement('div');
+                windowElement.className = 'window';
+                windowElement.id = windowId;
+                windowElement.style.width = `${app.minWidth}px`;
+                windowElement.style.height = `${app.minHeight}px`;
+                
+                // Posiciona a janela para não ultrapassar a menu-bar
+                const menuBarHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--menu-bar-height'));
+                const left = Math.max(0, (window.innerWidth - app.minWidth) / 2 + (Math.random() * 100 - 50));
+                const top = Math.max(menuBarHeight, (window.innerHeight - app.minHeight) / 2 + (Math.random() * 100 - 50));
+                windowElement.style.left = `${left}px`;
+                windowElement.style.top = `${top}px`;
+
+                const header = document.createElement('div');
+                header.className = 'window-header';
+                header.innerHTML = `
+                    <div class="window-title">
+                        <i class="${app.icon}"></i> ${app.name}
+                    </div>
+                    <div class="window-controls">
+                        <div class="window-control window-minimize"><i class="fas fa-minus"></i></div>
+                        <div class="window-control window-maximize"><i class="fas fa-square"></i></div>
+                        <div class="window-control window-close"><i class="fas fa-times"></i></div>
+                    </div>
+                `;
+                windowElement.appendChild(header);
+
+                const content = document.createElement('div');
+                content.className = 'window-content';
+                content.innerHTML = generateAppContent(appId);
+                windowElement.appendChild(content);
+
+                windowsContainer.appendChild(windowElement);
+                
+                void windowElement.offsetWidth; // Força reflow para a transição
+                windowElement.classList.add('active');
+                
+                // Adiciona a janela ao systemState.openWindows com seu próprio currentPath
+                const newFinderWindow = { id: appId, windowId: windowId, element: windowElement, appName: app.name, appIcon: app.icon, currentPath: initialPath || 'axon/desktop' };
+                systemState.openWindows.push(newFinderWindow);
+                systemState.activeWindow = windowId;
+                bringToFront(windowId);
+                
+                setupWindowEvents(windowElement, appId, windowId);
+                initAppContent(appId, windowElement, newFinderWindow.currentPath); // Passa o initialPath para o Finder
+                return;
+            }
+
+            // Para outros aplicativos, reutiliza a janela existente
             const existingWindow = systemState.openWindows.find(w => w.id === appId);
             if (existingWindow) {
                 bringToFront(existingWindow.windowId);
-                if (appId === 'finder') {
-                    const finderWindow = existingWindow.element;
-                    navigateToDirectory(systemState.finderCurrentPath, finderWindow);
-                } else if (appId === 'axon-apps') {
+                if (appId === 'axon-apps') {
                     initAxonApps(existingWindow.element); // Recarrega a lista de apps
                 }
                 return;
@@ -3175,7 +3262,7 @@
             const app = systemData.apps[appId];
             if (!app) return;
 
-            const windowId = `window-${Date.now()}`;
+            const windowId = `window-${appId}-${Date.now()}`; // ID único para cada instância
             const windowElement = document.createElement('div');
             windowElement.className = 'window';
             windowElement.id = windowId;
@@ -3230,7 +3317,7 @@
                         <div class="file-explorer">
                             <div class="finder-toolbar">
                                 <button id="finder-back" class="dock-style-button"><i class="fas fa-arrow-left"></i></button>
-                                <span class="path-display" id="finder-path-display">axon/desktop</span>
+                                <span class="path-display" id="finder-path-display"></span>
                             </div>
                             <div class="finder-main-area">
                                 <div class="sidebar">
@@ -3448,10 +3535,11 @@
         }
 
         // Inicializar conteúdo do aplicativo
-        function initAppContent(appId, windowElement) {
+        // Adicionado um parâmetro `initialPath` para o Finder
+        function initAppContent(appId, windowElement, initialPath = null) {
             switch(appId) {
                 case 'finder':
-                    initFileExplorer(windowElement);
+                    initFileExplorer(windowElement, initialPath);
                     break;
                 case 'notes':
                     initNotepad(windowElement);
@@ -3484,21 +3572,32 @@
         }
 
         // Inicializar explorador de arquivos
-        function initFileExplorer(windowElement) {
+        // Agora aceita um `initialPath` para abrir em um diretório específico
+        function initFileExplorer(windowElement, initialPath) {
             const sidebarItems = windowElement.querySelectorAll('.sidebar-item');
             const explorerGrid = windowElement.querySelector('#explorer-grid');
             const tabs = windowElement.querySelectorAll('.tab-container .tab');
             const finderPathDisplay = windowElement.querySelector('#finder-path-display');
             const finderBackButton = windowElement.querySelector('#finder-back');
 
+            // Encontra a instância da janela do Finder no systemState.openWindows
+            const finderInstance = systemState.openWindows.find(w => w.windowId === windowElement.id);
+            if (!finderInstance) {
+                console.error("Instância do Finder não encontrada no systemState.");
+                return;
+            }
+
+            // Define o currentPath para esta instância do Finder
+            finderInstance.currentPath = initialPath || 'axon/desktop';
+
             // Função para navegar para um diretório específico
-            function navigateToDirectory(directoryId, finderWindowElement) {
+            function navigateToDirectory(directoryId) {
                 const currentDir = getDirectoryById(directoryId);
                 if (!currentDir) {
                     axonAlert("Diretório não encontrado.", "Erro de Navegação");
                     return;
                 }
-                systemState.finderCurrentPath = directoryId;
+                finderInstance.currentPath = directoryId; // Atualiza o currentPath da instância
                 finderPathDisplay.textContent = currentDir.path;
                 loadDirectory(directoryId, explorerGrid);
                 deselectAllIcons(); // Desseleciona ícones ao mudar de diretório
@@ -3514,7 +3613,7 @@
 
                 // Ativa a aba "Todos os Itens" por padrão ao navegar para um novo diretório
                 tabs.forEach(t => t.classList.remove('active'));
-                finderWindowElement.querySelector('.tab[data-tab="all"]').classList.add('active');
+                windowElement.querySelector('.tab[data-tab="all"]').classList.add('active');
             }
 
             // Função para carregar o conteúdo de um diretório
@@ -3584,7 +3683,7 @@
 
                     fileItem.innerHTML = `
                         <div class="file-icon"><i class="${fileIcons[item.type] || 'fas fa-file'}"></i></div>
-                        <div class="file-name">${item.name}</div>
+                        <div class="file-name">${item.name} <span style="font-size: 10px; opacity: 0.7;">(${item.path})</span></div>
                     `;
                     
                     fileItem.addEventListener('dblclick', () => {
@@ -3608,7 +3707,7 @@
             sidebarItems.forEach(item => {
                 item.addEventListener('click', () => {
                     const directory = item.dataset.path;
-                    navigateToDirectory(directory, windowElement);
+                    navigateToDirectory(directory);
                 });
             });
 
@@ -3617,7 +3716,7 @@
                     tabs.forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
                     if (tab.dataset.tab === 'all') {
-                        loadDirectory(systemState.finderCurrentPath, explorerGrid);
+                        loadDirectory(finderInstance.currentPath, explorerGrid);
                     } else if (tab.dataset.tab === 'recent') {
                         loadRecentFiles(explorerGrid);
                     }
@@ -3625,15 +3724,15 @@
             });
 
             finderBackButton.addEventListener('click', () => {
-                const pathParts = systemState.finderCurrentPath.split('/');
+                const pathParts = finderInstance.currentPath.split('/');
                 if (pathParts.length > 1) {
                     pathParts.pop(); // Remove o último elemento
                     const parentDirId = pathParts.join('/');
-                    navigateToDirectory(parentDirId || 'axon', windowElement); // Volta para a raiz 'axon' se não houver mais pais
+                    navigateToDirectory(parentDirId || 'axon'); // Volta para a raiz 'axon' se não houver mais pais
                 }
             });
             
-            navigateToDirectory(systemState.finderCurrentPath, windowElement); // Carrega o desktop por padrão
+            navigateToDirectory(finderInstance.currentPath); // Carrega o diretório inicial
         }
 
         // Inicializar bloco de notas
@@ -3659,10 +3758,12 @@
                         await axonAlert("Erro: Arquivo não encontrado para salvar. Tente salvar como um novo arquivo.");
                     }
                 } else {
+                    // Pega o diretório da janela do Finder ativa, ou o desktop se não houver Finder ativo
+                    const activeFinderWindow = systemState.openWindows.find(w => w.id === 'finder' && w.element.classList.contains('active'));
+                    const targetDirectoryId = activeFinderWindow ? activeFinderWindow.currentPath : 'axon/desktop';
+
                     const fileName = await axonPrompt("Digite o nome do arquivo:", "Sem título.txt");
                     if (fileName) {
-                        // Usa o finderCurrentPath como diretório padrão para salvar
-                        const targetDirectoryId = systemState.finderCurrentPath; 
                         const newFileId = `${targetDirectoryId}/${fileName.replace(/\s+/g, '_').toLowerCase()}-${Date.now()}`;
                         const newFile = {
                             id: newFileId,
@@ -3681,14 +3782,13 @@
                             saveDesktopItems(); // Salva o fileSystem atualizado
                             await axonAlert(`Arquivo "${fileName}" salvo com sucesso em ${targetDirectoryId}!`);
 
-                            // Atualiza o Finder se estiver aberto e no diretório correto
-                            const finderWindow = systemState.openWindows.find(w => w.id === 'finder');
-                            if (finderWindow) {
+                            // Atualiza todas as janelas do Finder
+                            systemState.openWindows.filter(w => w.id === 'finder').forEach(finderWindow => {
                                 const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
-                                if (explorerGrid && systemState.finderCurrentPath === targetDirectoryId) {
+                                if (explorerGrid && finderWindow.currentPath === targetDirectoryId) {
                                     loadDirectory(targetDirectoryId, explorerGrid);
                                 }
-                            }
+                            });
                         } else {
                             await axonAlert(`Erro: Diretório '${targetDirectoryId}' não encontrado.`);
                         }
@@ -3994,7 +4094,7 @@
                     return "Abrindo o Bloco de Notas...";
                 }
                 if (message.includes('explorador de arquivos') || message.includes('finder')) {
-                    openApp('finder');
+                    openApp('finder', 'axon/desktop'); // Abre uma nova instância do Finder no desktop
                     return "Abrindo o Explorador de Arquivos...";
                 }
                 if (message.includes('axon apps') || message.includes('aplicativos')) {
@@ -4008,12 +4108,12 @@
                 if (message.includes('pasta') || message.includes('diretório')) {
                     // Não chama showCreateModal diretamente, pois é um modal global
                     // Mielina deve instruir o usuário ou chamar uma função interna que simule a criação
-                    axonAlert("Para criar uma nova pasta, clique com o botão direito na área de trabalho e selecione 'Nova Pasta'.", "Mielina");
-                    return "Você pode criar uma nova pasta clicando com o botão direito na área de trabalho.";
+                    axonAlert("Para criar uma nova pasta, clique com o botão direito na área de trabalho ou em uma janela do Explorador de Arquivos e selecione 'Nova Pasta'.", "Mielina");
+                    return "Você pode criar uma nova pasta clicando com o botão direito na área de trabalho ou em uma janela do Explorador de Arquivos.";
                 }
                 if (message.includes('arquivo')) {
-                    axonAlert("Para criar um novo arquivo, clique com o botão direito na área de trabalho e selecione 'Novo Arquivo'.", "Mielina");
-                    return "Você pode criar um novo arquivo clicando com o botão direito na área de trabalho.";
+                    axonAlert("Para criar um novo arquivo, clique com o botão direito na área de trabalho ou em uma janela do Explorador de Arquivos e selecione 'Novo Arquivo'.", "Mielina");
+                    return "Você pode criar um novo arquivo clicando com o botão direito na área de trabalho ou em uma janela do Explorador de Arquivos.";
                 }
                 return "O que você gostaria que eu criasse?";
             } else if (message.includes('hora')) {
@@ -4269,14 +4369,13 @@
                         if (galleryWindow) {
                             initGallery(galleryWindow.element);
                         }
-                        // Atualiza o finder se estiver aberto e no diretório de imagens
-                        const finderWindow = systemState.openWindows.find(w => w.id === 'finder');
-                        if (finderWindow && systemState.finderCurrentPath === 'axon/images') {
+                        // Atualiza todas as janelas do finder que estão no diretório de imagens
+                        systemState.openWindows.filter(w => w.id === 'finder' && w.currentPath === 'axon/images').forEach(finderWindow => {
                             const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
                             if (explorerGrid) {
                                 loadDirectory('axon/images', explorerGrid);
                             }
-                        }
+                        });
                         
                         await axonAlert('Foto capturada com sucesso e salva em axon/images!');
                     } else {
