@@ -1368,31 +1368,11 @@
             background: rgba(255, 255, 255, 0.4);
         }
 
-        /* Novo menu para "Criar Novo Item" */
-        .create-new-item-menu {
-            position: absolute;
-            background: rgba(30, 30, 50, 0.9);
-            backdrop-filter: blur(10px);
-            border-radius: 8px;
-            padding: 8px 0;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-            z-index: 2001; /* Acima do menu de contexto normal */
-            display: none;
-            min-width: 180px;
-        }
-
-        .create-new-item-menu-item {
-            padding: 8px 20px;
-            font-size: 14px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            transition: background 0.2s ease;
-        }
-
-        .create-new-item-menu-item:hover {
-            background: var(--highlight);
+        /* Estilo para o botão "Criar Item" */
+        .create-item-button {
+            padding: 8px 12px; /* Diminui o padding */
+            font-size: 14px; /* Diminui a fonte */
+            gap: 3px; /* Diminui o espaçamento entre ícone e texto */
         }
     </style>
 </head>
@@ -1462,15 +1442,7 @@
         <div class="context-menu-item" id="context-delete-permanent" style="display: none;"><i class="fas fa-times-circle"></i> Excluir Permanentemente</div>
     </div>
 
-    <!-- Menu "Criar Novo Item" para o Finder -->
-    <div class="create-new-item-menu" id="create-new-item-menu">
-        <div class="create-new-item-menu-item" id="create-new-folder-btn"><i class="fas fa-folder-plus"></i> Nova Pasta</div>
-        <div class="create-new-item-menu-item" id="create-new-text-file-btn"><i class="fas fa-file-alt"></i> Novo Arquivo de Texto</div>
-        <div class="context-menu-divider"></div>
-        <div class="create-new-item-menu-item" id="create-new-paste-btn"><i class="fas fa-paste"></i> Colar</div>
-    </div>
-
-    <!-- Modal de criação de item (mantido, mas pode ser removido se o menu de contexto for suficiente) -->
+    <!-- Modal de criação de item -->
     <div class="modal" id="create-modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1587,7 +1559,7 @@
                     <ul>
                         <li><strong>Clique Simples:</strong> Seleciona um item.</li>
                         <li><strong>Clique Duplo:</strong> Abre um aplicativo ou item.</li>
-                        <li><strong>Botão Direito (Menu de Contexto):</strong> Abre opções para o item selecionado ou para a área de trabalho.</li>
+                        <li><strong>Botão Direito (Menu de Contexto):</b> Abre opções para o item selecionado ou para a área de trabalho.</li>
                         <li><strong>Arrastar e Soltar:</strong> Mova ícones na área de trabalho.</li>
                     </ul>
                 </div>
@@ -1760,7 +1732,8 @@
                 columns: 0,
                 rows: 0,
                 positions: [] // Array 2D para controlar ocupação
-            }
+            },
+            draggedItem: null // Item sendo arrastado
         };
 
         // Elementos DOM
@@ -1769,7 +1742,6 @@
         const windowsContainer = document.getElementById('windows-container');
         const clockElement = document.getElementById('clock');
         const contextMenu = document.getElementById('context-menu');
-        const createNewItemMenu = document.getElementById('create-new-item-menu'); // Novo menu
         const createModal = document.getElementById('create-modal');
         const openFileModal = document.getElementById('open-file-modal');
         const customAlertModal = document.getElementById('custom-alert-modal');
@@ -2016,6 +1988,27 @@
             return { row, col };
         }
 
+        // Função para atualizar todas as interfaces que exibem arquivos
+        function updateFileInterfaces() {
+            loadDesktopItems(); // Recarrega os ícones do desktop
+            systemState.openWindows.filter(w => w.id === 'finder').forEach(finderWindow => {
+                const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
+                if (explorerGrid) {
+                    const currentTab = finderWindow.element.querySelector('.tab.active');
+                    if (currentTab && currentTab.dataset.tab === 'recent') {
+                        loadRecentFiles(explorerGrid);
+                    } else {
+                        loadDirectory(finderWindow.currentPath, explorerGrid);
+                    }
+                }
+            });
+            // Se a galeria estiver aberta, atualiza também
+            const galleryWindow = systemState.openWindows.find(w => w.id === 'gallery');
+            if (galleryWindow) {
+                initGallery(galleryWindow.element);
+            }
+        }
+
         // Configurar event listeners
         function setupEventListeners() {
             // Ícones do dock
@@ -2034,6 +2027,23 @@
                 }
             });
 
+            // Drag and Drop para o desktop
+            desktop.addEventListener('dragover', (e) => {
+                e.preventDefault(); // Permite o drop
+                e.dataTransfer.dropEffect = 'copy';
+            });
+
+            desktop.addEventListener('drop', async (e) => {
+                e.preventDefault();
+                if (systemState.draggedItem) {
+                    const draggedItemData = systemState.draggedItem;
+                    const targetDirectoryId = 'axon/desktop';
+                    await copyItem(draggedItemData, targetDirectoryId);
+                    systemState.draggedItem = null;
+                    updateFileInterfaces(); // Atualiza todas as interfaces
+                }
+            });
+
             // Context menu items
             document.getElementById('context-new-folder').addEventListener('click', async () => {
                 // Pega o diretório da janela do Finder ativa, ou o desktop se não houver Finder ativo
@@ -2043,6 +2053,7 @@
                 const folderName = await axonPrompt("Digite o nome da nova pasta:", "Nova Pasta");
                 if (folderName) {
                     createFileItem(targetDirectoryId, 'folder', folderName);
+                    updateFileInterfaces(); // Atualiza todas as interfaces
                 }
                 hideContextMenu();
             });
@@ -2052,9 +2063,10 @@
                 const activeFinderWindow = systemState.openWindows.find(w => w.id === 'finder' && w.element.classList.contains('active'));
                 const targetDirectoryId = activeFinderWindow ? activeFinderWindow.currentPath : 'axon/desktop';
 
-                const fileName = await axonPrompt("Digite o nome do novo arquivo:", "Novo Documento.txt");
+                const fileName = await axonPrompt("Digite o nome do novo arquivo:", "Sem título.txt");
                 if (fileName) {
                     createFileItem(targetDirectoryId, 'text', fileName);
+                    updateFileInterfaces(); // Atualiza todas as interfaces
                 }
                 hideContextMenu();
             });
@@ -2089,14 +2101,7 @@
 
                     if (itemIdToDelete && parentIdToDelete) {
                         deleteFileItem(itemIdToDelete, parentIdToDelete);
-                        // Atualiza o desktop e todas as janelas do finder após a exclusão
-                        loadDesktopItems(); // Recarrega os ícones do desktop
-                        systemState.openWindows.filter(w => w.id === 'finder').forEach(finderWindow => {
-                            const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
-                            if (explorerGrid) {
-                                loadDirectory(finderWindow.currentPath, explorerGrid);
-                            }
-                        });
+                        updateFileInterfaces(); // Atualiza todas as interfaces
                     }
                 }
                 hideContextMenu();
@@ -2111,13 +2116,7 @@
                     const confirmRestore = await axonConfirm("Tem certeza que deseja restaurar este item?");
                     if (confirmRestore) {
                         restoreTrashItem(systemState.selectedFileItem.id);
-                        // Atualiza todas as janelas do finder que estão na lixeira
-                        systemState.openWindows.filter(w => w.id === 'finder' && w.currentPath === 'axon/trash').forEach(finderWindow => {
-                            const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
-                            if (explorerGrid) {
-                                loadDirectory('axon/trash', explorerGrid);
-                            }
-                        });
+                        updateFileInterfaces(); // Atualiza todas as interfaces
                     }
                 }
                 hideContextMenu();
@@ -2132,13 +2131,7 @@
                     const confirmDelete = await axonConfirm("Tem certeza que deseja excluir permanentemente este item? Esta ação não pode ser desfeita.");
                     if (confirmDelete) {
                         deletePermanentTrashItem(systemState.selectedFileItem.id);
-                        // Atualiza todas as janelas do finder que estão na lixeira
-                        systemState.openWindows.filter(w => w.id === 'finder' && w.currentPath === 'axon/trash').forEach(finderWindow => {
-                            const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
-                            if (explorerGrid) {
-                                loadDirectory('axon/trash', explorerGrid);
-                            }
-                        });
+                        updateFileInterfaces(); // Atualiza todas as interfaces
                     }
                 }
                 hideContextMenu();
@@ -2163,20 +2156,7 @@
                     const newName = await axonPrompt("Digite o novo nome:", oldName);
                     if (newName && newName.trim() !== '' && newName.trim() !== oldName) {
                         updateFileItemName(itemId, parentId, newName.trim());
-                        
-                        // Atualiza o ícone do desktop se for o caso
-                        const desktopIconElement = document.querySelector(`.desktop-icon[data-id="${itemId}"]`);
-                        if (desktopIconElement) {
-                            desktopIconElement.querySelector('.icon-label').textContent = newName.trim();
-                        }
-
-                        // Atualiza todas as janelas do Finder
-                        systemState.openWindows.filter(w => w.id === 'finder').forEach(finderWindow => {
-                            const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
-                            if (explorerGrid) {
-                                loadDirectory(finderWindow.currentPath, explorerGrid);
-                            }
-                        });
+                        updateFileInterfaces(); // Atualiza todas as interfaces
                         axonAlert(`Item renomeado para "${newName.trim()}"`);
                     } else if (newName && newName.trim() === oldName) {
                         axonAlert("O nome é o mesmo. Nenhuma alteração foi feita.");
@@ -2218,40 +2198,29 @@
             });
             
             document.getElementById('context-paste').addEventListener('click', async () => {
-                // Pega o diretório da janela do Finder ativa, ou o desktop se não houver Finder ativo
-                const activeFinderWindow = systemState.openWindows.find(w => w.id === 'finder' && w.element.classList.contains('active'));
-                const targetDirectoryId = activeFinderWindow ? activeFinderWindow.currentPath : 'axon/desktop';
-                
-                await pasteItem(targetDirectoryId);
+                if (systemData.clipboard) {
+                    const originalItem = systemData.clipboard;
+                    // Pega o diretório da janela do Finder ativa, ou o desktop se não houver Finder ativo
+                    const activeFinderWindow = systemState.openWindows.find(w => w.id === 'finder' && w.element.classList.contains('active'));
+                    const targetDirectoryId = activeFinderWindow ? activeFinderWindow.currentPath : 'axon/desktop';
+
+                    // Verifica se o item está sendo colado em sua própria pasta pai (se for cut)
+                    if (systemState.clipboardAction === 'cut' && originalItem.parentId === targetDirectoryId) {
+                        axonAlert("Não é possível colar um item em sua própria pasta de origem ao recortar.", "Erro de Colar");
+                        systemData.clipboard = null;
+                        systemState.clipboardAction = null;
+                        hideContextMenu();
+                        return;
+                    }
+
+                    await copyItem(originalItem, targetDirectoryId, systemState.clipboardAction === 'cut');
+                    updateFileInterfaces(); // Atualiza todas as interfaces
+                    systemData.clipboard = null;
+                    systemState.clipboardAction = null;
+                } else {
+                    axonAlert("Nenhum item para colar na área de transferência.");
+                }
                 hideContextMenu();
-            });
-
-            // Eventos do novo menu "Criar Novo Item"
-            document.getElementById('create-new-folder-btn').addEventListener('click', async () => {
-                const activeFinderWindow = systemState.openWindows.find(w => w.id === 'finder' && w.element.classList.contains('active'));
-                const targetDirectoryId = activeFinderWindow ? activeFinderWindow.currentPath : 'axon/desktop';
-                const folderName = await axonPrompt("Digite o nome da nova pasta:", "Nova Pasta");
-                if (folderName) {
-                    createFileItem(targetDirectoryId, 'folder', folderName);
-                }
-                hideCreateNewItemMenu();
-            });
-
-            document.getElementById('create-new-text-file-btn').addEventListener('click', async () => {
-                const activeFinderWindow = systemState.openWindows.find(w => w.id === 'finder' && w.element.classList.contains('active'));
-                const targetDirectoryId = activeFinderWindow ? activeFinderWindow.currentPath : 'axon/desktop';
-                const fileName = await axonPrompt("Digite o nome do novo arquivo:", "Novo Documento.txt");
-                if (fileName) {
-                    createFileItem(targetDirectoryId, 'text', fileName);
-                }
-                hideCreateNewItemMenu();
-            });
-
-            document.getElementById('create-new-paste-btn').addEventListener('click', async () => {
-                const activeFinderWindow = systemState.openWindows.find(w => w.id === 'finder' && w.element.classList.contains('active'));
-                const targetDirectoryId = activeFinderWindow ? activeFinderWindow.currentPath : 'axon/desktop';
-                await pasteItem(targetDirectoryId);
-                hideCreateNewItemMenu();
             });
 
             // Modal events
@@ -2273,6 +2242,7 @@
 
                 createFileItem(targetDirectoryId, type, name);
                 createModal.classList.remove('active');
+                updateFileInterfaces(); // Atualiza todas as interfaces
             });
             
             // Context menu for desktop
@@ -2319,100 +2289,6 @@
 
             // Eventos de teclado globais
             document.addEventListener('keydown', handleGlobalKeyDown);
-        }
-
-        // Função para colar item (reutilizável para menu de contexto e atalho)
-        async function pasteItem(targetDirectoryId) {
-            if (systemData.clipboard) {
-                const originalItem = systemData.clipboard;
-                
-                // Verifica se o item está sendo colado em sua própria pasta pai (se for cut)
-                if (systemState.clipboardAction === 'cut' && originalItem.parentId === targetDirectoryId) {
-                    axonAlert("Não é possível colar um item em sua própria pasta de origem ao recortar.", "Erro de Colar");
-                    systemData.clipboard = null;
-                    systemState.clipboardAction = null;
-                    return;
-                }
-
-                // Verifica se o item está sendo colado em uma subpasta de si mesmo (para evitar loops infinitos)
-                if (originalItem.type === 'folder' && targetDirectoryId.startsWith(originalItem.id + '/')) {
-                    axonAlert("Não é possível colar uma pasta dentro de si mesma.", "Erro de Colar");
-                    systemData.clipboard = null;
-                    systemState.clipboardAction = null;
-                    return;
-                }
-
-                // Cria uma cópia profunda do item para evitar referências
-                const newItem = JSON.parse(JSON.stringify(originalItem));
-                
-                // Gera um novo ID único para o item colado
-                newItem.id = `${targetDirectoryId}/${newItem.name.replace(/\s+/g, '_').toLowerCase()}-${Date.now()}`;
-                newItem.parentId = targetDirectoryId;
-                newItem.path = `${targetDirectoryId}/${newItem.name}`;
-
-                // Verifica se o nome já existe no diretório de destino e ajusta se necessário
-                let finalName = newItem.name;
-                let counter = 1;
-                const targetDir = getDirectoryById(targetDirectoryId);
-                if (targetDir) {
-                    while (targetDir.children.some(item => item.name === finalName)) {
-                        const nameParts = originalItem.name.split('.');
-                        const baseName = nameParts[0];
-                        const extension = nameParts.length > 1 ? `.${nameParts.pop()}` : '';
-                        finalName = `${baseName} (Cópia ${counter})${extension}`;
-                        counter++;
-                    }
-                }
-                newItem.name = finalName;
-                newItem.path = `${targetDirectoryId}/${finalName}`;
-                newItem.id = `${targetDirectoryId}/${finalName.replace(/\s+/g, '_').toLowerCase()}-${Date.now()}`; // Atualiza ID com novo nome
-
-                if (targetDir) {
-                    targetDir.children.push(newItem);
-                    // Se for uma pasta, também cria a entrada no fileSystem
-                    if (newItem.type === 'folder') {
-                        systemData.fileSystem[newItem.id] = {
-                            id: newItem.id,
-                            name: newItem.name,
-                            type: 'folder',
-                            icon: fileIcons.folder,
-                            path: newItem.path,
-                            parentId: newItem.parentId,
-                            children: [] // Pastas coladas começam vazias
-                        };
-                    }
-                } else {
-                    axonAlert("Diretório de destino inválido.", "Erro de Colar");
-                    systemData.clipboard = null;
-                    systemState.clipboardAction = null;
-                    return;
-                }
-
-                // Lógica para remover o item original se for uma operação de recorte
-                if (systemState.clipboardAction === 'cut') {
-                    deleteFileItem(originalItem.id, originalItem.parentId, false); // Não salva ainda
-                }
-                
-                // Se colando no desktop, também cria o ícone visual
-                if (targetDirectoryId === 'axon/desktop') {
-                    createDesktopItem(newItem.type, newItem.name, null, null, newItem.id); // Recria o ícone visual na próxima posição disponível
-                }
-
-                // Atualiza todas as janelas do Finder
-                systemState.openWindows.filter(w => w.id === 'finder').forEach(finderWindow => {
-                    const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
-                    if (explorerGrid) {
-                        loadDirectory(finderWindow.currentPath, explorerGrid);
-                    }
-                });
-
-                saveDesktopItems(); // Salva todas as alterações
-                axonAlert(`"${newItem.name}" colado com sucesso!`);
-                systemData.clipboard = null;
-                systemState.clipboardAction = null;
-            } else {
-                axonAlert("Nenhum item para colar na área de transferência.");
-            }
         }
 
         // Manipulador de eventos de teclado global
@@ -2475,15 +2351,9 @@
                 }
             } else if (e.ctrlKey && e.key === 'v') { // CTRL + V
                 e.preventDefault();
-                // Pega o diretório da janela do Finder ativa, ou o desktop se não houver Finder ativo
-                const targetDirectoryId = activeFinderWindow ? activeFinderWindow.currentPath : 'axon/desktop';
-                pasteItem(targetDirectoryId);
-            } else if (e.ctrlKey && e.key === 'x') { // CTRL + X
-                e.preventDefault();
-                if (currentSelectedElement) {
-                    document.getElementById('context-cut').click();
-                }
-            } else if (e.key.startsWith('Arrow')) {
+                document.getElementById('context-paste').click();
+            }
+            else if (e.key.startsWith('Arrow')) {
                 e.preventDefault();
                 let targetIndex = -1;
                 let itemsToNavigate = [];
@@ -2691,7 +2561,7 @@
         function selectFileItem(fileItemElement) {
             deselectAllIcons();
             fileItemElement.classList.add('selected');
-            // Encontra a instância da janela do Finder ativa
+            // Encontra o item no diretório da janela do Finder ativa
             const activeFinderWindow = systemState.openWindows.find(w => w.id === 'finder' && w.element.classList.contains('active'));
             if (activeFinderWindow) {
                 const currentDir = getDirectoryById(activeFinderWindow.currentPath);
@@ -2734,6 +2604,7 @@
             icon.style.left = `${x}px`;
             icon.style.top = `${y}px`;
             icon.tabIndex = 0; // Torna o ícone focável para navegação por teclado
+            icon.draggable = true; // Torna o ícone arrastável
             
             const iconImage = document.createElement('div');
             iconImage.className = 'icon-image';
@@ -2764,6 +2635,17 @@
             
             icon.addEventListener('click', (e) => {
                 selectIcon(icon);
+            });
+
+            // Drag and Drop para ícones do desktop
+            icon.addEventListener('dragstart', (e) => {
+                systemState.draggedItem = getItemById(icon.dataset.id, 'axon/desktop');
+                e.dataTransfer.effectAllowed = 'copyMove';
+                e.dataTransfer.setData('text/plain', icon.dataset.id); // Pode ser útil para depuração
+            });
+
+            icon.addEventListener('dragend', () => {
+                systemState.draggedItem = null;
             });
             
             let isDragging = false;
@@ -2850,26 +2732,26 @@
         }
 
         // Criar item no sistema de arquivos (para uso no Finder)
-        function createFileItem(directoryId, type, name) {
+        function createFileItem(directoryId, type, name, content = '', src = '') {
             const parentDir = getDirectoryById(directoryId);
             if (!parentDir) {
                 axonAlert("Diretório de destino inválido.", "Erro de Criação");
-                return;
+                return null;
             }
 
             // Verifica se já existe um item com o mesmo nome no diretório
             if (parentDir.children.some(item => item.name === name)) {
                 axonAlert(`Já existe um item com o nome "${name}" neste diretório.`, "Erro de Criação");
-                return;
+                return null;
             }
 
             const newId = `${directoryId}/${name.replace(/\s+/g, '_').toLowerCase()}-${Date.now()}`; // ID único baseado no caminho
             const newItem = { id: newId, name, type, icon: fileIcons[type] || 'fas fa-file', parentId: directoryId, path: `${directoryId}/${name}` };
             
             if (type === 'text') {
-                newItem.content = '';
+                newItem.content = content;
             } else if (type === 'image') {
-                newItem.src = '';
+                newItem.src = src;
             } else if (type === 'folder') {
                 systemData.fileSystem[newId] = { id: newId, name: name, type: 'folder', icon: fileIcons.folder, path: `${directoryId}/${name}`, parentId: directoryId, children: [] };
             }
@@ -2881,15 +2763,92 @@
             if (directoryId === 'axon/desktop') {
                 createDesktopItem(type, name, null, null, newItem.id);
             }
-
-            // Atualiza todas as janelas do Finder
-            systemState.openWindows.filter(w => w.id === 'finder').forEach(finderWindow => {
-                const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
-                if (explorerGrid && finderWindow.currentPath === directoryId) {
-                    loadDirectory(directoryId, explorerGrid);
-                }
-            });
             axonAlert(`"${name}" criado em "${parentDir.path}"`);
+            return newItem;
+        }
+
+        // Função recursiva para copiar um item e seus filhos
+        function copyItemRecursive(sourceItem, targetDirectoryId) {
+            const newId = `${targetDirectoryId}/${sourceItem.name.replace(/\s+/g, '_').toLowerCase()}-${Date.now()}`;
+            const newItem = { ...sourceItem, id: newId, parentId: targetDirectoryId, path: `${targetDirectoryId}/${sourceItem.name}` };
+            
+            // Ajusta o nome se já existir no destino
+            let finalName = newItem.name;
+            let counter = 1;
+            const targetDir = getDirectoryById(targetDirectoryId);
+            if (targetDir) {
+                while (targetDir.children.some(item => item.name === finalName)) {
+                    const nameParts = sourceItem.name.split('.');
+                    const baseName = nameParts[0];
+                    const extension = nameParts.length > 1 ? `.${nameParts.pop()}` : '';
+                    finalName = `${baseName} (Cópia ${counter})${extension}`;
+                    counter++;
+                }
+            }
+            newItem.name = finalName;
+            newItem.path = `${targetDirectoryId}/${finalName}`;
+            newItem.id = `${targetDirectoryId}/${finalName.replace(/\s+/g, '_').toLowerCase()}-${Date.now()}`;
+
+            // Adiciona o novo item ao diretório de destino
+            if (targetDir) {
+                targetDir.children.push(newItem);
+            } else {
+                axonAlert("Diretório de destino inválido.", "Erro de Cópia");
+                return null;
+            }
+
+            // Se for uma pasta, cria a nova entrada no fileSystem e copia os filhos recursivamente
+            if (sourceItem.type === 'folder') {
+                systemData.fileSystem[newItem.id] = {
+                    id: newItem.id,
+                    name: newItem.name,
+                    type: 'folder',
+                    icon: fileIcons.folder,
+                    path: newItem.path,
+                    parentId: newItem.parentId,
+                    children: []
+                };
+                const sourceFolder = getDirectoryById(sourceItem.id);
+                if (sourceFolder && sourceFolder.children) {
+                    sourceFolder.children.forEach(child => {
+                        copyItemRecursive(child, newItem.id); // Copia os filhos para a nova pasta
+                    });
+                }
+            }
+            return newItem;
+        }
+
+        // Função para copiar um item para um novo diretório
+        async function copyItem(itemToCopy, targetDirectoryId, isCut = false) {
+            const targetDir = getDirectoryById(targetDirectoryId);
+            if (!targetDir) {
+                axonAlert("Diretório de destino inválido.", "Erro de Cópia");
+                return;
+            }
+
+            // Verifica se o item está sendo copiado para sua própria pasta pai (se for cut)
+            if (isCut && itemToCopy.parentId === targetDirectoryId) {
+                axonAlert("Não é possível mover um item para sua própria pasta de origem.", "Erro de Movimento");
+                return;
+            }
+
+            // Verifica se o item está sendo copiado para dentro de si mesmo (para pastas)
+            if (itemToCopy.type === 'folder' && targetDirectoryId.startsWith(itemToCopy.id)) {
+                axonAlert("Não é possível copiar uma pasta para dentro de si mesma.", "Erro de Cópia");
+                return;
+            }
+
+            const copiedItem = copyItemRecursive(itemToCopy, targetDirectoryId);
+
+            if (copiedItem) {
+                if (isCut) {
+                    deleteFileItem(itemToCopy.id, itemToCopy.parentId, false); // Não salva ainda
+                    axonAlert(`"${itemToCopy.name}" movido para "${targetDir.path}"`);
+                } else {
+                    axonAlert(`"${itemToCopy.name}" copiado para "${targetDir.path}"`);
+                }
+                saveDesktopItems();
+            }
         }
 
         // Encontrar a próxima posição disponível a partir de uma dada (para arrastar e soltar)
@@ -3019,7 +2978,7 @@
                 // O conteúdo "virtualmente" ainda existe, mas não é acessível diretamente
                 // A menos que seja restaurado da lixeira.
                 // Para uma exclusão completa, seria necessário remover recursivamente todos os filhos.
-                // Por simplicidade, apenas removemos a entrada do diretório principal.
+                // Por simplicidade, estamos apenas removendo a entrada do diretório principal.
                 delete systemData.fileSystem[itemId];
             }
 
@@ -3104,14 +3063,6 @@
 
             saveDesktopItems();
             await axonAlert(`"${itemToRestore.name}" restaurado para "${targetDir.path}".`, "Restauração Concluída");
-
-            // Atualiza todas as janelas do Finder
-            systemState.openWindows.filter(w => w.id === 'finder').forEach(finderWindow => {
-                const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
-                if (explorerGrid) {
-                    loadDirectory(finderWindow.currentPath, explorerGrid);
-                }
-            });
         }
 
         // Excluir permanentemente item da lixeira
@@ -3138,14 +3089,6 @@
 
             saveDesktopItems();
             await axonAlert(`"${itemToDelete.name}" excluído permanentemente.`, "Exclusão Concluída");
-
-            // Atualiza todas as janelas do Finder
-            systemState.openWindows.filter(w => w.id === 'finder').forEach(finderWindow => {
-                const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
-                if (explorerGrid) {
-                    loadDirectory(finderWindow.currentPath, explorerGrid);
-                }
-            });
         }
 
         // Encontrar arquivo em qualquer diretório do sistema de arquivos
@@ -3270,7 +3213,7 @@
             document.getElementById('context-new-file').style.display = (!isItemSelected || isFolderSelected) && !isInTrash ? 'flex' : 'none';
             
             // Colar só aparece se houver algo na área de transferência E se for um local válido para colar E NÃO ESTIVER NA LIXEIRA
-            const canPaste = systemData.clipboard && !isInTrash; // Pode colar em qualquer lugar se não for lixeira
+            const canPaste = systemData.clipboard && (!isItemSelected || isFolderSelected) && !isInTrash;
             document.getElementById('context-paste').style.display = canPaste ? 'flex' : 'none';
 
             // Opções da lixeira
@@ -3281,34 +3224,6 @@
         // Esconder menu de contexto
         function hideContextMenu() {
             contextMenu.style.display = 'none';
-        }
-
-        // Mostrar menu "Criar Novo Item"
-        function showCreateNewItemMenu(e) {
-            createNewItemMenu.style.display = 'block';
-            
-            let x = e.pageX;
-            let y = e.pageY;
-            const menuWidth = createNewItemMenu.offsetWidth;
-            const menuHeight = createNewItemMenu.offsetHeight;
-
-            if (x + menuWidth > window.innerWidth) {
-                x = window.innerWidth - menuWidth - 10;
-            }
-            if (y + menuHeight > window.innerHeight) {
-                y = window.innerHeight - menuHeight - 10;
-            }
-
-            createNewItemMenu.style.left = `${x}px`;
-            createNewItemMenu.style.top = `${y}px`;
-
-            // Habilita/desabilita a opção de colar
-            document.getElementById('create-new-paste-btn').style.display = systemData.clipboard ? 'flex' : 'none';
-        }
-
-        // Esconder menu "Criar Novo Item"
-        function hideCreateNewItemMenu() {
-            createNewItemMenu.style.display = 'none';
         }
 
         // Abrir aplicativo
@@ -3437,7 +3352,6 @@
                             <div class="finder-toolbar">
                                 <button id="finder-back" class="dock-style-button"><i class="fas fa-arrow-left"></i></button>
                                 <span class="path-display" id="finder-path-display"></span>
-                                <button id="create-new-item-button" class="dock-style-button"><i class="fas fa-plus"></i> Criar Novo Item</button>
                             </div>
                             <div class="finder-main-area">
                                 <div class="sidebar">
@@ -3452,6 +3366,7 @@
                                     <div class="tab-container">
                                         <div class="tab active" data-tab="all">Todos os Itens</div>
                                         <div class="tab" data-tab="recent">Recentes</div>
+                                        <button id="create-new-item-btn" class="dock-style-button create-item-button" style="margin-left: auto;"><i class="fas fa-plus"></i> Criar Item</button>
                                     </div>
                                     <div class="files-grid" id="explorer-grid">
                                         <!-- Conteúdo será preenchido dinamicamente -->
@@ -3699,7 +3614,7 @@
             const tabs = windowElement.querySelectorAll('.tab-container .tab');
             const finderPathDisplay = windowElement.querySelector('#finder-path-display');
             const finderBackButton = windowElement.querySelector('#finder-back');
-            const createNewItemButton = windowElement.querySelector('#create-new-item-button');
+            const createNewItemBtn = windowElement.querySelector('#create-new-item-btn'); // Novo botão
 
             // Encontra a instância da janela do Finder no systemState.openWindows
             const finderInstance = systemState.openWindows.find(w => w.windowId === windowElement.id);
@@ -3753,6 +3668,7 @@
                     fileItem.dataset.type = item.type;
                     fileItem.dataset.name = item.name;
                     fileItem.tabIndex = 0; // Torna o item focável
+                    fileItem.draggable = true; // Torna o item arrastável
 
                     fileItem.innerHTML = `
                         <div class="file-icon"><i class="${fileIcons[item.type] || 'fas fa-file'}"></i></div>
@@ -3772,22 +3688,72 @@
                         selectFileItem(fileItem);
                         showContextMenu(e, fileItem);
                     });
+
+                    // Drag and Drop para itens do Finder
+                    fileItem.addEventListener('dragstart', (e) => {
+                        systemState.draggedItem = item; // Armazena o item completo
+                        e.dataTransfer.effectAllowed = 'copyMove';
+                        e.dataTransfer.setData('text/plain', item.id); // Pode ser útil para depuração
+                    });
+
+                    fileItem.addEventListener('dragend', () => {
+                        systemState.draggedItem = null;
+                    });
+
+                    // Drag and Drop para pastas como alvo
+                    if (item.type === 'folder') {
+                        fileItem.addEventListener('dragover', (e) => {
+                            e.preventDefault();
+                            if (systemState.draggedItem && systemState.draggedItem.id !== item.id) { // Não pode arrastar para si mesmo
+                                e.dataTransfer.dropEffect = 'copy';
+                                fileItem.style.outline = '2px solid var(--accent)'; // Feedback visual
+                            }
+                        });
+
+                        fileItem.addEventListener('dragleave', () => {
+                            fileItem.style.outline = 'none';
+                        });
+
+                        fileItem.addEventListener('drop', async (e) => {
+                            e.preventDefault();
+                            fileItem.style.outline = 'none';
+                            if (systemState.draggedItem && systemState.draggedItem.id !== item.id) {
+                                const draggedItemData = systemState.draggedItem;
+                                const targetDirectoryId = item.id; // A pasta arrastada é o destino
+                                await copyItem(draggedItemData, targetDirectoryId);
+                                systemState.draggedItem = null;
+                                updateFileInterfaces(); // Atualiza todas as interfaces
+                            }
+                        });
+                    }
                     
                     gridElement.appendChild(fileItem);
                 });
 
-                // Adiciona o listener de clique com o botão direito ao grid e sidebar
-                const fileExplorerContainer = windowElement.querySelector('.file-explorer');
-                fileExplorerContainer.addEventListener('contextmenu', (e) => {
-                    e.preventDefault();
-                    // Verifica se o clique foi em um item ou no fundo
-                    const clickedItem = e.target.closest('.file-item');
-                    if (clickedItem) {
-                        selectFileItem(clickedItem);
-                    } else {
-                        deselectAllIcons(); // Desseleciona se clicou no fundo
+                // Adiciona o event listener de clique com o botão direito na área vazia do grid
+                gridElement.addEventListener('contextmenu', (e) => {
+                    if (e.target === gridElement) { // Verifica se o clique foi diretamente no grid, não em um item
+                        e.preventDefault();
+                        deselectAllIcons(); // Desseleciona qualquer item
+                        showContextMenu(e, null); // Mostra o menu de contexto sem item selecionado
                     }
-                    showContextMenu(e, clickedItem);
+                });
+
+                // Drag and Drop para a área vazia do grid (diretório atual)
+                gridElement.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'copy';
+                });
+
+                gridElement.addEventListener('drop', async (e) => {
+                    e.preventDefault();
+                    if (systemState.draggedItem) {
+                        const draggedItemData = systemState.draggedItem;
+                        const targetDirectoryId = finderInstance.currentPath; // O diretório atual do Finder é o destino
+                        await copyItem(draggedItemData, targetDirectoryId);
+                        systemState.draggedItem = null;
+                        updateFileInterfaces(); // Atualiza todas as interfaces
+                    }
                 });
             }
 
@@ -3859,9 +3825,52 @@
                 }
             });
 
-            createNewItemButton.addEventListener('click', (e) => {
-                showCreateNewItemMenu(e);
+            // Event listener para o novo botão "Criar Novo Item"
+            createNewItemBtn.addEventListener('click', () => {
+                // Define o diretório alvo para o modal de criação
+                createModal.dataset.targetDirectory = finderInstance.currentPath;
+                // Habilita/desabilita a opção de colar no modal
+                const pasteOption = document.getElementById('item-type').querySelector('option[value="paste"]');
+                if (pasteOption) {
+                    pasteOption.disabled = !systemData.clipboard;
+                }
+                createModal.classList.add('active');
             });
+
+            // Atualiza o listener do botão de confirmação do modal de criação
+            document.getElementById('confirm-create').onclick = async () => {
+                const type = document.getElementById('item-type').value;
+                const name = document.getElementById('item-name').value.trim();
+                const targetDirectoryId = createModal.dataset.targetDirectory;
+
+                if (type === 'paste') {
+                    if (systemData.clipboard) {
+                        const originalItem = systemData.clipboard;
+                        // Verifica se o item está sendo colado em sua própria pasta pai (se for cut)
+                        if (systemState.clipboardAction === 'cut' && originalItem.parentId === targetDirectoryId) {
+                            axonAlert("Não é possível colar um item em sua própria pasta de origem ao recortar.", "Erro de Colar");
+                            systemData.clipboard = null;
+                            systemState.clipboardAction = null;
+                            closeModal('create-modal');
+                            return;
+                        }
+
+                        await copyItem(originalItem, targetDirectoryId, systemState.clipboardAction === 'cut');
+                        systemData.clipboard = null;
+                        systemState.clipboardAction = null;
+                    } else {
+                        axonAlert("Nenhum item para colar na área de transferência.");
+                    }
+                } else {
+                    if (!name) {
+                        await axonAlert("Por favor, digite um nome para o item.");
+                        return;
+                    }
+                    createFileItem(targetDirectoryId, type, name);
+                }
+                closeModal('create-modal');
+                updateFileInterfaces(); // Atualiza todas as interfaces
+            };
             
             navigateToDirectory(finderInstance.currentPath); // Carrega o diretório inicial
         }
@@ -3895,33 +3904,12 @@
 
                     const fileName = await axonPrompt("Digite o nome do arquivo:", "Sem título.txt");
                     if (fileName) {
-                        const newFileId = `${targetDirectoryId}/${fileName.replace(/\s+/g, '_').toLowerCase()}-${Date.now()}`;
-                        const newFile = {
-                            id: newFileId,
-                            name: fileName,
-                            type: 'text',
-                            icon: fileIcons.text,
-                            content: textArea.value,
-                            parentId: targetDirectoryId,
-                            path: `${targetDirectoryId}/${fileName}`
-                        };
-                        const targetDir = getDirectoryById(targetDirectoryId);
-                        if (targetDir) {
-                            targetDir.children.push(newFile);
+                        const newFile = createFileItem(targetDirectoryId, 'text', fileName, textArea.value);
+                        if (newFile) {
                             textArea.dataset.fileId = newFile.id;
                             textArea.dataset.parentId = newFile.parentId;
-                            saveDesktopItems(); // Salva o fileSystem atualizado
                             await axonAlert(`Arquivo "${fileName}" salvo com sucesso em ${targetDirectoryId}!`);
-
-                            // Atualiza todas as janelas do Finder
-                            systemState.openWindows.filter(w => w.id === 'finder').forEach(finderWindow => {
-                                const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
-                                if (explorerGrid && finderWindow.currentPath === targetDirectoryId) {
-                                    loadDirectory(targetDirectoryId, explorerGrid);
-                                }
-                            });
-                        } else {
-                            await axonAlert(`Erro: Diretório '${targetDirectoryId}' não encontrado.`);
+                            updateFileInterfaces(); // Atualiza todas as interfaces
                         }
                     }
                 }
@@ -4101,32 +4089,25 @@
                 case 'mkdir':
                     const newFolderName = args[0];
                     if (newFolderName) {
-                        const currentDir = getDirectoryById(systemState.currentPath);
-                        if (!currentDir) return "Erro: Diretório atual inválido.";
-                        if (currentDir.children.some(item => item.name === newFolderName)) {
-                            return `Erro: Já existe um item com o nome "${newFolderName}" neste diretório.`;
+                        const newFolder = createFileItem(systemState.currentPath, 'folder', newFolderName);
+                        if (newFolder) {
+                            updateFileInterfaces(); // Atualiza todas as interfaces
+                            return `Diretório criado: ${newFolderName}`;
+                        } else {
+                            return `Erro ao criar diretório: ${newFolderName}`;
                         }
-                        const newFolderId = `${systemState.currentPath}/${newFolderName.replace(/\s+/g, '_').toLowerCase()}-${Date.now()}`;
-                        const newFolder = { id: newFolderId, name: newFolderName, type: 'folder', icon: fileIcons.folder, parentId: systemState.currentPath, path: `${systemState.currentPath}/${newFolderName}` };
-                        currentDir.children.push(newFolder);
-                        systemData.fileSystem[newFolderId] = { id: newFolderId, name: newFolderName, type: 'folder', icon: fileIcons.folder, path: newFolderId, parentId: systemState.currentPath, children: [] };
-                        saveDesktopItems();
-                        return `Diretório criado: ${newFolderName}`;
                     }
                     return "Uso: mkdir <nome_da_pasta>";
                 case 'touch':
                     const newFileName = args[0];
                     if (newFileName) {
-                        const currentDir = getDirectoryById(systemState.currentPath);
-                        if (!currentDir) return "Erro: Diretório atual inválido.";
-                        if (currentDir.children.some(item => item.name === newFileName)) {
-                            return `Erro: Já existe um item com o nome "${newFileName}" neste diretório.`;
+                        const newFile = createFileItem(systemState.currentPath, 'text', newFileName);
+                        if (newFile) {
+                            updateFileInterfaces(); // Atualiza todas as interfaces
+                            return `Arquivo criado: ${newFileName}`;
+                        } else {
+                            return `Erro ao criar arquivo: ${newFileName}`;
                         }
-                        const newFileId = `${systemState.currentPath}/${newFileName.replace(/\s+/g, '_').toLowerCase()}-${Date.now()}`;
-                        const newFile = { id: newFileId, name: newFileName, type: 'text', icon: fileIcons.text, content: '', parentId: systemState.currentPath, path: `${systemState.currentPath}/${newFileName}` };
-                        currentDir.children.push(newFile);
-                        saveDesktopItems();
-                        return `Arquivo criado: ${newFileName}`;
                     }
                     return "Uso: touch <nome_do_arquivo>";
                 case 'echo':
@@ -4382,7 +4363,7 @@
                 const allImages = [];
                 // Adiciona imagens do fileSystem
                 const imagesDir = getDirectoryById('axon/images');
-                if (imagesDir) {
+                if (imagesDir && imagesDir.children) {
                     imagesDir.children.forEach(file => {
                         if (file.type === 'image' && file.src) {
                             allImages.push(file);
@@ -4416,7 +4397,7 @@
                         const confirmDelete = await axonConfirm("Tem certeza que deseja excluir esta imagem?");
                         if (confirmDelete) {
                             deleteFileItem(photo.id, photo.parentId);
-                            loadGallery(); // Recarrega a galeria
+                            updateFileInterfaces(); // Recarrega a galeria e outras interfaces
                             axonAlert("Imagem excluída com sucesso!");
                         }
                     });
@@ -4482,33 +4463,11 @@
                     const imagesDir = getDirectoryById('axon/images');
                     if (imagesDir) {
                         const photoName = `Foto ${new Date().toLocaleString()}.png`;
-                        const newImageId = `axon/images/${photoName.replace(/\s+/g, '_').toLowerCase()}-${Date.now()}`;
-                        const newImage = {
-                            id: newImageId,
-                            name: photoName,
-                            type: 'image',
-                            icon: fileIcons.image,
-                            src: photoData,
-                            parentId: 'axon/images',
-                            path: `axon/images/${photoName}`
-                        };
-                        imagesDir.children.push(newImage);
-                        saveDesktopItems(); // Salva o fileSystem atualizado
-
-                        // Atualiza a galeria se estiver aberta
-                        const galleryWindow = systemState.openWindows.find(w => w.id === 'gallery');
-                        if (galleryWindow) {
-                            initGallery(galleryWindow.element);
+                        const newImage = createFileItem('axon/images', 'image', photoName, '', photoData);
+                        if (newImage) {
+                            await axonAlert('Foto capturada com sucesso e salva em axon/images!');
+                            updateFileInterfaces(); // Atualiza todas as interfaces
                         }
-                        // Atualiza todas as janelas do finder que estão no diretório de imagens
-                        systemState.openWindows.filter(w => w.id === 'finder' && w.currentPath === 'axon/images').forEach(finderWindow => {
-                            const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
-                            if (explorerGrid) {
-                                loadDirectory('axon/images', explorerGrid);
-                            }
-                        });
-                        
-                        await axonAlert('Foto capturada com sucesso e salva em axon/images!');
                     } else {
                         await axonAlert("Erro: Diretório 'axon/images' não encontrado.");
                     }
@@ -5241,9 +5200,6 @@
         document.addEventListener('click', (e) => {
             if (!contextMenu.contains(e.target) && !e.target.closest('.desktop-icon') && !e.target.closest('.file-item')) {
                 hideContextMenu();
-            }
-            if (!createNewItemMenu.contains(e.target) && !e.target.closest('#create-new-item-button')) {
-                hideCreateNewItemMenu();
             }
         });
     </script>
