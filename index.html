@@ -135,13 +135,6 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .icon-image img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            border-radius: 12px;
-        }
-
         .icon-label {
             font-size: 12px;
             text-align: center;
@@ -261,12 +254,6 @@
             white-space: nowrap;
             text-overflow: ellipsis;
             padding-left: 5px; /* Adicionado para mover o texto mais para a esquerda */
-        }
-
-        .window-title img {
-            height: 20px;
-            width: 20px;
-            object-fit: contain;
         }
 
         .window-controls {
@@ -417,12 +404,6 @@
         .file-icon {
             font-size: 32px;
             margin-bottom: 8px;
-        }
-
-        .file-icon img {
-            width: 32px;
-            height: 32px;
-            object-fit: contain;
         }
 
         /* Bloco de Notas */
@@ -1007,13 +988,6 @@
             text-overflow: ellipsis;
         }
 
-        .window-thumbnail-header img {
-            height: 16px;
-            width: 16px;
-            object-fit: contain;
-            margin-right: 5px;
-        }
-
         .window-thumbnail-content {
             flex: 1;
             display: flex;
@@ -1021,13 +995,6 @@
             justify-content: center;
             font-size: 40px;
             opacity: 0.5;
-        }
-
-        .window-thumbnail-content img {
-            width: 80%;
-            height: 80%;
-            object-fit: contain;
-            opacity: 1;
         }
 
         .window-thumbnail .close-btn {
@@ -1443,7 +1410,6 @@
                 downloads: [
                     { id: 'installer', name: 'Instalador.dmg', type: 'executable', icon: 'fas fa-download' }
                 ],
-                html_apps: [], // Novo diretório para aplicativos HTML
                 trash: []
             },
             terminalHistory: [
@@ -1518,8 +1484,7 @@
             presentation: "fas fa-file-powerpoint",
             executable: "fas fa-download",
             archive: "fas fa-file-archive",
-            link: "fas fa-link",
-            html_app: "fas fa-code" // Ícone padrão para apps HTML
+            link: "fas fa-link"
         };
 
         // Custom Alert/Prompt/Confirm functions
@@ -1592,7 +1557,7 @@
         };
 
         // Inicialização do sistema
-        async function initSystem() {
+        function initSystem() {
             loadSettings(); // Carrega as configurações salvas
             applySettings(); // Aplica as configurações
             updateClock();
@@ -1607,9 +1572,6 @@
                     systemData.fileSystem.desktop.push(item);
                 }
             });
-
-            // Carregar aplicativos HTML dinamicamente
-            await loadHtmlApps();
 
             if (systemData.settings.loginEnabled) {
                 showLoginScreen();
@@ -1701,8 +1663,6 @@
                         } else {
                             axonAlert("Esta imagem não possui um caminho de origem definido.");
                         }
-                    } else if (itemToOpen.type === 'html_app') {
-                        openApp(itemToOpen.id); // Abre o aplicativo HTML pelo seu ID
                     } else {
                         axonAlert(`Não é possível abrir o arquivo "${itemToOpen.name}". Tipo de arquivo não suportado.`);
                     }
@@ -1860,7 +1820,7 @@
 
                     // Atualiza o Finder se estiver aberto e no diretório correto
                     const finderWindow = systemState.openWindows.find(w => w.id === 'finder');
-                    if (finderWindow) {
+                    if (finderWindow && systemState.currentDirectory === targetDirectoryForPaste) {
                         const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
                         if (explorerGrid) {
                             loadDirectory(targetDirectoryForPaste, explorerGrid);
@@ -1928,12 +1888,12 @@
         }
 
         // Criar ícone na área de trabalho
-        function createDesktopItem(type, name, x = null, y = null, id = null, customIcon = null) {
+        function createDesktopItem(type, name, x = null, y = null, id = null) {
             id = id || 'item-' + Date.now();
             x = x === null ? Math.random() * (desktop.clientWidth - 100) : x;
             y = y === null ? Math.random() * (desktop.clientHeight - 100) : y;
 
-            const newItem = { id, name, type, x, y, icon: customIcon || fileIcons[type] || 'fas fa-file' };
+            const newItem = { id, name, type, x, y, icon: fileIcons[type] || 'fas fa-file' };
             if (type === 'text') {
                 newItem.content = '';
             } else if (type === 'image') {
@@ -1951,22 +1911,16 @@
             icon.className = 'desktop-icon';
             icon.dataset.id = id;
             icon.dataset.type = type;
-            icon.dataset.app = type === 'folder' ? 'finder' : (type === 'text' ? 'notes' : (type === 'image' ? 'gallery' : (type === 'html_app' ? id : null))); // Se for html_app, o app ID é o próprio ID do item
+            icon.dataset.app = type === 'folder' ? 'finder' : (type === 'text' ? 'notes' : (type === 'image' ? 'gallery' : null));
             icon.style.left = `${x}px`;
             icon.style.top = `${y}px`;
             
             const iconImage = document.createElement('div');
             iconImage.className = 'icon-image';
             
-            if (customIcon && customIcon.startsWith('http')) { // Se for um URL de imagem
-                const imgElement = document.createElement('img');
-                imgElement.src = customIcon;
-                iconImage.appendChild(imgElement);
-            } else { // Se for um ícone FontAwesome
-                const iconElement = document.createElement('i');
-                iconElement.className = customIcon || fileIcons[type] || 'fas fa-file';
-                iconImage.appendChild(iconElement);
-            }
+            const iconElement = document.createElement('i');
+            iconElement.className = fileIcons[type] || 'fas fa-file';
+            iconImage.appendChild(iconElement);
             
             const iconLabel = document.createElement('div');
             iconLabel.className = 'icon-label';
@@ -2164,12 +2118,12 @@
                 systemData.desktopItems = JSON.parse(savedItems);
                 systemData.desktopItems.forEach(item => {
                     // Recria o ícone visual e adiciona ao fileSystem.desktop
-                    createDesktopItem(item.type, item.name, item.x, item.y, item.id, item.icon); 
+                    createDesktopItem(item.type, item.name, item.x, item.y, item.id); 
                 });
             } else {
                 // Se não houver itens salvos, usa os itens padrão e os cria
                 systemData.desktopItems.forEach(item => {
-                    createDesktopItem(item.type, item.name, item.x, item.y, item.id, item.icon);
+                    createDesktopItem(item.type, item.name, item.x, item.y, item.id);
                 });
             }
 
@@ -2177,7 +2131,7 @@
             if (savedFileSystem) {
                 const parsedFileSystem = JSON.parse(savedFileSystem);
                 // Mescla o fileSystem salvo com o inicial, mas preserva os itens do desktop
-                // que já foram tratados para evitar duplicação
+                // que já foram carregados via desktopItems para evitar duplicação
                 for (const key in parsedFileSystem) {
                     if (key !== 'desktop') { // Não sobrescreve o desktop, que já foi tratado
                         systemData.fileSystem[key] = parsedFileSystem[key];
@@ -2253,49 +2207,25 @@
             }
 
             const app = systemData.apps[appId];
-            let appName = app ? app.name : appId; // Usa o nome do app padrão ou o appId para apps HTML
-            let appIcon = app ? app.icon : fileIcons.html_app; // Usa o ícone padrão ou o ícone do app padrão
-            let minWidth = app ? app.minWidth : 800;
-            let minHeight = app ? app.minHeight : 600;
-
-            // Se for um aplicativo HTML dinâmico
-            const htmlApp = systemData.fileSystem.html_apps.find(item => item.id === appId && item.type === 'html_app');
-            if (htmlApp) {
-                appName = htmlApp.name;
-                appIcon = htmlApp.icon; // Pode ser um URL de imagem
-                minWidth = 800; // Apps HTML podem ter tamanhos padrão
-                minHeight = 600;
-            } else if (!app) {
-                // Se não for um app padrão nem um app HTML, não abre
-                axonAlert(`Aplicativo "${appId}" não encontrado.`);
-                return;
-            }
+            if (!app) return;
 
             const windowId = `window-${Date.now()}`;
             const windowElement = document.createElement('div');
             windowElement.className = 'window';
             windowElement.id = windowId;
-            windowElement.style.width = `${minWidth}px`;
-            windowElement.style.height = `${minHeight}px`;
+            windowElement.style.width = `${app.minWidth}px`;
+            windowElement.style.height = `${app.minHeight}px`;
             
-            const left = Math.max(0, (window.innerWidth - minWidth) / 2 + (Math.random() * 100 - 50));
-            const top = Math.max(0, (window.innerHeight - minHeight) / 2 + (Math.random() * 100 - 50));
+            const left = Math.max(0, (window.innerWidth - app.minWidth) / 2 + (Math.random() * 100 - 50));
+            const top = Math.max(0, (window.innerHeight - app.minHeight) / 2 + (Math.random() * 100 - 50));
             windowElement.style.left = `${left}px`;
             windowElement.style.top = `${top}px`;
 
             const header = document.createElement('div');
             header.className = 'window-header';
-            
-            let iconHtml = '';
-            if (appIcon && appIcon.startsWith('http')) {
-                iconHtml = `<img src="${appIcon}" alt="icon">`;
-            } else {
-                iconHtml = `<i class="${appIcon}"></i>`;
-            }
-
             header.innerHTML = `
                 <div class="window-title">
-                    ${iconHtml} ${appName}
+                    <i class="${app.icon}"></i> ${app.name}
                 </div>
                 <div class="window-controls">
                     <div class="window-control window-minimize"><i class="fas fa-minus"></i></div>
@@ -2307,7 +2237,7 @@
 
             const content = document.createElement('div');
             content.className = 'window-content';
-            content.innerHTML = generateAppContent(appId, htmlApp); // Passa htmlApp para gerar conteúdo específico
+            content.innerHTML = generateAppContent(appId);
             windowElement.appendChild(content);
 
             windowsContainer.appendChild(windowElement);
@@ -2317,20 +2247,15 @@
             
             setupWindowEvents(windowElement, appId, windowId);
             
-            systemState.openWindows.push({ id: appId, windowId: windowId, element: windowElement, appName: appName, appIcon: appIcon });
+            systemState.openWindows.push({ id: appId, windowId: windowId, element: windowElement, appName: app.name, appIcon: app.icon });
             systemState.activeWindow = windowId;
             bringToFront(windowId);
             
-            initAppContent(appId, windowElement, htmlApp); // Passa htmlApp para inicializar conteúdo específico
+            initAppContent(appId, windowElement);
         }
 
         // Gerar conteúdo do aplicativo
-        function generateAppContent(appId, htmlApp = null) {
-            if (htmlApp && htmlApp.type === 'html_app') {
-                // Para aplicativos HTML, carrega o iframe
-                return `<iframe src="${htmlApp.path}" class="browser-content" style="padding: 0;"></iframe>`;
-            }
-
+        function generateAppContent(appId) {
             switch(appId) {
                 case 'finder':
                     return `
@@ -2340,7 +2265,6 @@
                                 <div class="sidebar-item" data-path="documents"><i class="fas fa-folder"></i> Documentos</div>
                                 <div class="sidebar-item" data-path="images"><i class="fas fa-image"></i> Imagens</div>
                                 <div class="sidebar-item" data-path="downloads"><i class="fas fa-download"></i> Downloads</div>
-                                <div class="sidebar-item" data-path="html_apps"><i class="fas fa-code"></i> Aplicativos</div>
                                 <div class="sidebar-item" data-path="trash"><i class="fas fa-trash"></i> Lixeira</div>
                             </div>
                             <div class="main-content">
@@ -2569,12 +2493,7 @@
         }
 
         // Inicializar conteúdo do aplicativo
-        function initAppContent(appId, windowElement, htmlApp = null) {
-            if (htmlApp && htmlApp.type === 'html_app') {
-                // Não há inicialização específica para iframes além de definir o src
-                return;
-            }
-
+        function initAppContent(appId, windowElement) {
             switch(appId) {
                 case 'finder':
                     initFileExplorer(windowElement);
@@ -2624,15 +2543,8 @@
                     fileItem.dataset.type = item.type;
                     fileItem.dataset.name = item.name;
 
-                    let iconHtml = '';
-                    if (item.icon && item.icon.startsWith('http')) { // Se o ícone for um URL de imagem
-                        iconHtml = `<img src="${item.icon}" alt="icon">`;
-                    } else { // Se for um ícone FontAwesome
-                        iconHtml = `<i class="${item.icon || fileIcons[item.type] || 'fas fa-file'}"></i>`;
-                    }
-
                     fileItem.innerHTML = `
-                        <div class="file-icon">${iconHtml}</div>
+                        <div class="file-icon"><i class="${fileIcons[item.type] || 'fas fa-file'}"></i></div>
                         <div class="file-name">${item.name}</div>
                     `;
                     
@@ -2659,8 +2571,6 @@
                             } else {
                                 axonAlert("Esta imagem não possui um caminho de origem definido.");
                             }
-                        } else if (item.type === 'html_app') {
-                            openApp(item.id); // Abre o aplicativo HTML
                         } else {
                             axonAlert(`Não é possível abrir o arquivo "${item.name}". Tipo de arquivo não suportado.`);
                         }
@@ -2802,15 +2712,8 @@
                 fileItem.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
                 fileItem.dataset.fileId = file.id;
 
-                let iconHtml = '';
-                if (file.icon && file.icon.startsWith('http')) {
-                    iconHtml = `<img src="${file.icon}" style="width: 20px; height: 20px; object-fit: contain;">`;
-                } else {
-                    iconHtml = `<i class="${file.icon || 'fas fa-file'}"></i>`;
-                }
-
                 fileItem.innerHTML = `
-                    <div>${iconHtml}</div>
+                    <div><i class="${fileIcons[file.type] || 'fas fa-file'}"></i></div>
                     <div>${file.name}</div>
                 `;
                 
@@ -2904,13 +2807,8 @@
                     const currentDirContent = systemData.fileSystem[systemState.currentDirectory] || [];
                     if (currentDirContent.length === 0) return "Diretório vazio.";
                     return currentDirContent.map(item => {
-                        let iconHtml = '';
-                        if (item.icon && item.icon.startsWith('http')) {
-                            iconHtml = `<img src="${item.icon}" style="width: 16px; height: 16px; object-fit: contain; display: inline-block; vertical-align: middle; margin-right: 5px;">`;
-                        } else {
-                            iconHtml = `<i class="${item.icon || 'fas fa-file'}" style="margin-right: 5px;"></i>`;
-                        }
-                        return `${iconHtml} ${item.name}`;
+                        const icon = fileIcons[item.type] || 'fas fa-file';
+                        return `<i class="${icon}"></i> ${item.name}`;
                     }).join('<br>'); // Usar <br> para quebrar linha no HTML
                 case 'cd':
                     const targetDir = args[0];
@@ -3792,20 +3690,13 @@
                 thumbnail.className = 'window-thumbnail';
                 thumbnail.dataset.windowId = win.windowId;
 
-                let iconHtml = '';
-                if (win.appIcon && win.appIcon.startsWith('http')) {
-                    iconHtml = `<img src="${win.appIcon}" alt="icon">`;
-                } else {
-                    iconHtml = `<i class="${win.appIcon}"></i>`;
-                }
-
                 thumbnail.innerHTML = `
                     <div class="window-thumbnail-header">
-                        ${iconHtml} ${win.appName}
+                        <i class="${win.appIcon}"></i> ${win.appName}
                         <div class="close-btn"><i class="fas fa-times"></i></div>
                     </div>
                     <div class="window-thumbnail-content">
-                        ${iconHtml}
+                        <i class="${win.appIcon}"></i>
                     </div>
                 `;
 
@@ -3914,100 +3805,6 @@
                 loginPasswordInput.value = '';
                 loginUsernameInput.focus();
             }
-        }
-
-        // --- NOVAS FUNÇÕES PARA CARREGAR APPS HTML ---
-
-        // Função para buscar arquivos HTML no mesmo diretório
-        async function getHtmlFilesFromCurrentDirectory() {
-            try {
-                // Em um ambiente de navegador, não é possível listar arquivos de um diretório diretamente por segurança.
-                // Esta função é uma simulação ou requer um servidor web para listar arquivos.
-                // Para fins de demonstração em um ambiente local (file://), podemos simular.
-                // Em um ambiente de servidor, você precisaria de um endpoint que liste os arquivos.
-
-                // Para simular em um ambiente de arquivo local, podemos tentar carregar alguns nomes conhecidos.
-                // Em um ambiente real, você precisaria de um backend ou uma forma de listar arquivos.
-                const possibleHtmlFiles = ['app1.html', 'app2.html', 'game.html']; // Exemplo de nomes de arquivos
-                const foundFiles = [];
-
-                for (const fileName of possibleHtmlFiles) {
-                    try {
-                        const response = await fetch(fileName);
-                        if (response.ok && response.headers.get('Content-Type').includes('text/html')) {
-                            foundFiles.push(fileName);
-                        }
-                    } catch (error) {
-                        // console.warn(`Could not fetch ${fileName}:`, error); // Arquivo não existe ou erro de CORS
-                    }
-                }
-                return foundFiles;
-
-            } catch (error) {
-                console.error("Erro ao tentar listar arquivos HTML:", error);
-                return [];
-            }
-        }
-
-        // Função para extrair título e favicon de um arquivo HTML
-        async function getHtmlMetadata(filePath) {
-            try {
-                const response = await fetch(filePath);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const htmlContent = await response.text();
-
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(htmlContent, 'text/html');
-
-                const titleElement = doc.querySelector('title');
-                const title = titleElement ? titleElement.textContent : filePath.split('/').pop().replace('.html', '');
-
-                let icon = fileIcons.html_app; // Ícone padrão
-                const linkIcon = doc.querySelector('link[rel="icon"], link[rel="shortcut icon"]');
-                if (linkIcon && linkIcon.href) {
-                    // Resolve o caminho relativo do ícone para um caminho absoluto
-                    const iconUrl = new URL(linkIcon.href, window.location.href).href;
-                    icon = iconUrl;
-                }
-
-                return { title, icon };
-
-            } catch (error) {
-                console.error(`Erro ao obter metadados de ${filePath}:`, error);
-                return { title: filePath.split('/').pop().replace('.html', ''), icon: fileIcons.html_app };
-            }
-        }
-
-        // Carregar aplicativos HTML e adicioná-los ao sistema de arquivos
-        async function loadHtmlApps() {
-            const htmlFiles = await getHtmlFilesFromCurrentDirectory();
-            systemData.fileSystem.html_apps = []; // Limpa a lista existente
-
-            for (const filePath of htmlFiles) {
-                const metadata = await getHtmlMetadata(filePath);
-                const appId = `html_app_${filePath.replace(/[^a-zA-Z0-9]/g, '_')}`; // ID único baseado no caminho do arquivo
-
-                // Adiciona o aplicativo ao fileSystem.html_apps
-                systemData.fileSystem.html_apps.push({
-                    id: appId,
-                    name: metadata.title,
-                    type: 'html_app',
-                    icon: metadata.icon,
-                    path: filePath, // Caminho real para o arquivo HTML
-                    minWidth: 800, // Tamanhos padrão para apps HTML
-                    minHeight: 600
-                });
-
-                // Adiciona o aplicativo ao systemData.apps para que openApp possa encontrá-lo
-                systemData.apps[appId] = {
-                    name: metadata.title,
-                    icon: metadata.icon,
-                    minWidth: 800,
-                    minHeight: 600,
-                    path: filePath // Adiciona o caminho para o openApp
-                };
-            }
-            saveDesktopItems(); // Salva o fileSystem atualizado
         }
 
         // Iniciar o sistema quando a página carregar
