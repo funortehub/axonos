@@ -454,6 +454,12 @@
             padding-bottom: 10px;
         }
 
+        .notepad-toolbar button { /* Adicionado para espaçamento nos botões do bloco de notas */
+            display: flex;
+            align-items: center;
+            gap: 5px; /* Espaço entre ícone e texto */
+        }
+
         .notepad-content {
             flex: 1;
         }
@@ -1340,8 +1346,8 @@
             <div class="menu-item" id="help-guide-btn">Ajuda</div>
         </div>
         <div class="status-icons">
-            <div id="wifi-icon"><i class="fas fa-wifi"></i></div>
-            <div id="battery-icon"><i class="fas fa-battery-three-quarters"></i> 87%</div>
+            <!-- <div id="wifi-icon"><i class="fas fa-wifi"></i></div> -->
+            <!-- <div id="battery-icon"><i class="fas fa-battery-three-quarters"></i> 87%</div> -->
             <div id="clock">14:25</div>
         </div>
     </div>
@@ -1382,6 +1388,8 @@
         <div class="context-menu-item" id="context-new-file"><i class="fas fa-file"></i> Novo Arquivo</div>
         <div class="context-menu-divider"></div>
         <div class="context-menu-item" id="context-delete"><i class="fas fa-trash"></i> Excluir</div>
+        <div class="context-menu-item" id="context-restore" style="display: none;"><i class="fas fa-undo"></i> Restaurar</div>
+        <div class="context-menu-item" id="context-delete-permanent" style="display: none;"><i class="fas fa-times-circle"></i> Excluir Permanentemente</div>
     </div>
 
     <!-- Modal de criação de item -->
@@ -1843,7 +1851,12 @@
             document.getElementById('context-new-folder').addEventListener('click', async () => {
                 const folderName = await axonPrompt("Digite o nome da nova pasta:", "Nova Pasta");
                 if (folderName) {
-                    createDesktopItem('folder', folderName);
+                    // Se estiver no desktop, cria item no desktop. Se estiver no finder, cria no diretório atual do finder.
+                    if (systemState.selectedFileItem && systemState.finderCurrentPath !== 'desktop') {
+                        createFileItem(systemState.finderCurrentPath, 'folder', folderName);
+                    } else {
+                        createDesktopItem('folder', folderName);
+                    }
                 }
                 hideContextMenu();
             });
@@ -1851,7 +1864,12 @@
             document.getElementById('context-new-file').addEventListener('click', async () => {
                 const fileName = await axonPrompt("Digite o nome do novo arquivo:", "Novo Documento.txt");
                 if (fileName) {
-                    createDesktopItem('text', fileName);
+                    // Se estiver no desktop, cria item no desktop. Se estiver no finder, cria no diretório atual do finder.
+                    if (systemState.selectedFileItem && systemState.finderCurrentPath !== 'desktop') {
+                        createFileItem(systemState.finderCurrentPath, 'text', fileName);
+                    } else {
+                        createDesktopItem('text', fileName);
+                    }
                 }
                 hideContextMenu();
             });
@@ -1876,8 +1894,35 @@
                     if (systemState.selectedIcon) {
                         const iconId = systemState.selectedIcon.dataset.id;
                         deleteDesktopItem(iconId);
+                        systemState.selectedIcon.remove(); // Remove visualmente
                     } else if (systemState.selectedFileItem) {
+                        const fileItemElement = document.querySelector(`.file-item[data-id="${systemState.selectedFileItem.id}"]`);
                         deleteFileItem(systemState.selectedFileItem.id, systemState.finderCurrentPath);
+                        if (fileItemElement) fileItemElement.remove(); // Remove visualmente
+                    }
+                }
+                hideContextMenu();
+            });
+
+            document.getElementById('context-restore').addEventListener('click', async () => {
+                if (systemState.selectedFileItem && systemState.finderCurrentPath === 'trash') {
+                    const confirmRestore = await axonConfirm("Tem certeza que deseja restaurar este item?");
+                    if (confirmRestore) {
+                        restoreTrashItem(systemState.selectedFileItem.id);
+                        const fileItemElement = document.querySelector(`.file-item[data-id="${systemState.selectedFileItem.id}"]`);
+                        if (fileItemElement) fileItemElement.remove(); // Remove visualmente da lixeira
+                    }
+                }
+                hideContextMenu();
+            });
+
+            document.getElementById('context-delete-permanent').addEventListener('click', async () => {
+                if (systemState.selectedFileItem && systemState.finderCurrentPath === 'trash') {
+                    const confirmDelete = await axonConfirm("Tem certeza que deseja excluir permanentemente este item? Esta ação não pode ser desfeita.");
+                    if (confirmDelete) {
+                        deletePermanentTrashItem(systemState.selectedFileItem.id);
+                        const fileItemElement = document.querySelector(`.file-item[data-id="${systemState.selectedFileItem.id}"]`);
+                        if (fileItemElement) fileItemElement.remove(); // Remove visualmente da lixeira
                     }
                 }
                 hideContextMenu();
@@ -1930,12 +1975,14 @@
                 if (systemState.selectedIcon) {
                     const item = systemData.desktopItems.find(i => i.id === systemState.selectedIcon.dataset.id);
                     if (item) {
-                        systemData.clipboard = { ...item };
+                        systemData.clipboard = { ...item, originalPath: 'desktop' }; // Adiciona originalPath
                         systemState.clipboardAction = 'copy';
                         axonAlert(`"${item.name}" copiado para a área de transferência.`);
                     }
                 } else if (systemState.selectedFileItem) {
-                    systemData.clipboard = { ...systemState.selectedFileItem };
+                    // Encontra o caminho completo do item selecionado no fileSystem
+                    let originalPath = systemState.finderCurrentPath;
+                    systemData.clipboard = { ...systemState.selectedFileItem, originalPath: originalPath };
                     systemState.clipboardAction = 'copy';
                     axonAlert(`"${systemState.selectedFileItem.name}" copiado para a área de transferência.`);
                 }
@@ -1946,12 +1993,14 @@
                 if (systemState.selectedIcon) {
                     const item = systemData.desktopItems.find(i => i.id === systemState.selectedIcon.dataset.id);
                     if (item) {
-                        systemData.clipboard = { ...item };
+                        systemData.clipboard = { ...item, originalPath: 'desktop' }; // Adiciona originalPath
                         systemState.clipboardAction = 'cut';
                         axonAlert(`"${item.name}" recortado para a área de transferência.`);
                     }
                 } else if (systemState.selectedFileItem) {
-                    systemData.clipboard = { ...systemState.selectedFileItem };
+                    // Encontra o caminho completo do item selecionado no fileSystem
+                    let originalPath = systemState.finderCurrentPath;
+                    systemData.clipboard = { ...systemState.selectedFileItem, originalPath: originalPath };
                     systemState.clipboardAction = 'cut';
                     axonAlert(`"${systemState.selectedFileItem.name}" recortado para a área de transferência.`);
                 }
@@ -1964,6 +2013,7 @@
                     const newItem = { ...originalItem };
                     newItem.id = originalItem.id + '-' + Date.now(); // Novo ID para a cópia
                     newItem.name = `Cópia de ${originalItem.name}`;
+                    delete newItem.originalPath; // Remove originalPath da cópia
 
                     let targetDirectoryForPaste = systemState.finderCurrentPath; // Padrão para o diretório atual do Finder
 
@@ -1977,6 +2027,15 @@
                     // Se um ícone do desktop estiver selecionado, mas não for uma pasta, ainda cola no desktop
                     // Se um arquivo no finder estiver selecionado, mas não for uma pasta, ainda cola no diretório atual do finder
 
+                    // Verifica se o nome já existe no diretório de destino e ajusta se necessário
+                    let finalName = newItem.name;
+                    let counter = 1;
+                    while (systemData.fileSystem[targetDirectoryForPaste] && systemData.fileSystem[targetDirectoryForPaste].some(item => item.name === finalName)) {
+                        finalName = `Cópia (${counter}) de ${originalItem.name}`;
+                        counter++;
+                    }
+                    newItem.name = finalName;
+
                     if (!systemData.fileSystem[targetDirectoryForPaste]) {
                         systemData.fileSystem[targetDirectoryForPaste] = [];
                     }
@@ -1984,22 +2043,7 @@
 
                     // Lógica para remover o item original se for uma operação de recorte
                     if (systemState.clipboardAction === 'cut') {
-                        let originalDir = null;
-                        // Tenta encontrar o item no desktopItems
-                        if (systemData.desktopItems.some(item => item.id === originalItem.id)) {
-                            originalDir = 'desktop';
-                        } else {
-                            // Procura em outros diretórios do fileSystem
-                            for (const dirKey in systemData.fileSystem) {
-                                if (Array.isArray(systemData.fileSystem[dirKey])) {
-                                    if (systemData.fileSystem[dirKey].some(item => item.id === originalItem.id)) {
-                                        originalDir = dirKey;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                        
+                        const originalDir = originalItem.originalPath;
                         if (originalDir) {
                             if (originalDir === 'desktop') {
                                 deleteDesktopItem(originalItem.id, false); // Não salva ainda
@@ -2046,7 +2090,12 @@
                     await axonAlert("Por favor, digite um nome para o item.");
                     return;
                 }
-                createDesktopItem(type, name);
+                // Se estiver no desktop, cria item no desktop. Se estiver no finder, cria no diretório atual do finder.
+                if (systemState.selectedFileItem && systemState.finderCurrentPath !== 'desktop') {
+                    createFileItem(systemState.finderCurrentPath, type, name);
+                } else {
+                    createDesktopItem(type, name);
+                }
                 createModal.classList.remove('active');
             });
             
@@ -2281,9 +2330,24 @@
                 const finderWindow = systemState.openWindows.find(w => w.id === 'finder');
                 if (finderWindow) {
                     const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
-                    if (explorerGrid) {
-                        loadDirectory(item.id, explorerGrid);
-                    }
+                    const sidebarItems = finderWindow.element.querySelectorAll('.sidebar-item');
+                    const allItemsTab = finderWindow.element.querySelector('.tab[data-tab="all"]');
+                    const recentTab = finderWindow.element.querySelector('.tab[data-tab="recent"]');
+
+                    // Ativa a aba "Todos os Itens"
+                    allItemsTab.classList.add('active');
+                    recentTab.classList.remove('active');
+
+                    // Atualiza a seleção da sidebar
+                    sidebarItems.forEach(sItem => {
+                        if (sItem.dataset.path === item.id) {
+                            sItem.classList.add('active');
+                        } else {
+                            sItem.classList.remove('active');
+                        }
+                    });
+
+                    loadDirectory(item.id, explorerGrid);
                 }
             } else if (item.type === 'text') {
                 openApp('notes');
@@ -2342,7 +2406,7 @@
             iconElement.classList.add('selected');
             systemState.selectedIcon = iconElement;
             systemState.selectedFileItem = null;
-            iconElement.focus(); // Garante que o elemento tenha foco para acessibilidade
+            iconElement.focus(); // Garante que o elemento tenha foco para navegação por teclado
         }
 
         // Função para selecionar um item do explorador de arquivos
@@ -2507,6 +2571,35 @@
             saveDesktopItems(); // Salva o novo item
         }
 
+        // Criar item no sistema de arquivos (para uso no Finder)
+        function createFileItem(directory, type, name) {
+            const id = 'item-' + Date.now();
+            const newItem = { id, name, type, icon: fileIcons[type] || 'fas fa-file' };
+            if (type === 'text') {
+                newItem.content = '';
+            } else if (type === 'image') {
+                newItem.src = '';
+            } else if (type === 'folder') {
+                systemData.fileSystem[id] = []; // Cria um novo diretório vazio
+            }
+
+            if (!systemData.fileSystem[directory]) {
+                systemData.fileSystem[directory] = [];
+            }
+            systemData.fileSystem[directory].push(newItem);
+            saveDesktopItems();
+
+            // Atualiza o Finder se estiver aberto e no diretório correto
+            const finderWindow = systemState.openWindows.find(w => w.id === 'finder');
+            if (finderWindow) {
+                const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
+                if (explorerGrid && systemState.finderCurrentPath === directory) {
+                    loadDirectory(directory, explorerGrid);
+                }
+            }
+            axonAlert(`"${name}" criado em "${directory}"`);
+        }
+
         // Encontrar a próxima posição disponível a partir de uma dada (para arrastar e soltar)
         function findNextAvailablePositionStartingFrom(startRow, startCol) {
             const rows = systemState.desktopGrid.rows;
@@ -2602,6 +2695,84 @@
                 delete systemData.fileSystem[id];
             }
             if (save) saveDesktopItems();
+        }
+
+        // Restaurar item da lixeira
+        async function restoreTrashItem(itemId) {
+            const itemToRestoreIndex = systemData.fileSystem.trash.findIndex(item => item.id === itemId);
+            if (itemToRestoreIndex === -1) {
+                axonAlert("Item não encontrado na lixeira.");
+                return;
+            }
+
+            const itemToRestore = systemData.fileSystem.trash[itemToRestoreIndex];
+            const originalPath = itemToRestore.originalPath;
+
+            if (!originalPath || !systemData.fileSystem[originalPath]) {
+                await axonAlert(`Não foi possível restaurar "${itemToRestore.name}". O caminho original "${originalPath}" não existe mais.`, "Erro de Restauração");
+                return;
+            }
+
+            // Remove da lixeira
+            systemData.fileSystem.trash.splice(itemToRestoreIndex, 1);
+
+            // Adiciona de volta ao diretório original
+            // Verifica se o nome já existe no diretório de destino e ajusta se necessário
+            let finalName = itemToRestore.name;
+            let counter = 1;
+            while (systemData.fileSystem[originalPath].some(item => item.name === finalName)) {
+                finalName = `Cópia (${counter}) de ${itemToRestore.name}`;
+                counter++;
+            }
+            itemToRestore.name = finalName;
+            delete itemToRestore.originalPath; // Remove a propriedade originalPath
+            systemData.fileSystem[originalPath].push(itemToRestore);
+
+            // Se o item foi restaurado para o desktop, recria o ícone visual
+            if (originalPath === 'desktop') {
+                createDesktopItem(itemToRestore.type, itemToRestore.name, null, null, itemToRestore.id);
+            }
+
+            saveDesktopItems();
+            await axonAlert(`"${itemToRestore.name}" restaurado para "${originalPath}".`, "Restauração Concluída");
+
+            // Atualiza o Finder se estiver aberto e no diretório da lixeira
+            const finderWindow = systemState.openWindows.find(w => w.id === 'finder');
+            if (finderWindow) {
+                const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
+                if (explorerGrid && systemState.finderCurrentPath === 'trash') {
+                    loadDirectory('trash', explorerGrid);
+                }
+            }
+        }
+
+        // Excluir permanentemente item da lixeira
+        async function deletePermanentTrashItem(itemId) {
+            const itemToDeleteIndex = systemData.fileSystem.trash.findIndex(item => item.id === itemId);
+            if (itemToDeleteIndex === -1) {
+                axonAlert("Item não encontrado na lixeira.");
+                return;
+            }
+
+            const itemToDelete = systemData.fileSystem.trash[itemToDeleteIndex];
+            systemData.fileSystem.trash.splice(itemToDeleteIndex, 1); // Remove permanentemente
+
+            // Se for uma pasta, remove também o diretório do fileSystem
+            if (itemToDelete.type === 'folder' && systemData.fileSystem[itemToDelete.id]) {
+                delete systemData.fileSystem[itemToDelete.id];
+            }
+
+            saveDesktopItems();
+            await axonAlert(`"${itemToDelete.name}" excluído permanentemente.`, "Exclusão Concluída");
+
+            // Atualiza o Finder se estiver aberto e no diretório da lixeira
+            const finderWindow = systemState.openWindows.find(w => w.id === 'finder');
+            if (finderWindow) {
+                const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
+                if (explorerGrid && systemState.finderCurrentPath === 'trash') {
+                    loadDirectory('trash', explorerGrid);
+                }
+            }
         }
 
         // Encontrar arquivo em qualquer diretório do sistema de arquivos
@@ -2714,20 +2885,25 @@
             const isItemSelected = systemState.selectedIcon || systemState.selectedFileItem;
             const isFolderSelected = (systemState.selectedIcon && systemState.selectedIcon.dataset.type === 'folder') || 
                                      (systemState.selectedFileItem && systemState.selectedFileItem.type === 'folder');
+            const isInTrash = systemState.finderCurrentPath === 'trash';
 
-            document.getElementById('context-open').style.display = isItemSelected ? 'flex' : 'none';
-            document.getElementById('context-rename').style.display = isItemSelected ? 'flex' : 'none';
-            document.getElementById('context-delete').style.display = isItemSelected ? 'flex' : 'none';
-            document.getElementById('context-cut').style.display = isItemSelected ? 'flex' : 'none';
-            document.getElementById('context-copy').style.display = isItemSelected ? 'flex' : 'none';
+            document.getElementById('context-open').style.display = isItemSelected && !isInTrash ? 'flex' : 'none';
+            document.getElementById('context-rename').style.display = isItemSelected && !isInTrash ? 'flex' : 'none';
+            document.getElementById('context-delete').style.display = isItemSelected && !isInTrash ? 'flex' : 'none';
+            document.getElementById('context-cut').style.display = isItemSelected && !isInTrash ? 'flex' : 'none';
+            document.getElementById('context-copy').style.display = isItemSelected && !isInTrash ? 'flex' : 'none';
             
-            // Novas opções de pasta/arquivo só aparecem se nada estiver selecionado ou se uma pasta estiver selecionada
-            document.getElementById('context-new-folder').style.display = (!isItemSelected || isFolderSelected) ? 'flex' : 'none';
-            document.getElementById('context-new-file').style.display = (!isItemSelected || isFolderSelected) ? 'flex' : 'none';
+            // Novas opções de pasta/arquivo só aparecem se nada estiver selecionado ou se uma pasta estiver selecionada E NÃO ESTIVER NA LIXEIRA
+            document.getElementById('context-new-folder').style.display = (!isItemSelected || isFolderSelected) && !isInTrash ? 'flex' : 'none';
+            document.getElementById('context-new-file').style.display = (!isItemSelected || isFolderSelected) && !isInTrash ? 'flex' : 'none';
             
-            // Colar só aparece se houver algo na área de transferência E se for um local válido para colar
-            const canPaste = systemData.clipboard && (!isItemSelected || isFolderSelected);
+            // Colar só aparece se houver algo na área de transferência E se for um local válido para colar E NÃO ESTIVER NA LIXEIRA
+            const canPaste = systemData.clipboard && (!isItemSelected || isFolderSelected) && !isInTrash;
             document.getElementById('context-paste').style.display = canPaste ? 'flex' : 'none';
+
+            // Opções da lixeira
+            document.getElementById('context-restore').style.display = isInTrash && isItemSelected ? 'flex' : 'none';
+            document.getElementById('context-delete-permanent').style.display = isInTrash && isItemSelected ? 'flex' : 'none';
         }
 
         // Esconder menu de contexto
@@ -3013,12 +3189,12 @@
                                 <button id="browser-forward" class="dock-style-button"><i class="fas fa-arrow-right"></i></button>
                                 <button id="browser-reload" class="dock-style-button"><i class="fas fa-redo"></i></button>
                                 <div class="browser-url-bar">
-                                    <input type="text" id="browser-url" value="about:blank" style="flex: 1;">
+                                    <input type="text" id="browser-url" value="https://www.google.com" style="flex: 1;">
                                     <button id="browser-go" class="dock-style-button"><i class="fas fa-arrow-right "></i></button>
                                 </div>
                                 <button id="browser-home" class="dock-style-button"><i class="fas fa-home"></i></button>
                             </div>
-                            <iframe class="browser-content" id="browser-content" src="about:blank"></iframe>
+                            <iframe class="browser-content" id="browser-content" src="https://www.google.com"></iframe>
                         </div>
                     `;
                 case 'axon-apps':
