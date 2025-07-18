@@ -23,6 +23,8 @@
             --terminal-purple: #bd93f9;
             --highlight: rgba(106, 90, 249, 0.2);
             --border-radius: 14px;
+            --menu-bar-height: 30px; /* Nova variável para altura da barra de menu */
+            --dock-height: 70px; /* Altura aproximada do dock */
         }
 
         * {
@@ -58,7 +60,7 @@
             background: rgba(10, 10, 25, 0.8);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
-            height: 30px;
+            height: var(--menu-bar-height);
             position: fixed;
             top: 0;
             left: 0;
@@ -93,8 +95,8 @@
         /* Área de trabalho */
         #desktop {
             position: absolute;
-            top: 30px;
-            bottom: 60px;
+            top: var(--menu-bar-height);
+            bottom: var(--dock-height); /* Ajustado para o dock */
             left: 0;
             right: 0;
             overflow: hidden;
@@ -106,11 +108,14 @@
             flex-direction: column;
             align-items: center;
             width: 80px;
+            height: 90px; /* Altura fixa para melhor organização */
             cursor: pointer;
-            padding: 10px 5px;
+            padding: 5px;
             border-radius: 8px;
             transition: all 0.2s ease;
             position: absolute;
+            text-align: center; /* Centraliza o texto */
+            justify-content: center; /* Centraliza verticalmente */
         }
 
         .desktop-icon:hover {
@@ -160,6 +165,11 @@
             z-index: 999;
             border: 1px solid rgba(255, 255, 255, 0.1);
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease-out; /* Adicionado transição para o dock */
+        }
+
+        #dock.hidden {
+            transform: translateX(-50%) translateY(calc(var(--dock-height) + 20px)); /* Esconde o dock para baixo */
         }
 
         .dock-icon {
@@ -221,7 +231,7 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
             opacity: 0;
             transform: scale(0.9);
-            transition: opacity 0.3s ease, transform 0.3s ease;
+            transition: opacity 0.3s ease, transform 0.3s ease, width 0.3s ease, height 0.3s ease, left 0.3s ease, top 0.3s ease;
             resize: both;
             min-width: 300px;
             min-height: 200px;
@@ -230,6 +240,15 @@
         .window.active {
             opacity: 1;
             transform: scale(1);
+        }
+
+        .window.maximized {
+            top: var(--menu-bar-height) !important; /* Fixa no topo abaixo da menu-bar */
+            left: 0 !important;
+            width: 100% !important;
+            height: calc(100vh - var(--menu-bar-height)) !important; /* Altura total menos a menu-bar */
+            border-radius: 0;
+            transition: all 0.3s ease; /* Transição suave para maximizar */
         }
 
         .window-header {
@@ -1443,10 +1462,10 @@
                 mielina: { name: "Mielina - Assistente Virtual", icon: "fas fa-robot", minWidth: 500, minHeight: 500 }
             },
             desktopItems: [
-                { id: 'documents', name: 'Documentos', type: 'folder', icon: 'fas fa-folder', x: 20, y: 20 },
-                { id: 'images', name: 'Imagens', type: 'folder', icon: 'fas fa-image', x: 20, y: 120 },
-                { id: 'downloads', name: 'Downloads', type: 'folder', icon: 'fas fa-download', x: 20, y: 220 },
-                { id: 'trash', name: 'Lixeira', type: 'folder', icon: 'fas fa-trash', x: 20, y: 320 }
+                { id: 'documents', name: 'Documentos', type: 'folder', icon: 'fas fa-folder' },
+                { id: 'images', name: 'Imagens', type: 'folder', icon: 'fas fa-image' },
+                { id: 'downloads', name: 'Downloads', type: 'folder', icon: 'fas fa-download' },
+                { id: 'trash', name: 'Lixeira', type: 'folder', icon: 'fas fa-trash' }
             ],
             fileSystem: {
                 desktop: [], // Representa os itens na área de trabalho
@@ -1469,7 +1488,6 @@
                 { command: "date", output: "Quarta-feira, 16 de Julho de 2025, 14:25:03" },
                 { command: "echo 'Bem-vindo ao Axon OS'", output: "Bem-vindo ao Axon OS" }
             ],
-            // mediaFiles removido, pois o reprodutor de mídia foi substituído
             clipboard: null,
             settings: {
                 theme: 'axon-dark',
@@ -1496,14 +1514,21 @@
             ],
             selectedIcon: null, // Para ícones da área de trabalho
             selectedFileItem: null, // Para itens dentro do explorador de arquivos
-            currentMediaIndex: 0, // Mantido para compatibilidade, mas não usado pelo media player
-            mediaPlaying: false, // Mantido para compatibilidade
+            currentMediaIndex: 0, 
+            mediaPlaying: false, 
             clipboardAction: null, // 'copy' or 'cut'
             currentDirectory: 'desktop', // Diretório atual no explorador de arquivos
             cameraStream: null,
-            cameraPhotos: [],
+            cameraPhotos: [], // Mantido para compatibilidade, mas as fotos agora vão para o fileSystem.images
             selectedFile: null, // Para o modal de abrir arquivo
-            axonApps: [] // Lista de aplicativos HTML dinamicamente carregados
+            axonApps: [], // Lista de aplicativos HTML dinamicamente carregados
+            desktopGrid: {
+                iconWidth: 100, // Largura do ícone + padding
+                iconHeight: 110, // Altura do ícone + padding
+                columns: 0,
+                rows: 0,
+                positions: [] // Array 2D para controlar ocupação
+            }
         };
 
         // Elementos DOM
@@ -1614,6 +1639,7 @@
             setInterval(updateClock, 60000);
             createParticles();
             await loadAxonApps(); // Carrega os aplicativos HTML antes de configurar os event listeners
+            setupDesktopGrid(); // Configura a grade do desktop
             setupEventListeners();
             
             // Certifica-se de que os itens padrão do desktop estão no fileSystem.desktop
@@ -1639,6 +1665,54 @@
             clockElement.textContent = `${hours}:${minutes}`;
         }
 
+        // Configurar a grade do desktop
+        function setupDesktopGrid() {
+            const desktopRect = desktop.getBoundingClientRect();
+            systemState.desktopGrid.columns = Math.floor(desktopRect.width / systemState.desktopGrid.iconWidth);
+            systemState.desktopGrid.rows = Math.floor(desktopRect.height / systemState.desktopGrid.iconHeight);
+            
+            systemState.desktopGrid.positions = Array(systemState.desktopGrid.rows).fill(0).map(() => Array(systemState.desktopGrid.columns).fill(false));
+        }
+
+        // Encontrar a próxima posição vazia na grade
+        function findNextAvailablePosition() {
+            for (let col = 0; col < systemState.desktopGrid.columns; col++) {
+                for (let row = 0; row < systemState.desktopGrid.rows; row++) {
+                    if (!systemState.desktopGrid.positions[row][col]) {
+                        return { row, col };
+                    }
+                }
+            }
+            return null; // Nenhuma posição disponível
+        }
+
+        // Ocupar uma posição na grade
+        function occupyPosition(row, col, itemId) {
+            if (row >= 0 && row < systemState.desktopGrid.rows && col >= 0 && col < systemState.desktopGrid.columns) {
+                systemState.desktopGrid.positions[row][col] = itemId;
+            }
+        }
+
+        // Liberar uma posição na grade
+        function freePosition(itemId) {
+            for (let row = 0; row < systemState.desktopGrid.rows; row++) {
+                for (let col = 0; col < systemState.desktopGrid.columns; col++) {
+                    if (systemState.desktopGrid.positions[row][col] === itemId) {
+                        systemState.desktopGrid.positions[row][col] = false;
+                        return;
+                    }
+                }
+            }
+        }
+
+        // Obter posição da grade a partir de coordenadas X, Y
+        function getGridPosition(x, y) {
+            const desktopRect = desktop.getBoundingClientRect();
+            const col = Math.round((x - desktopRect.left) / systemState.desktopGrid.iconWidth);
+            const row = Math.round((y - desktopRect.top) / systemState.desktopGrid.iconHeight);
+            return { row, col };
+        }
+
         // Configurar event listeners
         function setupEventListeners() {
             // Ícones do dock
@@ -1652,10 +1726,7 @@
             // Clique na área de trabalho para desselecionar ícones
             desktop.addEventListener('click', (e) => {
                 if (e.target === desktop) {
-                    document.querySelectorAll('.desktop-icon').forEach(i => {
-                        i.classList.remove('selected');
-                    });
-                    systemState.selectedIcon = null;
+                    deselectAllIcons();
                 }
             });
 
@@ -1685,40 +1756,7 @@
                 }
 
                 if (itemToOpen) {
-                    if (itemToOpen.type === 'folder') {
-                        openApp('finder');
-                        const finderWindow = systemState.openWindows.find(w => w.id === 'finder');
-                        if (finderWindow) {
-                            const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
-                            if (explorerGrid) {
-                                loadDirectory(itemToOpen.id, explorerGrid);
-                            }
-                        }
-                    } else if (itemToOpen.type === 'text') {
-                        openApp('notes');
-                        const notesWindow = systemState.openWindows.find(w => w.id === 'notes');
-                        if (notesWindow) {
-                            const textArea = notesWindow.element.querySelector('#note-content');
-                            if (textArea) {
-                                const file = findFileInFileSystem(itemToOpen.id);
-                                if (file) {
-                                    textArea.value = file.content || '';
-                                    textArea.dataset.fileId = file.id;
-                                }
-                            }
-                        }
-                    } else if (itemToOpen.type === 'image') {
-                        // Para imagens criadas sem src, não há o que abrir
-                        if (itemToOpen.src) {
-                            openImageViewer(itemToOpen.src);
-                        } else {
-                            axonAlert("Esta imagem não possui um caminho de origem definido.");
-                        }
-                    } else if (itemToOpen.type === 'html-app') {
-                        openHtmlApp(itemToOpen.path, itemToOpen.name, itemToOpen.icon);
-                    } else {
-                        axonAlert(`Não é possível abrir o arquivo "${itemToOpen.name}". Tipo de arquivo não suportado.`);
-                    }
+                    openItem(itemToOpen);
                 }
                 hideContextMenu();
             });
@@ -1865,10 +1903,7 @@
 
                     // Se colando no desktop, também cria o ícone visual
                     if (targetDirectoryForPaste === 'desktop') {
-                        newItem.x = Math.random() * (desktop.clientWidth - 100);
-                        newItem.y = Math.random() * (desktop.clientHeight - 100);
-                        systemData.desktopItems.push(newItem); // Adiciona ao desktopItems
-                        createDesktopItem(newItem.type, newItem.name, newItem.x, newItem.y, newItem.id); // Recria o ícone visual
+                        createDesktopItem(newItem.type, newItem.name, null, null, newItem.id); // Recria o ícone visual na próxima posição disponível
                     }
 
                     // Atualiza o Finder se estiver aberto e no diretório correto
@@ -1910,9 +1945,7 @@
             // Context menu for desktop
             desktop.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
-                document.querySelectorAll('.desktop-icon').forEach(i => i.classList.remove('selected'));
-                systemState.selectedIcon = null;
-                systemState.selectedFileItem = null;
+                deselectAllIcons();
                 showContextMenu(e, null);
             });
             
@@ -1938,15 +1971,262 @@
                     if (e.key === 'Enter') handleLogin();
                 });
             }
+
+            // Eventos de teclado globais
+            document.addEventListener('keydown', handleGlobalKeyDown);
+        }
+
+        // Manipulador de eventos de teclado global
+        function handleGlobalKeyDown(e) {
+            // Se um modal estiver ativo, não processa eventos de teclado para o desktop
+            if (document.querySelector('.modal.active') || document.querySelector('.custom-modal.active')) {
+                return;
+            }
+
+            // Se o foco estiver em um input ou textarea, não processa eventos de teclado para o desktop
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                return;
+            }
+
+            const desktopIcons = Array.from(document.querySelectorAll('.desktop-icon'));
+            const fileExplorerGrid = document.querySelector('#explorer-grid');
+            const fileItems = fileExplorerGrid ? Array.from(fileExplorerGrid.querySelectorAll('.file-item')) : [];
+
+            let currentSelectedElement = null;
+            if (systemState.selectedIcon) {
+                currentSelectedElement = systemState.selectedIcon;
+            } else if (systemState.selectedFileItem) {
+                currentSelectedElement = document.querySelector(`.file-item[data-id="${systemState.selectedFileItem.id}"]`);
+            }
+
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (currentSelectedElement) {
+                    if (systemState.selectedIcon) {
+                        // Simula o duplo clique no ícone da área de trabalho
+                        currentSelectedElement.dispatchEvent(new Event('dblclick'));
+                    } else if (systemState.selectedFileItem) {
+                        // Simula o duplo clique no item do explorador de arquivos
+                        currentSelectedElement.dispatchEvent(new Event('dblclick'));
+                    }
+                }
+            } else if (e.key === 'Delete') {
+                e.preventDefault();
+                if (currentSelectedElement) {
+                    document.getElementById('context-delete').click(); // Simula o clique no item de exclusão do menu de contexto
+                }
+            } else if (e.key.startsWith('Arrow')) {
+                e.preventDefault();
+                let targetIndex = -1;
+                let itemsToNavigate = [];
+                let isDesktopNavigation = false;
+
+                if (systemState.selectedIcon && desktopIcons.length > 0) {
+                    itemsToNavigate = desktopIcons;
+                    targetIndex = desktopIcons.indexOf(systemState.selectedIcon);
+                    isDesktopNavigation = true;
+                } else if (systemState.selectedFileItem && fileItems.length > 0) {
+                    itemsToNavigate = fileItems;
+                    targetIndex = fileItems.findIndex(item => item.dataset.id === systemState.selectedFileItem.id);
+                } else if (desktopIcons.length > 0) {
+                    // Se nada estiver selecionado, seleciona o primeiro item do desktop
+                    selectIcon(desktopIcons[0]);
+                    return;
+                } else if (fileItems.length > 0) {
+                    // Se nada estiver selecionado, seleciona o primeiro item do explorador de arquivos
+                    selectFileItem(fileItems[0]);
+                    return;
+                }
+
+                if (itemsToNavigate.length === 0) return;
+
+                let newIndex = targetIndex;
+
+                if (isDesktopNavigation) {
+                    const desktopRect = desktop.getBoundingClientRect();
+                    const cols = systemState.desktopGrid.columns;
+                    const rows = systemState.desktopGrid.rows;
+
+                    let currentRow = -1;
+                    let currentCol = -1;
+
+                    if (targetIndex !== -1) {
+                        const selectedItem = systemData.desktopItems.find(item => item.id === systemState.selectedIcon.dataset.id);
+                        if (selectedItem && selectedItem.gridPos) {
+                            currentRow = selectedItem.gridPos.row;
+                            currentCol = selectedItem.gridPos.col;
+                        }
+                    }
+
+                    let nextRow = currentRow;
+                    let nextCol = currentCol;
+
+                    switch (e.key) {
+                        case 'ArrowUp':
+                            nextRow = Math.max(0, currentRow - 1);
+                            break;
+                        case 'ArrowDown':
+                            nextRow = Math.min(rows - 1, currentRow + 1);
+                            break;
+                        case 'ArrowLeft':
+                            nextCol = Math.max(0, currentCol - 1);
+                            break;
+                        case 'ArrowRight':
+                            nextCol = Math.min(cols - 1, currentCol + 1);
+                            break;
+                    }
+
+                    // Encontra o item na nova posição da grade
+                    let nextItemId = systemState.desktopGrid.positions[nextRow][nextCol];
+                    if (nextItemId) {
+                        const nextIconElement = document.querySelector(`.desktop-icon[data-id="${nextItemId}"]`);
+                        if (nextIconElement) {
+                            selectIcon(nextIconElement);
+                        }
+                    } else {
+                        // Se a nova posição estiver vazia, tenta encontrar o próximo item válido na direção
+                        let found = false;
+                        if (e.key === 'ArrowUp') {
+                            for (let r = nextRow; r >= 0; r--) {
+                                if (systemState.desktopGrid.positions[r][nextCol]) {
+                                    selectIcon(document.querySelector(`.desktop-icon[data-id="${systemState.desktopGrid.positions[r][nextCol]}"]`));
+                                    found = true;
+                                    break;
+                                }
+                            }
+                        } else if (e.key === 'ArrowDown') {
+                            for (let r = nextRow; r < rows; r++) {
+                                if (systemState.desktopGrid.positions[r][nextCol]) {
+                                    selectIcon(document.querySelector(`.desktop-icon[data-id="${systemState.desktopGrid.positions[r][nextCol]}"]`));
+                                    found = true;
+                                    break;
+                                }
+                            }
+                        } else if (e.key === 'ArrowLeft') {
+                            for (let c = nextCol; c >= 0; c--) {
+                                if (systemState.desktopGrid.positions[nextRow][c]) {
+                                    selectIcon(document.querySelector(`.desktop-icon[data-id="${systemState.desktopGrid.positions[nextRow][c]}"]`));
+                                    found = true;
+                                    break;
+                                }
+                            }
+                        } else if (e.key === 'ArrowRight') {
+                            for (let c = nextCol; c < cols; c++) {
+                                if (systemState.desktopGrid.positions[nextRow][c]) {
+                                    selectIcon(document.querySelector(`.desktop-icon[data-id="${systemState.desktopGrid.positions[nextRow][c]}"]`));
+                                    found = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (!found && targetIndex !== -1) {
+                            // Se não encontrou na direção, mantém a seleção atual
+                            selectIcon(itemsToNavigate[targetIndex]);
+                        }
+                    }
+
+                } else { // Navegação no explorador de arquivos
+                    switch (e.key) {
+                        case 'ArrowUp':
+                            newIndex = Math.max(0, targetIndex - 1);
+                            break;
+                        case 'ArrowDown':
+                            newIndex = Math.min(itemsToNavigate.length - 1, targetIndex + 1);
+                            break;
+                        case 'ArrowLeft':
+                        case 'ArrowRight':
+                            // Para navegação horizontal em grid, pode ser mais complexo.
+                            // Por enquanto, apenas navegação vertical simples.
+                            break;
+                    }
+                    if (newIndex !== targetIndex) {
+                        selectFileItem(itemsToNavigate[newIndex]);
+                    }
+                }
+            }
+        }
+
+        // Função para abrir um item (usada por duplo clique e Enter)
+        function openItem(item) {
+            if (item.type === 'folder') {
+                openApp('finder');
+                const finderWindow = systemState.openWindows.find(w => w.id === 'finder');
+                if (finderWindow) {
+                    const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
+                    if (explorerGrid) {
+                        loadDirectory(item.id, explorerGrid);
+                    }
+                }
+            } else if (item.type === 'text') {
+                openApp('notes');
+                const notesWindow = systemState.openWindows.find(w => w.id === 'notes');
+                if (notesWindow) {
+                    const textArea = notesWindow.element.querySelector('#note-content');
+                    if (textArea) {
+                        const file = findFileInFileSystem(item.id);
+                        if (file) {
+                            textArea.value = file.content || '';
+                            textArea.dataset.fileId = file.id;
+                        }
+                    }
+                }
+            } else if (item.type === 'image') {
+                if (item.src) {
+                    openImageViewer(item.src);
+                } else {
+                    axonAlert("Esta imagem não possui um caminho de origem definido.");
+                }
+            } else if (item.type === 'html-app') {
+                openHtmlApp(item.path, item.name, item.icon);
+            } else if (systemData.apps[item.id]) { // Se for um app nativo
+                openApp(item.id);
+            } else {
+                axonAlert(`Não é possível abrir o arquivo "${item.name}". Tipo de arquivo não suportado.`);
+            }
+        }
+
+        // Função para desselecionar todos os ícones
+        function deselectAllIcons() {
+            document.querySelectorAll('.desktop-icon').forEach(i => {
+                i.classList.remove('selected');
+            });
+            document.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
+            systemState.selectedIcon = null;
+            systemState.selectedFileItem = null;
+        }
+
+        // Função para selecionar um ícone do desktop
+        function selectIcon(iconElement) {
+            deselectAllIcons();
+            iconElement.classList.add('selected');
+            systemState.selectedIcon = iconElement;
+            systemState.selectedFileItem = null;
+            iconElement.focus(); // Garante que o elemento tenha foco para acessibilidade
+        }
+
+        // Função para selecionar um item do explorador de arquivos
+        function selectFileItem(fileItemElement) {
+            deselectAllIcons();
+            fileItemElement.classList.add('selected');
+            systemState.selectedFileItem = systemData.fileSystem[systemState.currentDirectory].find(item => item.id === fileItemElement.dataset.id);
+            systemState.selectedIcon = null;
+            fileItemElement.focus(); // Garante que o elemento tenha foco para acessibilidade
         }
 
         // Criar ícone na área de trabalho
         function createDesktopItem(type, name, x = null, y = null, id = null) {
             id = id || 'item-' + Date.now();
-            x = x === null ? Math.random() * (desktop.clientWidth - 100) : x;
-            y = y === null ? Math.random() * (desktop.clientHeight - 100) : y;
+            
+            let gridPos = findNextAvailablePosition();
+            if (!gridPos) {
+                axonAlert("Não há mais espaço disponível na área de trabalho para novos ícones.");
+                return;
+            }
 
-            const newItem = { id, name, type, x, y, icon: fileIcons[type] || 'fas fa-file' };
+            x = gridPos.col * systemState.desktopGrid.iconWidth + 20; // 20px de padding
+            y = gridPos.row * systemState.desktopGrid.iconHeight + 20; // 20px de padding
+
+            const newItem = { id, name, type, x, y, icon: fileIcons[type] || 'fas fa-file', gridPos: gridPos };
             if (type === 'text') {
                 newItem.content = '';
             } else if (type === 'image') {
@@ -1960,6 +2240,8 @@
             // Adiciona ao fileSystem.desktop (para ser listado no Finder e para consistência)
             systemData.fileSystem.desktop.push(newItem);
             
+            occupyPosition(gridPos.row, gridPos.col, id);
+
             const icon = document.createElement('div');
             icon.className = 'desktop-icon';
             icon.dataset.id = id;
@@ -1967,6 +2249,7 @@
             icon.dataset.app = type === 'folder' ? 'finder' : (type === 'text' ? 'notes' : (type === 'image' ? 'gallery' : (type === 'html-app' ? 'html-app-launcher' : null))); // Adicionado html-app-launcher
             icon.style.left = `${x}px`;
             icon.style.top = `${y}px`;
+            icon.tabIndex = 0; // Torna o ícone focável para navegação por teclado
             
             const iconImage = document.createElement('div');
             iconImage.className = 'icon-image';
@@ -1983,71 +2266,25 @@
             icon.appendChild(iconLabel);
             
             icon.addEventListener('dblclick', () => {
-                if (icon.dataset.app) {
-                    if (icon.dataset.type === 'folder') {
-                        openApp('finder');
-                        const finderWindow = systemState.openWindows.find(w => w.id === 'finder');
-                        if (finderWindow) {
-                            const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
-                            if (explorerGrid) {
-                                loadDirectory(id, explorerGrid);
-                            }
-                        }
-                    } else if (icon.dataset.type === 'text') {
-                        openApp('notes');
-                        const notesWindow = systemState.openWindows.find(w => w.id === 'notes');
-                        if (notesWindow) {
-                            const textArea = notesWindow.element.querySelector('#note-content');
-                            if (textArea) {
-                                const file = findFileInFileSystem(id);
-                                if (file) {
-                                    textArea.value = file.content || '';
-                                    textArea.dataset.fileId = file.id;
-                                }
-                            }
-                        }
-                    } else if (icon.dataset.type === 'image') {
-                        const imageItem = findFileInFileSystem(id);
-                        if (imageItem && imageItem.src) {
-                            openImageViewer(imageItem.src);
-                        } else {
-                            axonAlert("Esta imagem não possui um caminho de origem definido.");
-                        }
-                    } else if (icon.dataset.type === 'html-app') {
-                        const appItem = findFileInFileSystem(id);
-                        if (appItem && appItem.path) {
-                            openHtmlApp(appItem.path, appItem.name, appItem.icon);
-                        } else {
-                            axonAlert("Este aplicativo HTML não possui um caminho definido.");
-                        }
-                    } else {
-                        openApp(icon.dataset.app); // Para apps nativos como calculadora, etc.
-                    }
+                const itemData = systemData.desktopItems.find(i => i.id === icon.dataset.id);
+                if (itemData) {
+                    openItem(itemData);
                 }
             });
             
             icon.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
-                document.querySelectorAll('.desktop-icon').forEach(i => i.classList.remove('selected'));
-                document.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
-                icon.classList.add('selected');
-                systemState.selectedIcon = icon;
-                systemState.selectedFileItem = null;
+                selectIcon(icon);
                 showContextMenu(e, icon);
             });
             
             icon.addEventListener('click', (e) => {
-                document.querySelectorAll('.desktop-icon').forEach(i => {
-                    i.classList.remove('selected');
-                });
-                document.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
-                icon.classList.add('selected');
-                systemState.selectedIcon = icon;
-                systemState.selectedFileItem = null;
+                selectIcon(icon);
             });
             
             let isDragging = false;
             let offsetX, offsetY;
+            let initialGridPos = null;
             
             icon.addEventListener('mousedown', (e) => {
                 if (e.button === 0) {
@@ -2056,6 +2293,8 @@
                     offsetY = e.clientY - icon.getBoundingClientRect().top;
                     icon.style.cursor = 'grabbing';
                     icon.style.zIndex = '100';
+                    initialGridPos = systemData.desktopItems.find(item => item.id === id).gridPos;
+                    freePosition(id); // Libera a posição inicial na grade
                     // Anexar listeners ao document para arrastar fora do desktop
                     document.addEventListener('mousemove', elementDragIcon);
                     document.addEventListener('mouseup', stopDragIcon);
@@ -2067,6 +2306,7 @@
                 let newX = e.clientX - offsetX;
                 let newY = e.clientY - offsetY;
 
+                // Limita o arrasto à área do desktop
                 newX = Math.max(0, Math.min(newX, desktop.clientWidth - icon.offsetWidth));
                 newY = Math.max(0, Math.min(newY, desktop.clientHeight - icon.offsetHeight));
 
@@ -2079,10 +2319,43 @@
                     isDragging = false;
                     icon.style.cursor = 'pointer';
                     icon.style.zIndex = '';
-                    updateDesktopItemPosition(id, parseInt(icon.style.left), parseInt(icon.style.top));
-                    saveDesktopItems();
                     document.removeEventListener('mousemove', elementDragIcon);
                     document.removeEventListener('mouseup', stopDragIcon);
+
+                    // Encaixa o ícone na grade
+                    const desktopRect = desktop.getBoundingClientRect();
+                    const currentX = icon.getBoundingClientRect().left - desktopRect.left;
+                    const currentY = icon.getBoundingClientRect().top - desktopRect.top;
+
+                    let { row, col } = getGridPosition(currentX + desktopRect.left, currentY + desktopRect.top);
+
+                    // Garante que a posição esteja dentro dos limites da grade
+                    row = Math.max(0, Math.min(row, systemState.desktopGrid.rows - 1));
+                    col = Math.max(0, Math.min(col, systemState.desktopGrid.columns - 1));
+
+                    // Encontra a próxima posição disponível se a calculada estiver ocupada
+                    if (systemState.desktopGrid.positions[row][col] && systemState.desktopGrid.positions[row][col] !== id) {
+                        const nextPos = findNextAvailablePositionStartingFrom(row, col);
+                        if (nextPos) {
+                            row = nextPos.row;
+                            col = nextPos.col;
+                        } else {
+                            // Se não houver espaço, volta para a posição inicial
+                            row = initialGridPos.row;
+                            col = initialGridPos.col;
+                            axonAlert("Não foi possível mover o ícone para esta posição. Não há espaço disponível.");
+                        }
+                    }
+
+                    const finalX = col * systemState.desktopGrid.iconWidth + 20;
+                    const finalY = row * systemState.desktopGrid.iconHeight + 20;
+
+                    icon.style.left = `${finalX}px`;
+                    icon.style.top = `${finalY}px`;
+
+                    occupyPosition(row, col, id);
+                    updateDesktopItemPosition(id, finalX, finalY, row, col);
+                    saveDesktopItems();
                 }
             }
             
@@ -2091,12 +2364,29 @@
             saveDesktopItems(); // Salva o novo item
         }
 
+        // Encontrar a próxima posição disponível a partir de uma dada (para arrastar e soltar)
+        function findNextAvailablePositionStartingFrom(startRow, startCol) {
+            const rows = systemState.desktopGrid.rows;
+            const cols = systemState.desktopGrid.columns;
+
+            for (let col = startCol; col < cols; col++) {
+                for (let row = startRow; row < rows; row++) {
+                    if (!systemState.desktopGrid.positions[row][col]) {
+                        return { row, col };
+                    }
+                }
+            }
+            // Se não encontrou a partir da posição, procura do início
+            return findNextAvailablePosition();
+        }
+
         // Atualizar posição do item na área de trabalho
-        function updateDesktopItemPosition(id, x, y) {
+        function updateDesktopItemPosition(id, x, y, row, col) {
             const item = systemData.desktopItems.find(item => item.id === id);
             if (item) {
                 item.x = x;
                 item.y = y;
+                item.gridPos = { row, col };
             }
         }
 
@@ -2124,6 +2414,9 @@
             systemData.desktopItems = systemData.desktopItems.filter(item => item.id !== id);
             systemData.fileSystem.desktop = systemData.fileSystem.desktop.filter(item => item.id !== id);
             
+            // Libera a posição na grade
+            freePosition(id);
+
             // Se for uma pasta, remove também o diretório do fileSystem
             if (systemData.fileSystem[id]) {
                 delete systemData.fileSystem[id];
@@ -2176,17 +2469,40 @@
             systemState.desktopIcons = [];
             systemData.desktopItems = []; // Limpa a lista de itens do desktop
             systemData.fileSystem.desktop = []; // Limpa o diretório desktop no fileSystem
+            setupDesktopGrid(); // Reinicia a grade
 
             if (savedItems) {
-                systemData.desktopItems = JSON.parse(savedItems);
-                systemData.desktopItems.forEach(item => {
+                const parsedItems = JSON.parse(savedItems);
+                parsedItems.forEach(item => {
                     // Recria o ícone visual e adiciona ao fileSystem.desktop
-                    createDesktopItem(item.type, item.name, item.x, item.y, item.id); 
+                    // Tenta usar a posição salva, mas recalcula se necessário
+                    let { x, y, gridPos } = item;
+                    if (!gridPos || systemState.desktopGrid.positions[gridPos.row]?.[gridPos.col]) {
+                        // Se a posição salva estiver ocupada ou for inválida, encontra uma nova
+                        const newGridPos = findNextAvailablePosition();
+                        if (newGridPos) {
+                            gridPos = newGridPos;
+                            x = newGridPos.col * systemState.desktopGrid.iconWidth + 20;
+                            y = newGridPos.row * systemState.desktopGrid.iconHeight + 20;
+                        } else {
+                            console.warn(`Não foi possível encontrar uma posição para o item ${item.name}.`);
+                            return; // Pula este item se não houver espaço
+                        }
+                    }
+                    occupyPosition(gridPos.row, gridPos.col, item.id);
+                    createDesktopItem(item.type, item.name, x, y, item.id); 
+                    // Atualiza o item no systemData.desktopItems com a posição da grade
+                    const desktopItem = systemData.desktopItems.find(dItem => dItem.id === item.id);
+                    if (desktopItem) {
+                        desktopItem.x = x;
+                        desktopItem.y = y;
+                        desktopItem.gridPos = gridPos;
+                    }
                 });
             } else {
                 // Se não houver itens salvos, usa os itens padrão e os cria
                 systemData.desktopItems.forEach(item => {
-                    createDesktopItem(item.type, item.name, item.x, item.y, item.id);
+                    createDesktopItem(item.type, item.name); // createDesktopItem já encontra a posição
                 });
             }
 
@@ -2281,8 +2597,10 @@
             windowElement.style.width = `${app.minWidth}px`;
             windowElement.style.height = `${app.minHeight}px`;
             
+            // Posiciona a janela para não ultrapassar a menu-bar
+            const menuBarHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--menu-bar-height'));
             const left = Math.max(0, (window.innerWidth - app.minWidth) / 2 + (Math.random() * 100 - 50));
-            const top = Math.max(0, (window.innerHeight - app.minHeight) / 2 + (Math.random() * 100 - 50));
+            const top = Math.max(menuBarHeight, (window.innerHeight - app.minHeight) / 2 + (Math.random() * 100 - 50));
             windowElement.style.left = `${left}px`;
             windowElement.style.top = `${top}px`;
 
@@ -2582,6 +2900,7 @@
             function loadDirectory(directoryId, gridElement) {
                 gridElement.innerHTML = '';
                 systemState.currentDirectory = directoryId;
+                deselectAllIcons(); // Desseleciona ícones do desktop ao mudar de diretório no Finder
 
                 const currentDirectoryData = systemData.fileSystem[directoryId] || [];
                 
@@ -2591,6 +2910,7 @@
                     fileItem.dataset.id = item.id;
                     fileItem.dataset.type = item.type;
                     fileItem.dataset.name = item.name;
+                    fileItem.tabIndex = 0; // Torna o item focável
 
                     fileItem.innerHTML = `
                         <div class="file-icon"><i class="${fileIcons[item.type] || 'fas fa-file'}"></i></div>
@@ -2598,52 +2918,16 @@
                     `;
                     
                     fileItem.addEventListener('dblclick', () => {
-                        if (item.type === 'folder') {
-                            loadDirectory(item.id, gridElement);
-                        } else if (item.type === 'text') {
-                            openApp('notes');
-                            const notesWindow = systemState.openWindows.find(w => w.id === 'notes');
-                            if (notesWindow) {
-                                const textArea = notesWindow.element.querySelector('#note-content');
-                                if (textArea) {
-                                    const file = findFileInFileSystem(item.id);
-                                    if (file) {
-                                        textArea.value = file.content || '';
-                                        textArea.dataset.fileId = file.id;
-                                    }
-                                }
-                            }
-                        } else if (item.type === 'image') {
-                            // Verifica se a imagem tem um src antes de tentar abrir
-                            if (item.src) {
-                                openImageViewer(item.src);
-                            } else {
-                                axonAlert("Esta imagem não possui um caminho de origem definido.");
-                            }
-                        } else if (item.type === 'html-app') {
-                            openHtmlApp(item.path, item.name, item.icon);
-                        } else {
-                            axonAlert(`Não é possível abrir o arquivo "${item.name}". Tipo de arquivo não suportado.`);
-                        }
+                        openItem(item);
                     });
 
                     fileItem.addEventListener('click', () => {
-                        gridElement.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
-                        document.querySelectorAll('.desktop-icon').forEach(i => i.classList.remove('selected'));
-                        
-                        fileItem.classList.add('selected');
-                        systemState.selectedFileItem = item;
-                        systemState.selectedIcon = null;
+                        selectFileItem(fileItem);
                     });
 
                     fileItem.addEventListener('contextmenu', (e) => {
                         e.preventDefault();
-                        gridElement.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
-                        document.querySelectorAll('.desktop-icon').forEach(i => i.classList.remove('selected'));
-
-                        fileItem.classList.add('selected');
-                        systemState.selectedFileItem = item;
-                        systemState.selectedIcon = null;
+                        selectFileItem(fileItem);
                         showContextMenu(e, fileItem);
                     });
                     
@@ -2653,9 +2937,7 @@
                 gridElement.addEventListener('contextmenu', (e) => {
                     if (e.target === gridElement) {
                         e.preventDefault();
-                        document.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
-                        systemState.selectedFileItem = null;
-                        systemState.selectedIcon = null;
+                        deselectAllIcons();
                         showContextMenu(e, null);
                     }
                 });
@@ -2762,6 +3044,7 @@
                 fileItem.style.padding = '10px';
                 fileItem.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
                 fileItem.dataset.fileId = file.id;
+                fileItem.tabIndex = 0; // Torna o item focável
 
                 fileItem.innerHTML = `
                     <div><i class="${fileIcons[file.type] || 'fas fa-file'}"></i></div>
@@ -3172,21 +3455,14 @@
                 
                 const allImages = [];
                 // Adiciona imagens do fileSystem
-                for (const dir in systemData.fileSystem) {
-                    if (Array.isArray(systemData.fileSystem[dir])) {
-                        systemData.fileSystem[dir].forEach(file => {
-                            if (file.type === 'image' && file.src) {
-                                allImages.push(file);
-                            }
-                        });
-                    }
+                if (systemData.fileSystem.images) {
+                    systemData.fileSystem.images.forEach(file => {
+                        if (file.type === 'image' && file.src) {
+                            allImages.push(file);
+                        }
+                    });
                 }
-                // Adiciona fotos da câmera
-                systemState.cameraPhotos.forEach((photoSrc, index) => {
-                    allImages.push({ id: `camera-photo-${index}`, name: `Foto ${index + 1}`, type: 'image', src: photoSrc });
-                });
-
-
+                
                 allImages.forEach((photo, index) => {
                     const galleryItem = document.createElement('div');
                     galleryItem.className = 'gallery-item';
@@ -3211,27 +3487,7 @@
                         e.stopPropagation(); // Evita que o clique no item acione outros listeners
                         const confirmDelete = await axonConfirm("Tem certeza que deseja excluir esta imagem?");
                         if (confirmDelete) {
-                            // Remove da câmera photos se for uma foto da câmera
-                            if (photo.id.startsWith('camera-photo-')) {
-                                const photoIndex = parseInt(photo.id.replace('camera-photo-', ''));
-                                systemState.cameraPhotos.splice(photoIndex, 1);
-                            } else {
-                                // Remove do fileSystem
-                                let foundAndRemoved = false;
-                                for (const dir in systemData.fileSystem) {
-                                    if (Array.isArray(systemData.fileSystem[dir])) {
-                                        const initialLength = systemData.fileSystem[dir].length;
-                                        systemData.fileSystem[dir] = systemData.fileSystem[dir].filter(item => item.id !== photo.id);
-                                        if (systemData.fileSystem[dir].length < initialLength) {
-                                            foundAndRemoved = true;
-                                            break;
-                                        }
-                                    }
-                                }
-                                if (foundAndRemoved) {
-                                    saveDesktopItems(); // Salva as alterações no fileSystem
-                                }
-                            }
+                            deleteFileItem(photo.id, 'images');
                             loadGallery(); // Recarrega a galeria
                             axonAlert("Imagem excluída com sucesso!");
                         }
@@ -3291,15 +3547,37 @@
                     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                     
                     const photoData = canvas.toDataURL('image/png');
-                    systemState.cameraPhotos.push(photoData);
                     
+                    // Salva a foto no fileSystem.images
+                    const newImageId = `camera-photo-${Date.now()}`;
+                    const newImage = {
+                        id: newImageId,
+                        name: `Foto ${new Date().toLocaleString()}.png`,
+                        type: 'image',
+                        icon: fileIcons.image,
+                        src: photoData
+                    };
+                    if (!systemData.fileSystem.images) {
+                        systemData.fileSystem.images = [];
+                    }
+                    systemData.fileSystem.images.push(newImage);
+                    saveDesktopItems(); // Salva o fileSystem atualizado
+
                     // Atualiza a galeria se estiver aberta
                     const galleryWindow = systemState.openWindows.find(w => w.id === 'gallery');
                     if (galleryWindow) {
                         initGallery(galleryWindow.element);
                     }
+                    // Atualiza o finder se estiver aberto e no diretório de imagens
+                    const finderWindow = systemState.openWindows.find(w => w.id === 'finder');
+                    if (finderWindow && systemState.currentDirectory === 'images') {
+                        const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
+                        if (explorerGrid) {
+                            loadDirectory('images', explorerGrid);
+                        }
+                    }
                     
-                    await axonAlert('Foto capturada com sucesso!');
+                    await axonAlert('Foto capturada com sucesso e salva em Imagens!');
                 });
             } catch (err) {
                 console.error('Erro ao acessar a câmera:', err);
@@ -3631,8 +3909,16 @@
                 pos2 = pos4 - e.clientY;
                 pos3 = e.clientX;
                 pos4 = e.clientY;
-                windowElement.style.top = (windowElement.offsetTop - pos2) + "px";
-                windowElement.style.left = (windowElement.offsetLeft - pos1) + "px";
+
+                let newTop = (windowElement.offsetTop - pos2);
+                let newLeft = (windowElement.offsetLeft - pos1);
+
+                // Limita a janela para não ir acima da menu-bar
+                const menuBarHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--menu-bar-height'));
+                newTop = Math.max(menuBarHeight, newTop);
+
+                windowElement.style.top = newTop + "px";
+                windowElement.style.left = newLeft + "px";
             }
             
             function closeDragElement() {
@@ -3673,6 +3959,7 @@
                             systemState.activeWindow = null;
                         }
                     }
+                    showDock(); // Mostra o dock ao fechar a janela
                 }, 300);
             }
         }
@@ -3683,6 +3970,7 @@
                 windowElement.classList.remove('active');
                 setTimeout(() => {
                     windowElement.style.display = 'none';
+                    showDock(); // Mostra o dock ao minimizar a janela
                 }, 300);
             }
         }
@@ -3697,13 +3985,11 @@
                     windowElement.style.left = '';
                     windowElement.style.top = '';
                     windowElement.style.transform = ''; // Remove transform para restaurar posição original
+                    showDock(); // Mostra o dock ao restaurar
                 } else {
                     windowElement.classList.add('maximized');
-                    windowElement.style.width = 'calc(100% - 40px)';
-                    windowElement.style.height = 'calc(100% - 100px)';
-                    windowElement.style.left = '20px';
-                    windowElement.style.top = '50px';
-                    windowElement.style.transform = 'none'; // Garante que não haja transform de escala
+                    // As propriedades de top, left, width, height são definidas no CSS para .window.maximized
+                    hideDock(); // Esconde o dock ao maximizar
                 }
             }
         }
@@ -3727,6 +4013,15 @@
                 targetWindow.style.display = 'flex'; // Garante que a janela esteja visível
                 targetWindow.classList.add('active');
             }
+        }
+
+        // Funções para esconder/mostrar o dock
+        function hideDock() {
+            dock.classList.add('hidden');
+        }
+
+        function showDock() {
+            dock.classList.remove('hidden');
         }
 
         // Mostrar carrossel de janelas
@@ -3827,6 +4122,8 @@
             window.addEventListener('resize', () => {
                 canvas.width = window.innerWidth;
                 canvas.height = window.innerHeight;
+                setupDesktopGrid(); // Recalcula a grade ao redimensionar
+                loadDesktopItems(); // Reorganiza os ícones na nova grade
             });
         }
 
@@ -3931,6 +4228,7 @@
                 const appItemDiv = document.createElement('div');
                 appItemDiv.className = 'axon-app-item';
                 appItemDiv.dataset.appId = app.id;
+                appItemDiv.tabIndex = 0; // Torna o item focável
 
                 appItemDiv.innerHTML = `
                     <div class="icon-image">
@@ -3956,8 +4254,10 @@
             windowElement.style.width = `800px`; // Tamanho padrão para apps HTML
             windowElement.style.height = `600px`;
             
+            // Posiciona a janela para não ultrapassar a menu-bar
+            const menuBarHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--menu-bar-height'));
             const left = Math.max(0, (window.innerWidth - 800) / 2 + (Math.random() * 100 - 50));
-            const top = Math.max(0, (window.innerHeight - 600) / 2 + (Math.random() * 100 - 50));
+            const top = Math.max(menuBarHeight, (window.innerHeight - 600) / 2 + (Math.random() * 100 - 50));
             windowElement.style.left = `${left}px`;
             windowElement.style.top = `${top}px`;
 
