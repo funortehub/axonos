@@ -1,0 +1,2475 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Funorte Hub - Debug Panel</title>
+    <link rel="icon" href="https://i.imgur.com/nIt16yd.jpeg" type="image/jpeg"> <!-- Updated Favicon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=Roboto+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-dark: #1a1a2e; /* Darker background */
+            --primary-light: #16213e; /* Slightly lighter sections */
+            --accent: #0f4c75; /* Deep blue for accents */
+            --secondary-accent: #3282b8; /* Lighter blue for highlights */
+            --terminal-green: #00ff00; /* Classic terminal green */
+            --white: #e0e0e0; /* Off-white for text */
+            --gray: #a0a0a0; /* Lighter gray */
+            --dark-gray: #333;
+            --light-gray: #505050;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --error: #e74c3c;
+            --info: #3498db;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.3); /* Subtle shadow */
+            --transition: all 0.3s ease;
+            --border-radius: 6px;
+        }
+
+        body {
+            font-family: 'Roboto Mono', monospace; /* Monospace for body */
+            background-color: var(--primary-dark);
+            color: var(--white);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+            user-select: text;
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            overflow-x: hidden; /* Prevent horizontal scroll */
+        }
+
+        /* Background Grid Animation */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(to right, rgba(0, 255, 0, 0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0, 255, 0, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: -1;
+            opacity: 0.1;
+            animation: grid-pan 60s linear infinite;
+        }
+
+        @keyframes grid-pan {
+            from { background-position: 0 0; }
+            to { background-position: -4000px -4000px; }
+        }
+
+        .container {
+            background-color: var(--primary-light);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 25px;
+            width: 100%;
+            max-width: 1200px;
+            margin-bottom: 20px;
+            border: 1px solid var(--accent); /* Subtle border */
+            position: relative; /* For pseudo-elements */
+            overflow: hidden; /* Hide overflow from pseudo-elements */
+        }
+
+        /* Container border glow */
+        .container::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #00ff00, #3498db, #0f4c75, #00ff00);
+            background-size: 400% 400%;
+            z-index: -1;
+            border-radius: var(--border-radius);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            animation: border-glow 10s linear infinite;
+        }
+
+        .container:hover::before {
+            opacity: 0.5;
+        }
+
+        @keyframes border-glow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        h1, h2 {
+            font-family: 'Fira Code', monospace; /* Techy font for titles */
+            color: var(--secondary-accent); /* Lighter blue for titles */
+            margin-bottom: 20px;
+            text-align: center;
+            text-shadow: 0 0 8px rgba(50, 130, 184, 0.8); /* Stronger glow */
+            letter-spacing: 2px;
+            position: relative;
+            padding-bottom: 10px;
+        }
+
+        h1::after, h2::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            bottom: 0;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 2px;
+            background-color: var(--terminal-green);
+            box-shadow: 0 0 8px var(--terminal-green);
+        }
+
+        .section-title {
+            font-family: 'Fira Code', monospace;
+            font-weight: 600;
+            font-size: 1.3rem;
+            color: var(--white);
+            margin-top: 30px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid var(--accent);
+            padding-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title i {
+            color: var(--terminal-green);
+            text-shadow: 0 0 5px var(--terminal-green);
+        }
+
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--accent); /* Border for buttons */
+            font-family: 'Roboto Mono', monospace;
+            font-weight: 500;
+            font-size: 0.95rem;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            box-shadow: var(--shadow);
+            text-transform: uppercase;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            transition: all 0.5s ease;
+            transform: skewX(-20deg);
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary {
+            background-color: var(--accent);
+            color: var(--white);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--secondary-accent);
+            box-shadow: 0 0 15px var(--secondary-accent);
+        }
+
+        .btn-secondary {
+            background-color: var(--primary-dark);
+            color: var(--white);
+        }
+
+        .btn-secondary:hover {
+            background-color: #283a5e;
+            box-shadow: 0 0 15px rgba(22, 33, 62, 0.8);
+        }
+
+        .btn-info {
+            background-color: var(--info);
+            color: var(--white);
+        }
+
+        .btn-info:hover {
+            background-color: #2980b9;
+            box-shadow: 0 0 15px rgba(52, 152, 219, 0.8);
+        }
+
+        .btn-success {
+            background-color: var(--success);
+            color: var(--white);
+        }
+
+        .btn-success:hover {
+            background-color: #27ae60;
+            box-shadow: 0 0 15px rgba(46, 204, 113, 0.8);
+        }
+
+        .btn-warning {
+            background-color: var(--warning);
+            color: var(--white);
+        }
+
+        .btn-warning:hover {
+            background-color: #e67e22;
+            box-shadow: 0 0 15px rgba(243, 156, 18, 0.8);
+        }
+
+        .btn-danger {
+            background-color: var(--error);
+            color: var(--white);
+        }
+
+        .btn-danger:hover {
+            background-color: #c0392b;
+            box-shadow: 0 0 15px rgba(231, 76, 60, 0.8);
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--secondary-accent);
+            font-family: 'Fira Code', monospace;
+        }
+
+        .form-control {
+            width: calc(100% - 24px);
+            padding: 12px;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--accent);
+            background-color: rgba(0, 0, 0, 0.3); /* Darker input background */
+            color: var(--terminal-green); /* Green text for inputs */
+            font-size: 1rem;
+            transition: var(--transition);
+            box-shadow: inset 0 0 5px rgba(0, 255, 0, 0.2);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--secondary-accent);
+            box-shadow: 0 0 10px rgba(50, 130, 184, 0.8), inset 0 0 8px rgba(0, 255, 0, 0.5); /* Glow on focus */
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        select.form-control {
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2300ff00%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13.2-6.4H18.4c-5%200-9.3%201.8-13.2%206.4-3.9%204.5-6%2010-6%2016.3%200%206.2%202.1%2011.7%206%2016.3l128.8%20127.8c3.9%203.9%209.4%206%2015.8%206s11.9-2.1%2015.8-6L287%20102c3.9-4.5%206-10%206-16.3s-2.1-11.7-6-16.3z%22%2F%3E%3C%2Fsvg%3E'); /* Green arrow */
+            background-repeat: no-repeat;
+            background-position: right 10px top 50%;
+            background-size: 12px;
+        }
+
+        .terminal-container {
+            background-color: #000; /* Pure black for terminal */
+            border-radius: var(--border-radius);
+            padding: 15px;
+            margin-top: 20px;
+            height: 300px;
+            overflow-y: auto;
+            color: var(--terminal-green); /* Green text */
+            font-family: 'Fira Code', monospace; /* Fira Code for terminal */
+            white-space: pre-wrap;
+            word-break: break-all;
+            border: 1px solid var(--accent);
+            box-shadow: inset 0 0 15px rgba(0, 255, 0, 0.4); /* Stronger inner glow */
+            position: relative;
+        }
+
+        /* Terminal blinking cursor effect */
+        .terminal-container::after {
+            content: '_';
+            animation: blink-caret 1s step-end infinite;
+            color: var(--terminal-green);
+            font-size: 1.2em;
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            opacity: 0.7;
+        }
+
+        @keyframes blink-caret {
+            from, to { opacity: 0; }
+            50% { opacity: 1; }
+        }
+
+        .terminal-input-group {
+            display: flex;
+            margin-top: 10px;
+        }
+
+        .terminal-input {
+            flex-grow: 1;
+            background-color: #0a0a0a; /* Slightly lighter black for input */
+            border: 1px solid var(--accent);
+            color: var(--terminal-green);
+            padding: 10px;
+            border-radius: var(--border-radius);
+            font-family: 'Fira Code', monospace;
+            outline: none;
+            box-shadow: inset 0 0 5px rgba(0, 255, 0, 0.2);
+        }
+
+        .terminal-input::placeholder {
+            color: #505050; /* Darker placeholder */
+        }
+
+        .terminal-send-btn {
+            background-color: var(--accent);
+            color: var(--white);
+            border: 1px solid var(--accent);
+            padding: 10px 15px;
+            border-radius: var(--border-radius);
+            margin-left: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .terminal-send-btn:hover {
+            background-color: var(--secondary-accent);
+            box-shadow: 0 0 10px var(--secondary-accent);
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            line-height: 1.4;
+            position: relative;
+            padding-left: 15px;
+        }
+
+        .log-entry::before {
+            content: '>';
+            position: absolute;
+            left: 0;
+            color: var(--terminal-green);
+        }
+
+        .log-info { color: var(--terminal-green); }
+        .log-warning { color: var(--warning); }
+        .log-error { color: var(--error); }
+        .log-debug { color: #0ff; } /* Cyan for debug */
+        .log-api { color: #f90; } /* Orange for API */
+        .log-firestore { color: #00f; } /* Blue for Firestore */
+        .log-user-input { color: var(--white); } /* White for user input */
+        .log-success { color: var(--success); }
+
+        .image-preview-container {
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .image-preview-container img {
+            max-width: 100%;
+            height: auto;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            border: 2px solid var(--accent);
+            animation: image-fade-in 1s ease-out;
+        }
+
+        @keyframes image-fade-in {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .user-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid var(--primary-dark);
+            border-radius: var(--border-radius);
+            padding: 10px;
+            background-color: rgba(0, 0, 0, 0.2); /* Slightly transparent background */
+            box-shadow: inset 0 0 10px rgba(0, 255, 0, 0.1);
+        }
+
+        .user-item {
+            background-color: var(--primary-dark);
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            border-radius: var(--border-radius);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color 0.3s ease, border 0.3s ease, transform 0.2s ease;
+            border: 1px solid transparent;
+            position: relative;
+        }
+
+        .user-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background-color: var(--terminal-green);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .user-item:hover {
+            background-color: rgba(22, 33, 62, 0.8);
+            border: 1px solid var(--secondary-accent);
+            transform: translateX(5px);
+        }
+
+        .user-item:hover::before {
+            opacity: 1;
+        }
+
+        .user-item-info {
+            flex-grow: 1;
+        }
+
+        .user-item-actions .btn {
+            padding: 5px 10px;
+            font-size: 0.8rem;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.8); /* Darker modal overlay */
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px); /* Frosted glass effect */
+        }
+
+        .modal-content {
+            background-color: var(--primary-light);
+            margin: auto;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            width: 90%;
+            max-width: 800px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.9), 0 0 20px var(--secondary-accent); /* Stronger shadow for modal */
+            position: relative;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 1px solid var(--secondary-accent);
+            animation: modal-pop-in 0.4s ease-out;
+        }
+
+        @keyframes modal-pop-in {
+            from { opacity: 0; transform: scale(0.7); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--accent);
+            padding-bottom: 10px;
+        }
+
+        .modal-title {
+            font-family: 'Fira Code', monospace;
+            font-size: 1.5rem;
+            color: var(--secondary-accent);
+            text-shadow: 0 0 5px var(--secondary-accent);
+        }
+
+        .modal-close {
+            color: var(--gray);
+            font-size: 2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s ease, transform 0.3s ease;
+        }
+
+        .modal-close:hover,
+        .modal-close:focus {
+            color: var(--white);
+            transform: rotate(90deg);
+        }
+
+        .report-content {
+            background-color: var(--primary-dark);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            color: var(--white);
+            line-height: 1.6;
+            font-size: 0.95rem;
+            border: 1px solid var(--accent);
+            box-shadow: inset 0 0 10px rgba(0, 255, 0, 0.1);
+        }
+
+        .report-content h3 {
+            color: var(--secondary-accent);
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-family: 'Fira Code', monospace;
+            border-bottom: 1px dashed var(--accent);
+            padding-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .report-content h3 i {
+            color: var(--terminal-green);
+        }
+
+        .report-content ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .report-content ul li {
+            margin-bottom: 5px;
+        }
+
+        .report-content .data-label {
+            font-weight: bold;
+            color: var(--info);
+        }
+
+        .report-content .diary-entry, .report-content .checkin-entry {
+            background-color: rgba(22, 33, 62, 0.5); /* Slightly transparent primary-light */
+            padding: 10px;
+            border-radius: var(--border-radius);
+            margin-bottom: 10px;
+            border: 1px solid var(--accent);
+            box-shadow: 0 0 5px rgba(50, 130, 184, 0.3);
+        }
+
+        .report-content .diary-entry h4, .report-content .checkin-entry h4 {
+            color: var(--warning);
+            margin-top: 0;
+            margin-bottom: 5px;
+            font-family: 'Fira Code', monospace;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .report-content .diary-entry p, .report-content .checkin-entry p {
+            margin: 0;
+        }
+
+        .report-content .images-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .report-content .images-grid img {
+            width: 100%;
+            height: 80px;
+            object-fit: cover;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--gray);
+            transition: transform 0.2s ease;
+        }
+
+        .report-content .images-grid img:hover {
+            transform: scale(1.05);
+        }
+
+        .spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            border-top: 3px solid var(--secondary-accent); /* Accent color for spinner */
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            box-shadow: 0 0 10px var(--secondary-accent);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .pagination-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .pagination-controls button {
+            background-color: var(--primary-dark);
+            color: var(--white);
+            border: 1px solid var(--accent);
+            padding: 8px 12px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .pagination-controls button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .pagination-controls button:hover:not(:disabled) {
+            background-color: rgba(22, 33, 62, 0.8);
+            box-shadow: 0 0 10px rgba(22, 33, 62, 0.5);
+        }
+
+        .search-input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .search-input-group .form-control {
+            flex-grow: 1;
+        }
+
+        /* Styles for editable fields in modal */
+        .report-content .editable-field {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        .report-content .editable-field label {
+            flex: 0 0 150px;
+            font-weight: bold;
+            color: var(--secondary-accent); /* Accent color for labels */
+            margin-right: 10px;
+            font-family: 'Fira Code', monospace;
+        }
+
+        .report-content .editable-field span,
+        .report-content .editable-field input,
+        .report-content .editable-field select {
+            flex-grow: 1;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid var(--accent);
+            background-color: rgba(0, 0, 0, 0.3);
+            color: var(--terminal-green);
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+
+        .report-content .editable-field input:focus,
+        .report-content .editable-field select:focus {
+            outline: none;
+            border-color: var(--secondary-accent);
+            background-color: rgba(0, 0, 0, 0.5);
+            box-shadow: 0 0 8px rgba(50, 130, 184, 0.5);
+        }
+
+        .report-content .editable-field.view-mode input,
+        .report-content .editable-field.view-mode select {
+            border: none;
+            background-color: transparent;
+            padding: 8px 0;
+            cursor: default;
+            color: var(--white); /* White text in view mode */
+            box-shadow: none;
+        }
+
+        .report-content .editable-field.view-mode input:focus,
+        .report-content .editable-field.view-mode select:focus {
+            outline: none;
+            border-color: transparent;
+            background-color: transparent;
+            box-shadow: none;
+        }
+
+        /* Icon for editable fields */
+        .report-content .editable-field:not(.view-mode)::after {
+            content: '\f044'; /* FontAwesome pencil icon */
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            right: 10px;
+            color: var(--terminal-green);
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        /* Restore Modal Specific Styles */
+        .restore-modal-content {
+            background-color: var(--primary-light);
+            padding: 30px;
+            border-radius: var(--border-radius);
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.9), 0 0 20px var(--terminal-green);
+            text-align: center;
+            animation: modal-pop-in 0.4s ease-out;
+        }
+
+        .restore-modal-content h2 {
+            color: var(--terminal-green);
+            margin-bottom: 20px;
+            text-shadow: 0 0 8px rgba(0, 255, 0, 0.8);
+        }
+
+        .restore-modal-content input[type="password"] {
+            width: calc(100% - 24px);
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--accent);
+            background-color: rgba(0, 0, 0, 0.3);
+            color: var(--terminal-green);
+            font-size: 1rem;
+            text-align: center;
+        }
+
+        .restore-modal-content .btn-group {
+            justify-content: center;
+        }
+
+        /* Latency Display */
+        #latency-display {
+            position: absolute;
+            top: 0px; /* Adjusted to 0px */
+            right: 25px; /* Align with the right padding of the container */
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            padding: 5px 10px;
+            border-radius: 4px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border: 1px solid;
+            transition: color 0.3s ease, border-color 0.3s ease;
+            z-index: 10;
+            max-width: 150px; /* Limit width */
+            white-space: nowrap; /* Prevent text wrapping */
+            overflow: hidden; /* Hide overflow text */
+            text-overflow: ellipsis; /* Add ellipsis for overflow */
+        }
+
+        /* Adjust section-title for spacing with latency display */
+        .section-title-with-latency {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative; /* To contain the latency display */
+        }
+
+        .section-title-with-latency .section-title-text {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            .btn-group {
+                flex-direction: column;
+            }
+            .form-control {
+                width: calc(100% - 20px);
+            }
+            .search-input-group {
+                flex-direction: column;
+            }
+            .report-content .editable-field {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .report-content .editable-field label {
+                margin-bottom: 5px;
+                width: 100%;
+            }
+            .report-content .editable-field span,
+            .report-content .editable-field input,
+            .report-content .editable-field select {
+                width: calc(100% - 16px);
+            }
+            #latency-display {
+                position: static; /* Revert to static for smaller screens */
+                margin-top: 10px;
+                text-align: center;
+                width: 100%;
+                max-width: none; /* Remove max-width on mobile */
+                white-space: normal; /* Allow text wrapping on mobile */
+                text-overflow: clip; /* Remove ellipsis on mobile */
+            }
+            .section-title-with-latency {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><i class="fas fa-terminal"></i> Funorte Hub - Painel de Depuração <i class="fas fa-bug"></i></h1>
+
+        <!-- Moved latency display here, outside the terminal-container -->
+        <div class="section-title section-title-with-latency">
+            <div class="section-title-text">
+                <i class="fas fa-code"></i> Terminal
+            </div>
+            <div id="latency-display">Latência: -- ms</div>
+        </div>
+        <div class="terminal-container" id="api-status-terminal">
+            <div class="log-entry log-info">Iniciando Painel de Depuração...</div>
+        </div>
+        <div class="terminal-input-group">
+            <input type="text" class="terminal-input" id="command-input" placeholder="Digite um comando (ex: /help)">
+            <button class="terminal-send-btn" onclick="executeCommand()"><i class="fas fa-paper-plane"></i> Enviar</button>
+        </div>
+
+        <div class="section-title"><i class="fas fa-chart-line"></i> Monitoramento do Servidor em Tempo Real</div>
+        <div class="terminal-container" id="firestore-monitor-terminal">
+            <div class="log-entry log-info">Aguardando alterações no Servidor...</div>
+        </div>
+
+        <div class="section-title"><i class="fas fa-vial"></i> Testes de API</div>
+        <div class="image-preview-container" id="imgur-preview"></div>
+
+        <div class="section-title"><i class="fas fa-users-cog"></i> Gerenciamento de Usuários</div>
+        <div class="btn-group">
+            <button class="btn btn-success" onclick="loadUsersForReport('alunos', false)">
+                <i class="fas fa-user-graduate"></i> Carregar Alunos
+            </button>
+            <button class="btn btn-success" onclick="loadUsersForReport('professores', false)">
+                <i class="fas fa-chalkboard-teacher"></i> Carregar Professores
+            </button>
+            <button class="btn btn-warning" onclick="generateGeneralStudentsReport()">
+                <i class="fas fa-file-pdf"></i> Gerar Relatório Geral de Alunos
+            </button>
+        </div>
+        <div class="form-group">
+            <label for="search-user-input"><i class="fas fa-search"></i> Pesquisar Usuário:</label>
+            <div class="search-input-group">
+                <input type="text" id="search-user-input" class="form-control" placeholder="Pesquisar por nome..." oninput="filterAndPaginateUsers()">
+                <button class="btn btn-secondary" onclick="filterAndPaginateUsers()">
+                    <i class="fas fa-search"></i> Buscar
+                </button>
+            </div>
+        </div>
+        <div class="user-list" id="user-list-container">
+            <p>Carregue alunos ou professores para vê-los aqui.</p>
+        </div>
+        <div class="pagination-controls" id="user-pagination-controls" style="display: none;">
+            <button id="prev-user-page-btn" onclick="prevUserPage()" disabled><i class="fas fa-chevron-left"></i> Anterior</button>
+            <span id="user-page-info">Página 1 de 1</span>
+            <button id="next-user-page-btn" onclick="nextUserPage()" disabled>Próxima <i class="fas fa-chevron-right"></i></button>
+        </div>
+
+
+        <div class="section-title"><i class="fas fa-database"></i> Backup e Restauração de Dados</div>
+        <div class="btn-group">
+            <button class="btn btn-warning" onclick="backupFirestoreData()">
+                <i class="fas fa-download"></i> Fazer Backup do Servidor
+            </button>
+            <button class="btn btn-info" onclick="showRestoreModal()">
+                <i class="fas fa-upload"></i> Restaurar do Backup Local
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal para Relatório Específico -->
+    <div id="report-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="report-modal-title"><i class="fas fa-file-alt"></i> Relatório de Usuário</h2>
+                <span class="modal-close" onclick="closeReportModal()">&times;</span>
+            </div>
+            <div class="report-content" id="report-modal-body">
+                <!-- Conteúdo do relatório será injetado aqui -->
+            </div>
+            <div class="btn-group" style="margin-top: 20px;">
+                <button class="btn btn-primary" id="edit-report-btn" onclick="toggleEditMode()">
+                    <i class="fas fa-edit"></i> Editar
+                </button>
+                <button class="btn btn-success" id="save-report-btn" style="display: none;" onclick="saveUserReport()">
+                    <i class="fas fa-save"></i> Salvar
+                </button>
+                <button class="btn btn-secondary" id="cancel-edit-btn" style="display: none;" onclick="toggleEditMode(false)">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <button class="btn btn-info" onclick="downloadReportPdf()">
+                    <i class="fas fa-file-download"></i> Baixar PDF
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Restauração de Backup -->
+    <div id="restore-modal" class="modal">
+        <div class="restore-modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title"><i class="fas fa-upload"></i> Restaurar Backup</h2>
+                <span class="modal-close" onclick="closeRestoreModal()">&times;</span>
+            </div>
+            <p>Para restaurar o backup, por favor, insira a senha de administrador e selecione o arquivo JSON.</p>
+            <input type="password" id="admin-password-restore" placeholder="Senha de Administrador">
+            <input type="file" id="backup-file-input" accept=".json" style="display: none;">
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="document.getElementById('backup-file-input').click()">
+                    <i class="fas fa-folder-open"></i> Selecionar Arquivo
+                </button>
+                <button class="btn btn-success" onclick="restoreFirestoreData()">
+                    <i class="fas fa-upload"></i> Restaurar
+                </button>
+                <button class="btn btn-danger" onclick="closeRestoreModal()">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script>
+        // Firebase Configuration (EXPOSED FOR DEBUGGING - NOT FOR PRODUCTION)
+        const firebaseConfig = {
+            apiKey: "AIzaSyBq15tSYzmQPBQBSjrj3RMBL1y-kB6TTck",
+            authDomain: "funortehub.firebaseapp.com",
+            projectId: "funortehub",
+            storageBucket: "funortehub.appspot.com",
+            messagingSenderId: "369651480275",
+            appId: "1:369651480275:web:37601f22df012d94800626"
+        };
+
+        // Imgur Configuration (EXPOSED FOR DEBUGGING - NOT FOR PRODUCTION)
+        // IMPORTANT: This accessToken needs to be valid and have upload permissions.
+        // For anonymous uploads, use 'Client-ID YOUR_CLIENT_ID' in Authorization header.
+        const imgurClientId = '4ae8b96c539d446';
+        const imgurAccessToken = '898e039bb7db651c7b94f4d104a60aae3f5c6ff0'; // Replace with a valid token if needed
+
+        // Admin Password
+        const ADMIN_PASSWORD = "admin123";
+
+        // Initialize Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.firestore();
+
+        const apiStatusTerminal = document.getElementById('api-status-terminal');
+        const firestoreMonitorTerminal = document.getElementById('firestore-monitor-terminal');
+        const commandInput = document.getElementById('command-input');
+        const userListContainer = document.getElementById('user-list-container');
+        const reportModal = document.getElementById('report-modal');
+        const reportModalTitle = document.getElementById('report-modal-title');
+        const reportModalBody = document.getElementById('report-modal-body');
+        const searchUserInput = document.getElementById('search-user-input');
+        const userPaginationControls = document.getElementById('user-pagination-controls');
+        const prevUserPageBtn = document.getElementById('prev-user-page-btn');
+        const nextUserPageBtn = document.getElementById('next-user-page-btn');
+        const userPageInfo = document.getElementById('user-page-info');
+        const editReportBtn = document.getElementById('edit-report-btn');
+        const saveReportBtn = document.getElementById('save-report-btn');
+        const cancelEditBtn = document.getElementById('cancel-edit-btn');
+        const restoreModal = document.getElementById('restore-modal');
+        const adminPasswordRestoreInput = document.getElementById('admin-password-restore');
+        const backupFileInput = document.getElementById('backup-file-input');
+        const latencyDisplay = document.getElementById('latency-display'); // New element for latency
+
+        let allUsers = []; // Stores all loaded students/teachers for reports
+        let filteredUsers = []; // Stores users after search filter
+        let currentReportUser = null; // Stores the user selected for specific report
+        let currentPage = 1;
+        const usersPerPage = 10;
+        let currentLoadedUserType = ''; // To keep track of 'alunos' or 'professores'
+        let isEditMode = false; // Track if the modal is in edit mode
+        let pingIntervalId; // To store the interval ID for clearing later
+
+        // Variáveis para o modo de manutenção
+        let maintenanceMessageDocId = null; // Armazena o ID do documento da mensagem de manutenção
+        let originalPendingStudents = new Set(); // Armazena IDs de alunos que já estavam 'pending'
+
+        // List of available commands for autocompletion
+        const availableCommands = [
+            '/help',
+            '/clear',
+            '/clear-monitor',
+            '/ping', // New command
+            '/find', // New command
+            '/test-imgur',
+            '/test-firestore',
+            '/load-students',
+            '/load-teachers',
+            '/backup',
+            '/count-users',
+            '/get-user',
+            '/set-status',
+            '/delete-user',
+            '/show-api',
+            '/restore-backup',
+            '/maintenance on', // New maintenance command
+            '/maintenance off' // New maintenance command
+        ];
+
+        // Utility Functions
+        function logToTerminal(message, type = 'info', terminal = apiStatusTerminal) {
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            terminal.appendChild(logEntry);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        function formatDate(dateInput) {
+            if (!dateInput) return ''; // Return empty string for input type="date"
+            try {
+                let date;
+                if (dateInput.toDate) {
+                    date = dateInput.toDate();
+                } else {
+                    date = new Date(dateInput);
+                }
+                // Format to YYYY-MM-DD for input type="date"
+                return date.toISOString().split('T')[0];
+            } catch (e) {
+                return '';
+            }
+        }
+
+        function formatDisplayDate(dateInput) {
+            if (!dateInput) return 'Não informado';
+            try {
+                let date;
+                if (dateInput.toDate) {
+                    date = dateInput.toDate();
+                } else {
+                    date = new Date(dateInput);
+                }
+                const offset = -3; // Brasília timezone offset
+                const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+                const brasiliaTime = new Date(utc + (3600000 * offset));
+                return brasiliaTime.toLocaleDateString('pt-BR');
+            } catch (e) {
+                return 'Data inválida';
+            }
+        }
+
+        function formatDateTime(dateInput) {
+            if (!dateInput) return 'Não informado';
+            try {
+                let date;
+                if (dateInput.toDate) {
+                    date = dateInput.toDate();
+                } else {
+                    date = new Date(dateInput);
+                }
+                const offset = -3; // Brasília timezone offset
+                const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+                const brasiliaTime = new Date(utc + (3600000 * offset));
+                return brasiliaTime.toLocaleString('pt-BR');
+            } catch (e) {
+                return 'Data/Hora inválida';
+            }
+        }
+
+        function getCourseName(courseId) {
+            const courses = {
+                'medicine': 'Medicina',
+                'nursing': 'Enfermagem',
+                'dentistry': 'Odontologia',
+                'physiotherapy': 'Fisioterapia',
+                'nutrition': 'Nutrição',
+                'bis': 'BIS',
+                'bacimed': 'BACIMED'
+            };
+            return courses[courseId] || 'Não especificado';
+        }
+
+        function getCourseId(courseName) {
+            const courses = {
+                'Medicina': 'medicine',
+                'Enfermagem': 'nursing',
+                'Odontologia': 'dentistry',
+                'Fisioterapia': 'physiotherapy',
+                'Nutrição': 'nutrition',
+                'BIS': 'bis',
+                'BACIMED': 'bacimed'
+            };
+            return courses[courseName] || '';
+        }
+
+        // API Status and Credential Display
+        function displayApiCredentials(full = false) {
+            logToTerminal('--- Credenciais da API ---', 'debug');
+            logToTerminal(`Firebase Project ID: ${firebaseConfig.projectId}`, 'debug');
+            if (full) {
+                logToTerminal(`Firebase API Key: ${firebaseConfig.apiKey}`, 'debug');
+                logToTerminal(`Imgur Client ID: ${imgurClientId}`, 'debug');
+                logToTerminal(`Imgur Access Token: ${imgurAccessToken}`, 'debug');
+            } else {
+                logToTerminal(`Firebase API Key: ${firebaseConfig.apiKey.substring(0, 5)}...${firebaseConfig.apiKey.length > 5 ? firebaseConfig.apiKey.substring(firebaseConfig.apiKey.length - 5) : ''}`, 'debug');
+                logToTerminal(`Imgur Client ID: ${imgurClientId.substring(0, 5)}...${imgurClientId.length > 5 ? imgurClientId.substring(imgurClientId.length - 5) : ''}`, 'debug');
+                logToTerminal(`Imgur Access Token: ${imgurAccessToken.substring(0, 5)}...${imgurAccessToken.length > 5 ? imgurAccessToken.substring(imgurAccessToken.length - 5) : ''}`, 'debug');
+            }
+            logToTerminal('-------------------------', 'debug');
+        }
+
+        // API Tests
+        async function testImgurUpload() {
+            logToTerminal('Iniciando teste de upload Imgur...', 'api');
+            const imgurPreview = document.getElementById('imgur-preview');
+            imgurPreview.innerHTML = '<div class="spinner"></div><p>Gerando imagem aleatória e fazendo upload...</p>';
+
+            try {
+                // 1. Gerar uma imagem aleatória usando Canvas
+                const canvas = document.createElement('canvas');
+                canvas.width = 200;
+                canvas.height = 100;
+                const ctx = canvas.getContext('2d');
+
+                // Preencher com uma cor aleatória
+                const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16);
+                ctx.fillStyle = randomColor;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Adicionar texto
+                ctx.font = '20px Arial';
+                ctx.fillStyle = '#FFFFFF';
+                ctx.textAlign = 'center';
+                ctx.fillText('Funorte Test', canvas.width / 2, canvas.height / 2 - 10);
+                ctx.fillText(new Date().toLocaleTimeString(), canvas.width / 2, canvas.height / 2 + 15);
+
+                // 2. Converter o Canvas para Blob
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+
+                const formData = new FormData();
+                formData.append('image', blob, 'funorte_test_image.png'); // Adiciona um nome de arquivo
+
+                const uploadResponse = await fetch('https://api.imgur.com/3/image', {
+                    method: 'POST',
+                    headers: {
+                        // Use Client-ID for anonymous uploads, or Bearer for authenticated uploads
+                        // 'Authorization': `Client-ID ${imgurClientId}` 
+                        'Authorization': `Bearer ${imgurAccessToken}` // Use this if you have a valid OAuth2 token
+                    },
+                    body: formData
+                });
+
+                logToTerminal(`Imgur API Response Status: ${uploadResponse.status} ${uploadResponse.statusText}`, 'debug');
+
+                const data = await uploadResponse.json();
+
+                if (uploadResponse.ok && data.success) {
+                    logToTerminal(`Upload Imgur bem-sucedido! URL: ${data.data.link}`, 'success');
+                    imgurPreview.innerHTML = `<p>Upload bem-sucedido!</p><img src="${data.data.link}" alt="Uploaded Image">`;
+                } else {
+                    logToTerminal(`Falha no upload Imgur: ${data.data.error || 'Erro desconhecido'}`, 'error');
+                    imgurPreview.innerHTML = `<p style="color: var(--error);">Falha no upload Imgur: ${data.data.error || 'Erro desconhecido'}</p>`;
+                }
+            } catch (error) {
+                logToTerminal(`Erro ao testar upload Imgur: ${error.message}`, 'error');
+                imgurPreview.innerHTML = `<p style="color: var(--error);">Erro ao testar upload Imgur: ${error.message}</p>`;
+            }
+        }
+
+        async function testFirestoreConnection() {
+            logToTerminal('Iniciando teste de conexão Firestore...', 'api');
+            try {
+                // Try to read a small, non-sensitive collection or a single document
+                const testDocRef = db.collection('debug_panel_status').doc('connection_test');
+                await testDocRef.set({ last_checked: firebase.firestore.FieldValue.serverTimestamp() });
+                const doc = await testDocRef.get();
+                if (doc.exists) {
+                    logToTerminal('Conexão Firestore bem-sucedida! Documento de teste atualizado.', 'success');
+                } else {
+                    logToTerminal('Conexão Firestore bem-sucedida, mas documento de teste não encontrado após criação.', 'warning');
+                }
+            } catch (error) {
+                logToTerminal(`Falha na conexão Firestore: ${error.message}`, 'error');
+            }
+        }
+
+        // User Management and Reports
+        async function loadUsersForReport(type, displayInTerminal = false) {
+            logToTerminal(`Carregando ${type}...`, 'info');
+            if (!displayInTerminal) {
+                userListContainer.innerHTML = '<div class="spinner"></div><p>Carregando usuários...</p>';
+            }
+            
+            const usersToProcess = [];
+
+            try {
+                const collectionRef = db.collection(type);
+                const snapshot = await collectionRef.orderBy('fullname').get();
+
+                if (snapshot.empty) {
+                    if (displayInTerminal) {
+                        logToTerminal(`Nenhum ${type} encontrado.`, 'warning');
+                    } else {
+                        userListContainer.innerHTML = `<p>Nenhum ${type} encontrado.</p>`;
+                        userPaginationControls.style.display = 'none';
+                    }
+                    return;
+                }
+
+                snapshot.forEach(doc => {
+                    const user = { id: doc.id, ...doc.data(), type: type };
+                    usersToProcess.push(user);
+                });
+
+                if (displayInTerminal) {
+                    logToTerminal(`--- Lista de ${type.charAt(0).toUpperCase() + type.slice(1)} (${usersToProcess.length}) ---`, 'info');
+                    usersToProcess.forEach(user => {
+                        logToTerminal(`ID: ${user.id} | Nome: ${user.fullname} | Matrícula: ${user.registration || 'N/A'} | CPF: ${user.cpf || 'N/A'} | Status: ${user.status || 'N/A'}`, 'debug');
+                    });
+                    logToTerminal(`--- Fim da Lista de ${type.charAt(0).toUpperCase() + type.slice(1)} ---`, 'info');
+                } else {
+                    allUsers = usersToProcess; // Only update allUsers for the UI list
+                    currentLoadedUserType = type; // Set the type of users currently loaded
+                    logToTerminal(`${allUsers.length} ${type} carregados com sucesso para a interface.`, 'success');
+                    currentPage = 1; // Reset to first page
+                    filterAndPaginateUsers(); // Apply filter and render first page
+                }
+
+            } catch (error) {
+                logToTerminal(`Erro ao carregar ${type}: ${error.message}`, 'error');
+                if (!displayInTerminal) {
+                    userListContainer.innerHTML = `<p style="color: var(--error);">Erro ao carregar usuários: ${error.message}</p>`;
+                    userPaginationControls.style.display = 'none';
+                }
+            }
+        }
+
+        function filterAndPaginateUsers() {
+            const searchTerm = searchUserInput.value.toLowerCase();
+            filteredUsers = allUsers.filter(user =>
+                user.fullname.toLowerCase().includes(searchTerm) ||
+                (user.username && user.username.toLowerCase().includes(searchTerm)) ||
+                (user.registration && user.registration.toLowerCase().includes(searchTerm))
+            );
+            currentPage = 1; // Reset to first page after filtering
+            renderUserList();
+        }
+
+        function renderUserList() {
+            userListContainer.innerHTML = '';
+
+            const startIndex = (currentPage - 1) * usersPerPage;
+            const endIndex = startIndex + usersPerPage;
+            const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+
+            if (paginatedUsers.length === 0) {
+                userListContainer.innerHTML = '<p>Nenhum usuário encontrado com este critério de busca.</p>';
+                userPaginationControls.style.display = 'none';
+                return;
+            }
+
+            paginatedUsers.forEach(user => {
+                const userItem = document.createElement('div');
+                userItem.className = 'user-item';
+                userItem.innerHTML = `
+                    <div class="user-item-info">
+                        <strong>${user.fullname}</strong> (${user.role || user.type})<br>
+                        Matrícula: ${user.registration || 'N/A'} | CPF: ${user.cpf || 'N/A'}
+                    </div>
+                    <div class="user-item-actions">
+                        <button class="btn btn-info" onclick="viewSpecificUser('${user.id}', '${user.type}')">
+                            <i class="fas fa-eye"></i> Ver Detalhes
+                        </button>
+                    </div>
+                `;
+                userListContainer.appendChild(userItem);
+            });
+
+            updatePaginationControls();
+        }
+
+        function updatePaginationControls() {
+            const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
+            userPageInfo.textContent = `Página ${currentPage} de ${totalPages}`;
+            prevUserPageBtn.disabled = currentPage === 1;
+            nextUserPageBtn.disabled = currentPage === totalPages || totalPages === 0;
+            userPaginationControls.style.display = 'flex';
+        }
+
+        function prevUserPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                renderUserList();
+            }
+        }
+
+        function nextUserPage() {
+            const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderUserList();
+            }
+        }
+
+        async function viewSpecificUser(userId, userType) {
+            const user = allUsers.find(u => u.id === userId && u.type === userType);
+            if (!user) {
+                logToTerminal('Usuário não encontrado para visualização.', 'error');
+                return;
+            }
+            currentReportUser = user;
+            isEditMode = false; // Always start in view mode
+            await generateSpecificUserReport(); // Generate and display in modal
+        }
+
+        async function generateSpecificUserReport() {
+            if (!currentReportUser) {
+                logToTerminal('Nenhum usuário selecionado para relatório específico.', 'warning');
+                alert('Por favor, selecione um usuário primeiro.');
+                return;
+            }
+
+            logToTerminal(`Gerando relatório para ${currentReportUser.fullname}...`, 'info');
+            reportModalTitle.textContent = `Relatório de ${currentReportUser.fullname}`;
+            reportModalBody.innerHTML = '<div class="spinner"></div><p>Gerando relatório...</p>';
+            reportModal.style.display = 'flex';
+            updateModalButtons(); // Show/hide edit/save buttons
+
+            try {
+                let reportHtml = `
+                    <h3><i class="fas fa-user-circle"></i> Informações Pessoais</h3>
+                    <div class="editable-field ${isEditMode ? '' : 'view-mode'}">
+                        <label>Nome Completo:</label>
+                        ${isEditMode ? `<input type="text" id="edit-fullname" value="${currentReportUser.fullname || ''}">` : `<span>${currentReportUser.fullname || 'Não informado'}</span>`}
+                    </div>
+                    <div class="editable-field ${isEditMode ? '' : 'view-mode'}">
+                        <label>Data de Nascimento:</label>
+                        ${isEditMode ? `<input type="date" id="edit-birthdate" value="${formatDate(currentReportUser.birthdate)}">` : `<span>${formatDisplayDate(currentReportUser.birthdate)}</span>`}
+                    </div>
+                    <div class="editable-field ${isEditMode ? '' : 'view-mode'}">
+                        <label>CPF:</label>
+                        ${isEditMode ? `<input type="text" id="edit-cpf" value="${currentReportUser.cpf || ''}">` : `<span>${currentReportUser.cpf || 'Não informado'}</span>`}
+                    </div>
+                    <div class="editable-field ${isEditMode ? '' : 'view-mode'}">
+                        <label>Matrícula:</label>
+                        ${isEditMode ? `<input type="text" id="edit-registration" value="${currentReportUser.registration || ''}">` : `<span>${currentReportUser.registration || 'Não informado'}</span>`}
+                    </div>
+                    <div class="editable-field ${isEditMode ? '' : 'view-mode'}">
+                        <label>Nome de Usuário:</label>
+                        ${isEditMode ? `<input type="text" id="edit-username" value="${currentReportUser.username || ''}">` : `<span>${currentReportUser.username || 'Não informado'}</span>`}
+                    </div>
+                    <div class="editable-field ${isEditMode ? '' : 'view-mode'}">
+                        <label>Senha:</label>
+                        ${isEditMode ? `<input type="text" id="edit-password" value="${currentReportUser.password || ''}">` : `<span>${currentReportUser.password || 'Não informado'}</span>`}
+                    </div>
+                    <div class="editable-field ${isEditMode ? '' : 'view-mode'}">
+                        <label>Tipo de Usuário:</label>
+                        <span>${currentReportUser.role || currentReportUser.type}</span> <!-- Role is usually fixed -->
+                    </div>
+                    <div class="editable-field ${isEditMode ? '' : 'view-mode'}">
+                        <label>Curso:</label>
+                        ${isEditMode ? `
+                            <select id="edit-course">
+                                <option value="">Selecione</option>
+                                <option value="medicine" ${currentReportUser.course === 'medicine' ? 'selected' : ''}>Medicina</option>
+                                <option value="nursing" ${currentReportUser.course === 'nursing' ? 'selected' : ''}>Enfermagem</option>
+                                <option value="dentistry" ${currentReportUser.course === 'dentistry' ? 'selected' : ''}>Odontologia</option>
+                                <option value="physiotherapy" ${currentReportUser.course === 'physiotherapy' ? 'selected' : ''}>Fisioterapia</option>
+                                <option value="nutrition" ${currentReportUser.course === 'nutrition' ? 'selected' : ''}>Nutrição</option>
+                                <option value="bis" ${currentReportUser.course === 'bis' ? 'selected' : ''}>BIS</option>
+                                <option value="bacimed" ${currentReportUser.course === 'bacimed' ? 'selected' : ''}>BACIMED</option>
+                            </select>
+                        ` : `<span>${getCourseName(currentReportUser.course || 'N/A')}</span>`}
+                    </div>
+                    <div class="editable-field ${isEditMode ? '' : 'view-mode'}">
+                        <label>Status da Conta:</label>
+                        ${isEditMode ? `
+                            <select id="edit-status">
+                                <option value="active" ${currentReportUser.status === 'active' ? 'selected' : ''}>Ativo</option>
+                                <option value="blocked" ${currentReportUser.status === 'blocked' ? 'selected' : ''}>Bloqueado</option>
+                            </select>
+                        ` : `<span>${currentReportUser.status}</span>`}
+                    </div>
+                    ${currentReportUser.status === 'blocked' ? `
+                        <div class="editable-field ${isEditMode ? '' : 'view-mode'}">
+                            <label>Motivo do Bloqueio:</label>
+                            ${isEditMode ? `<input type="text" id="edit-blockReason" value="${currentReportUser.blockReason || ''}">` : `<span>${currentReportUser.blockReason || 'Não informado'}</span>`}
+                        </div>
+                    ` : ''}
+                    <div class="editable-field ${isEditMode ? '' : 'view-mode'}">
+                        <label>Status de Registro:</label>
+                        ${isEditMode ? `<input type="text" id="edit-registrationStatus" value="${currentReportUser.registrationStatus || ''}">` : `<span>${currentReportUser.registrationStatus || 'Não informado'}</span>`}
+                    </div>
+                    <div class="editable-field ${isEditMode ? '' : 'view-mode'}">
+                        <label>Tipo de Internato:</label>
+                        ${isEditMode ? `<input type="text" id="edit-internatoType" value="${currentReportUser.internatoType || ''}">` : `<span>${currentReportUser.internatoType || 'Não informado'}</span>`}
+                    </div>
+                    <div class="editable-field view-mode">
+                        <label>Criado em:</label>
+                        <span>${formatDateTime(currentReportUser.createdAt)}</span>
+                    </div>
+                `;
+
+                if (currentReportUser.type === 'alunos') {
+                    // Fetch Diaries
+                    const diariesSnapshot = await db.collection('Diario')
+                        .where('userId', '==', currentReportUser.id)
+                        .orderBy('createdAt', 'desc')
+                        .get();
+
+                    reportHtml += `<h3><i class="fas fa-book"></i> Diários de Campo (${diariesSnapshot.size})</h3>`;
+                    if (diariesSnapshot.empty) {
+                        reportHtml += '<p>Nenhum diário de campo registrado.</p>';
+                    } else {
+                        diariesSnapshot.forEach(doc => {
+                            const diary = doc.data();
+                            reportHtml += `
+                                <div class="diary-entry">
+                                    <h4><i class="fas fa-sticky-note"></i> ${diary.title}</h4>
+                                    <p><span class="data-label">Data:</span> ${formatDisplayDate(diary.date)}</p>
+                                    <p><span class="data-label">Professor:</span> ${diary.professorName || 'N/A'}</p>
+                                    <p><span class="data-label">Status:</span> ${diary.status}</p>
+                                    ${diary.grade !== undefined && diary.grade !== null ? `<p><span class="data-label">Nota:</span> ${diary.grade}</p>` : ''}
+                                    ${diary.comments ? `<p><span class="data-label">Comentários:</span> ${diary.comments}</p>` : ''}
+                                    <p><span class="data-label">Descrição:</span> ${diary.text}</p>
+                                    ${diary.images && diary.images.length > 0 ? `
+                                        <p><span class="data-label">Imagens:</span></p>
+                                        <div class="images-grid">
+                                            ${diary.images.map(img => `<img src="${img}" alt="Diary Image">`).join('')}
+                                        </div>
+                                    ` : '<p>Nenhuma imagem anexada.</p>'}
+                                </div>
+                            `;
+                        });
+                    }
+
+                    // Fetch Check-ins
+                    const checkinsSnapshot = await db.collection('checkins')
+                        .where('studentId', '==', currentReportUser.id)
+                        .orderBy('checkinTime', 'desc')
+                        .get();
+
+                    reportHtml += `<h3><i class="fas fa-map-marker-alt"></i> Histórico de Check-ins (${checkinsSnapshot.size})</h3>`;
+                    if (checkinsSnapshot.empty) {
+                        reportHtml += '<p>Nenhum check-in registrado.</p>';
+                    } else {
+                        checkinsSnapshot.forEach(doc => {
+                            const checkin = doc.data();
+                            reportHtml += `
+                                <div class="checkin-entry">
+                                    <h4><i class="fas fa-clock"></i> Check-in com ${checkin.preceptorName || 'N/A'}</h4>
+                                    <p><span class="data-label">Hora do Check-in:</span> ${formatDateTime(checkin.checkinTime)}</p>
+                                    <p><span class="data-label">Localização:</span> ${checkin.latitude}, ${checkin.longitude} (${checkin.locationType === 'ip' ? 'Aproximada por IP' : 'GPS'})</p>
+                                    <p><span class="data-label">Status:</span> ${checkin.status}</p>
+                                    ${checkin.approvedBy ? `<p><span class="data-label">Aprovado por:</span> ${checkin.approvedBy}</p>` : ''}
+                                    ${checkin.denialReason ? `<p><span class="data-label">Motivo da Recusa:</span> ${checkin.denialReason}</p>` : ''}
+                                </div>
+                            `;
+                        });
+                    }
+                }
+
+                reportModalBody.innerHTML = reportHtml;
+                logToTerminal(`Relatório para ${currentReportUser.fullname} gerado com sucesso.`, 'success');
+
+            } catch (error) {
+                logToTerminal(`Erro ao gerar relatório para ${currentReportUser.fullname}: ${error.message}`, 'error');
+                reportModalBody.innerHTML = `<p style="color: var(--error);">Erro ao gerar relatório: ${error.message}</p>`;
+            }
+        }
+
+        function updateModalButtons() {
+            if (isEditMode) {
+                editReportBtn.style.display = 'none';
+                saveReportBtn.style.display = 'flex';
+                cancelEditBtn.style.display = 'flex';
+            } else {
+                editReportBtn.style.display = 'flex';
+                saveReportBtn.style.display = 'none';
+                cancelEditBtn.style.display = 'none';
+            }
+        }
+
+        function toggleEditMode(enable = !isEditMode) {
+            isEditMode = enable;
+            generateSpecificUserReport(); // Re-render the report in the new mode
+        }
+
+        async function saveUserReport() {
+            if (!currentReportUser) {
+                logToTerminal('Nenhum usuário selecionado para salvar.', 'warning');
+                return;
+            }
+
+            logToTerminal(`Salvando alterações para ${currentReportUser.fullname}...`, 'info');
+            const userId = currentReportUser.id;
+            const userType = currentReportUser.type; // 'alunos' or 'professores'
+
+            const updatedData = {
+                fullname: document.getElementById('edit-fullname').value,
+                birthdate: document.getElementById('edit-birthdate').value ? new Date(document.getElementById('edit-birthdate').value) : null, // Convert to Date object, handle empty
+                cpf: document.getElementById('edit-cpf').value,
+                registration: document.getElementById('edit-registration').value,
+                username: document.getElementById('edit-username').value,
+                password: document.getElementById('edit-password').value, // Added password field
+                course: document.getElementById('edit-course') ? document.getElementById('edit-course').value : currentReportUser.course, // Only for students
+                status: document.getElementById('edit-status').value,
+                registrationStatus: document.getElementById('edit-registrationStatus').value,
+                internatoType: document.getElementById('edit-internatoType').value,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            // Handle blockReason specifically
+            if (updatedData.status === 'blocked') {
+                updatedData.blockReason = document.getElementById('edit-blockReason') ? document.getElementById('edit-blockReason').value : '';
+            } else {
+                updatedData.blockReason = ''; // Clear reason if status is not blocked
+            }
+
+            try {
+                // Update in the specific collection (alunos/professores)
+                await db.collection(userType).doc(userId).update(updatedData);
+
+                // Also update in the 'users' collection if relevant fields exist there
+                const userDocRef = db.collection('users').where('userId', '==', userId).limit(1);
+                const userDocSnapshot = await userDocRef.get();
+                if (!userDocSnapshot.empty) {
+                    const userGlobalDoc = userDocSnapshot.docs[0];
+                    const globalUpdateData = {
+                        fullname: updatedData.fullname,
+                        username: updatedData.username,
+                        password: updatedData.password, // Added password field
+                        status: updatedData.status,
+                        blockReason: updatedData.blockReason,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    await userGlobalDoc.ref.update(globalUpdateData);
+                }
+
+                logToTerminal(`Dados do usuário ${currentReportUser.fullname} atualizados com sucesso no Firestore.`, 'success');
+                // Update currentReportUser object with new data
+                currentReportUser = { ...currentReportUser, ...updatedData };
+                // Re-render in view mode
+                toggleEditMode(false);
+                // Reload the main user list to reflect changes
+                loadUsersForReport(currentLoadedUserType, false); // Pass false to not display in terminal
+
+            } catch (error) {
+                logToTerminal(`Erro ao salvar dados do usuário: ${error.message}`, 'error');
+                alert(`Erro ao salvar dados: ${error.message}`);
+            }
+        }
+
+
+        function closeReportModal() {
+            reportModal.style.display = 'none';
+            isEditMode = false; // Reset edit mode when closing
+        }
+
+        async function downloadReportPdf() {
+            logToTerminal('Iniciando download do relatório em PDF...', 'info');
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'pt', 'a4');
+            const content = document.getElementById('report-modal-body');
+
+            // Temporarily adjust styles for PDF rendering if needed
+            const originalStyles = content.style.cssText;
+            content.style.padding = '20px';
+            content.style.backgroundColor = '#0d1b2a';
+            content.style.color = '#ffffff';
+
+            try {
+                const canvas = await html2canvas(content, {
+                    scale: 2, // Increase scale for better quality
+                    useCORS: true, // Important for images from external URLs (like Imgur)
+                    logging: false // Disable html2canvas logs
+                });
+
+                const imgData = canvas.toDataURL('image/png');
+                const imgWidth = 595.28; // A4 width in points
+                const pageHeight = 841.89; // A4 height in points
+                const imgHeight = canvas.height * imgWidth / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
+
+                doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    doc.addPage();
+                    doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+
+                doc.save(`${reportModalTitle.textContent.replace(/ /g, '_')}.pdf`);
+                logToTerminal('Relatório PDF baixado com sucesso!', 'success');
+            } catch (error) {
+                logToTerminal(`Erro ao baixar PDF: ${error.message}`, 'error');
+                alert('Erro ao gerar PDF. Verifique o console para mais detalhes.');
+            } finally {
+                // Restore original styles
+                content.style.cssText = originalStyles;
+            }
+        }
+
+        async function generateGeneralStudentsReport() {
+            logToTerminal('Gerando relatório geral de alunos em PDF...', 'info');
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'pt', 'a4');
+
+            try {
+                const studentsSnapshot = await db.collection('alunos').orderBy('fullname').get();
+                const students = studentsSnapshot.docs.map(doc => doc.data());
+
+                if (students.length === 0) {
+                    logToTerminal('Nenhum aluno encontrado para gerar o relatório.', 'warning');
+                    alert('Nenhum aluno encontrado para gerar o relatório.');
+                    return;
+                }
+
+                let y = 40;
+                const margin = 40;
+                const lineHeight = 15;
+                const pageHeight = doc.internal.pageSize.height;
+
+                doc.setFontSize(18);
+                doc.setTextColor(50, 130, 184); // secondary-accent
+                doc.text('Relatório Geral de Alunos Funorte Hub', doc.internal.pageSize.width / 2, y, { align: 'center' });
+                y += 25;
+
+                doc.setFontSize(10);
+                doc.setTextColor(224, 224, 224); // white
+                doc.text(`Data de Geração: ${new Date().toLocaleDateString('pt-BR')}`, margin, y);
+                y += 20;
+
+                // Table Headers
+                doc.setFontSize(10);
+                doc.setFont(undefined, 'bold');
+                doc.setTextColor(0, 255, 0); // terminal-green
+                doc.text('Nome Completo', margin, y);
+                doc.text('Matrícula', margin + 150, y);
+                doc.text('CPF', margin + 250, y);
+                doc.text('Usuário', margin + 350, y);
+                doc.text('Curso', margin + 450, y);
+                doc.text('Tipo Internato', margin + 520, y);
+                y += lineHeight;
+                doc.setDrawColor(15, 76, 117); // accent
+                doc.line(margin, y - 5, doc.internal.pageSize.width - margin, y - 5); // Underline headers
+                y += 5;
+
+                doc.setFont(undefined, 'normal');
+                doc.setTextColor(224, 224, 224); // white
+
+                students.forEach(student => {
+                    if (y + lineHeight > pageHeight - margin) {
+                        doc.addPage();
+                        y = margin;
+                        doc.setFontSize(18);
+                        doc.setTextColor(50, 130, 184);
+                        doc.text('Relatório Geral de Alunos Funorte Hub (Continuação)', doc.internal.pageSize.width / 2, y, { align: 'center' });
+                        y += 25;
+                        doc.setFontSize(10);
+                        doc.setTextColor(0, 255, 0);
+                        doc.setFont(undefined, 'bold');
+                        doc.text('Nome Completo', margin, y);
+                        doc.text('Matrícula', margin + 150, y);
+                        doc.text('CPF', margin + 250, y);
+                        doc.text('Usuário', margin + 350, y);
+                        doc.text('Curso', margin + 450, y);
+                        doc.text('Tipo Internato', margin + 520, y);
+                        y += lineHeight;
+                        doc.setDrawColor(15, 76, 117);
+                        doc.line(margin, y - 5, doc.internal.pageSize.width - margin, y - 5);
+                        y += 5;
+                        doc.setFont(undefined, 'normal');
+                        doc.setTextColor(224, 224, 224);
+                    }
+
+                    doc.text(student.fullname || 'N/A', margin, y);
+                    doc.text(student.registration || 'N/A', margin + 150, y);
+                    doc.text(student.cpf || 'N/A', margin + 250, y);
+                    doc.text(student.username || 'N/A', margin + 350, y);
+                    doc.text(getCourseName(student.course) || 'N/A', margin + 450, y);
+                    doc.text(student.internatoType || 'N/A', margin + 520, y);
+                    y += lineHeight;
+                });
+
+                doc.save(`relatorio_alunos_funorte_hub_${new Date().toISOString().slice(0, 10)}.pdf`);
+                logToTerminal('Relatório geral de alunos em PDF gerado e baixado com sucesso!', 'success');
+
+            } catch (error) {
+                logToTerminal(`Erro ao gerar relatório geral de alunos: ${error.message}`, 'error');
+                alert('Erro ao gerar relatório geral de alunos. Verifique o console para mais detalhes.');
+            }
+        }
+
+        // Backup Firestore Data
+        async function backupFirestoreData() {
+            logToTerminal('Iniciando backup de dados do Firestore...', 'info');
+            // ATENÇÃO: O SDK do Firebase Web NÃO oferece uma maneira direta de listar TODAS as coleções
+            // dinamicamente. Você precisa listar as coleções que deseja fazer backup manualmente.
+            // Para um backup verdadeiramente completo e dinâmico, considere usar:
+            // 1. Firebase Admin SDK (Node.js, Python, etc.) em um ambiente de servidor.
+            // 2. A ferramenta de linha de comando `gcloud firestore export`.
+            // As coleções abaixo são as que foram identificadas no seu código.
+            const collectionsToBackup = [
+                'alunos',
+                'professores',
+                'Diario',
+                'checkins',
+                'messages',
+                'notifications',
+                'users',
+                'ping', // Added 'ping' collection to backup
+                // Adicione outras coleções aqui se existirem no seu Firestore
+                // Ex: 'configuracoes', 'eventos', 'logs', etc.
+            ];
+            const backupData = {};
+
+            try {
+                for (const collectionName of collectionsToBackup) {
+                    logToTerminal(`Fazendo backup da coleção: ${collectionName}...`, 'info');
+                    const snapshot = await db.collection(collectionName).get();
+                    backupData[collectionName] = snapshot.docs.map(doc => {
+                        const data = doc.data();
+                        // Convert Timestamps to ISO strings for JSON serialization
+                        for (const key in data) {
+                            if (data[key] && typeof data[key].toDate === 'function') {
+                                data[key] = data[key].toDate().toISOString();
+                            }
+                        }
+                        return { id: doc.id, ...data };
+                    });
+                }
+
+                const backupJson = JSON.stringify(backupData, null, 2);
+                const blob = new Blob([backupJson], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `funorte_hub_backup_${new Date().toISOString().slice(0, 10)}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                logToTerminal('Backup do Firestore concluído e baixado com sucesso!', 'success');
+            } catch (error) {
+                logToTerminal(`Erro ao fazer backup do Servidor: ${error.message}`, 'error');
+            }
+        }
+
+        // Restore Firestore Data
+        function showRestoreModal() {
+            restoreModal.style.display = 'flex';
+            adminPasswordRestoreInput.value = '';
+            backupFileInput.value = ''; // Clear selected file
+        }
+
+        function closeRestoreModal() {
+            restoreModal.style.display = 'none';
+        }
+
+        async function restoreFirestoreData() {
+            const password = adminPasswordRestoreInput.value;
+            const file = backupFileInput.files[0];
+
+            if (password !== ADMIN_PASSWORD) {
+                logToTerminal('Senha de administrador incorreta para restauração.', 'error');
+                alert('Senha de administrador incorreta!');
+                return;
+            }
+
+            if (!file) {
+                logToTerminal('Nenhum arquivo de backup selecionado.', 'warning');
+                alert('Por favor, selecione um arquivo de backup JSON.');
+                return;
+            }
+
+            logToTerminal('Iniciando restauração de dados do Firestore...', 'info');
+            closeRestoreModal(); // Close modal immediately
+
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                try {
+                    const backupData = JSON.parse(event.target.result);
+                    
+                    // Confirm with user before proceeding with destructive operation
+                    const confirmRestore = confirm("ATENÇÃO: A restauração de backup irá SOBRESCREVER os dados existentes no Firestore. Deseja continuar?");
+                    if (!confirmRestore) {
+                        logToTerminal('Restauração cancelada pelo usuário.', 'warning');
+                        return;
+                    }
+
+                    for (const collectionName in backupData) {
+                        logToTerminal(`Restaurando coleção: ${collectionName}...`, 'info');
+                        const batch = db.batch();
+                        const collectionRef = db.collection(collectionName);
+
+                        // Optional: Clear existing collection before restoring
+                        // This is a destructive operation, use with caution!
+                        // await clearCollection(collectionRef); 
+                        // logToTerminal(`Coleção ${collectionName} limpa antes da restauração.`, 'warning');
+
+                        for (const docData of backupData[collectionName]) {
+                            const docId = docData.id;
+                            const dataToSet = { ...docData };
+                            delete dataToSet.id; // Remove 'id' as it's used for doc reference
+
+                            // Convert ISO strings back to Firestore Timestamps
+                            for (const key in dataToSet) {
+                                if (typeof dataToSet[key] === 'string' && dataToSet[key].match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)) {
+                                    try {
+                                        dataToSet[key] = firebase.firestore.Timestamp.fromDate(new Date(dataToSet[key]));
+                                    } catch (e) {
+                                        // Keep as string if conversion fails
+                                        logToTerminal(`Falha ao converter data ${dataToSet[key]} para Timestamp.`, 'warning');
+                                    }
+                                }
+                            }
+                            batch.set(collectionRef.doc(docId), dataToSet);
+                        }
+                        await batch.commit();
+                        logToTerminal(`Coleção ${collectionName} restaurada com sucesso.`, 'success');
+                    }
+                    logToTerminal('Restauração do Firestore concluída com sucesso!', 'success');
+                    alert('Restauração do Firestore concluída com sucesso!');
+                    // Reload user list if applicable
+                    if (currentLoadedUserType) {
+                        loadUsersForReport(currentLoadedUserType, false);
+                    }
+
+                } catch (error) {
+                    logToTerminal(`Erro ao processar arquivo de backup: ${error.message}`, 'error');
+                    alert(`Erro ao restaurar backup: ${error.message}`);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Helper to clear a collection (use with extreme caution!)
+        // async function clearCollection(collectionRef) {
+        //     const snapshot = await collectionRef.limit(100).get(); // Process in batches
+        //     if (snapshot.empty) {
+        //         return;
+        //     }
+        //     const batch = db.batch();
+        //     snapshot.docs.forEach(doc => {
+        //         batch.delete(doc.ref);
+        //     });
+        //     await batch.commit();
+        //     if (snapshot.docs.length === 100) { // If there might be more documents
+        //         return clearCollection(collectionRef); // Recursively clear
+        //     }
+        // }
+
+        // Firestore Ping Functionality
+        async function sendFirestorePing() {
+            const startTime = Date.now();
+            try {
+                const pingDocRef = db.collection('ping').doc(); // Create a new document with auto-generated ID
+                await pingDocRef.set({
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    clientTimestamp: new Date().toISOString(),
+                    panelId: 'funorte-debug-panel', // Identify the source of the ping
+                    status: 'success'
+                });
+                const endTime = Date.now();
+                const latency = endTime - startTime;
+                updateLatencyDisplay(latency);
+                // Delete the ping document to keep the collection clean
+                await pingDocRef.delete();
+            } catch (error) {
+                const endTime = Date.now();
+                const latency = endTime - startTime; // Still calculate, but it's a failed ping
+                updateLatencyDisplay(latency, true); // Indicate error
+            }
+        }
+
+        function updateLatencyDisplay(latency, isError = false) {
+            latencyDisplay.textContent = `Latência: ${latency} ms`;
+            let color;
+            let borderColor;
+
+            if (isError) {
+                color = 'var(--error)';
+                borderColor = 'var(--error)';
+            } else if (latency < 100) { // Excellent
+                color = 'var(--success)';
+                borderColor = 'var(--success)';
+            } else if (latency < 300) { // Good
+                color = 'var(--terminal-green)';
+                borderColor = 'var(--terminal-green)';
+            } else { // Slow/Poor or Error
+                color = 'var(--warning)';
+                borderColor = 'var(--warning)';
+            }
+            // If it's an error, force error color
+            if (isError) {
+                color = 'var(--error)';
+                borderColor = 'var(--error)';
+            }
+            latencyDisplay.style.color = color;
+            latencyDisplay.style.borderColor = borderColor;
+        }
+
+        function startFirestorePingInterval() {
+            // Clear any existing interval to prevent duplicates
+            if (pingIntervalId) {
+                clearInterval(pingIntervalId);
+            }
+            // Send a ping every 5 seconds (5000 ms)
+            pingIntervalId = setInterval(sendFirestorePing, 5000);
+            logToTerminal('Monitoramento de latência do servidor iniciado.', 'info');
+        }
+
+        function stopFirestorePingInterval() {
+            if (pingIntervalId) {
+                clearInterval(pingIntervalId);
+                pingIntervalId = null;
+                logToTerminal('Monitoramento de latência do Firestore parado.', 'info');
+                latencyDisplay.textContent = 'Latência: -- ms';
+                latencyDisplay.style.color = 'var(--gray)';
+                latencyDisplay.style.borderColor = 'var(--gray)';
+            }
+        }
+
+        // Terminal Commands
+        commandInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                executeCommand();
+            }
+        });
+
+        commandInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault(); // Prevent default tab behavior (focus change)
+                autocompleteCommand();
+            }
+        });
+
+        function autocompleteCommand() {
+            const inputValue = commandInput.value.trim();
+            if (!inputValue.startsWith('/')) return;
+
+            const partialCommand = inputValue.toLowerCase();
+            const matchingCommands = availableCommands.filter(cmd =>
+                cmd.startsWith(partialCommand)
+            );
+
+            if (matchingCommands.length === 1) {
+                commandInput.value = matchingCommands[0];
+            } else if (matchingCommands.length > 1) {
+                // If multiple matches, show them in the terminal
+                logToTerminal('Comandos sugeridos:', 'info');
+                matchingCommands.forEach(cmd => logToTerminal(`  ${cmd}`, 'info'));
+            }
+        }
+
+        async function executeCommand() {
+            let command = commandInput.value.trim();
+            commandInput.value = '';
+            if (!command.startsWith('/')) {
+                logToTerminal(`Comando inválido: "${command}". Comandos devem começar com '/'.`, 'warning');
+                return;
+            }
+
+            logToTerminal(`> ${command}`, 'user-input');
+            const args = command.substring(1).split(' ');
+            const cmd = args[0].toLowerCase();
+            const params = args.slice(1);
+
+            switch (cmd) {
+                case 'help':
+                    logToTerminal('--- Comandos Disponíveis ---', 'info');
+                    logToTerminal('/help - Mostra esta lista de comandos.', 'info');
+                    logToTerminal('/clear - Limpa o terminal de status da API.', 'info');
+                    logToTerminal('/clear-monitor - Limpa o terminal de monitoramento do servidor.', 'info');
+                    logToTerminal('/ping - Envia um ping para o Firestore e exibe a latência.', 'info'); // Updated description
+                    logToTerminal('/find <palavra-chave> - Busca por uma palavra-chave em todo o servidor (Firestore).', 'info');
+                    logToTerminal('/show-api - Mostra as credenciais completas das APIs (requer senha de administrador).', 'info');
+                    logToTerminal('/test-imgur - Executa o teste de upload do Imgur.', 'info');
+                    logToTerminal('/test-firestore - Executa o teste de conexão do Firestore.', 'info');
+                    logToTerminal('/load-students - Carrega e exibe a lista de alunos no terminal.', 'info');
+                    logToTerminal('/load-teachers - Carrega e exibe a lista de professores no terminal.', 'info');
+                    logToTerminal('/backup - Realiza o backup de todos os dados do servidor.', 'info');
+                    logToTerminal('/restore-backup - Abre o modal para restaurar dados de um backup local.', 'info');
+                    logToTerminal('/count-users - Conta o número total de alunos e professores.', 'info');
+                    logToTerminal('/get-user <username> - Exibe detalhes de um usuário específico pelo nome de usuário.', 'info');
+                    logToTerminal('/set-status <username> <status (active/blocked)> [reason] - Altera o status de um usuário (active/blocked).', 'info');
+                    logToTerminal('/delete-user <username> - Exclui um usuário.', 'info');
+                    logToTerminal('/maintenance <on|off> - Ativa ou desativa o modo de manutenção do servidor.', 'info'); // New command help
+                    logToTerminal('--------------------------', 'info');
+                    break;
+                case 'clear':
+                    apiStatusTerminal.innerHTML = '';
+                    logToTerminal('Terminal limpo.', 'info');
+                    break;
+                case 'clear-monitor':
+                    firestoreMonitorTerminal.innerHTML = '';
+                    logToTerminal('Terminal de monitoramento limpo.', 'info');
+                    break;
+                case 'ping': // New command implementation
+                    await sendFirestorePing();
+                    break;
+                case 'find': // New command implementation
+                    if (params.length < 1) {
+                        logToTerminal('Uso: /find <palavra-chave>', 'warning');
+                        return;
+                    }
+                    await findInFirestore(params.join(' '));
+                    break;
+                case 'show-api':
+                    const password = prompt("Por favor, digite a senha de administrador para ver as credenciais da API:");
+                    if (password === ADMIN_PASSWORD) {
+                        displayApiCredentials(true); // Show full credentials
+                    } else {
+                        logToTerminal('Senha incorreta. Acesso negado.', 'error');
+                    }
+                    break;
+                case 'test-imgur':
+                    testImgurUpload();
+                    break;
+                case 'test-firestore':
+                    testFirestoreConnection();
+                    break;
+                case 'load-students':
+                    await loadUsersForReport('alunos', true); // Pass true to display in terminal
+                    break;
+                case 'load-teachers':
+                    await loadUsersForReport('professores', true); // Pass true to display in terminal
+                    break;
+                case 'backup':
+                    backupFirestoreData();
+                    break;
+                case 'restore-backup':
+                    showRestoreModal();
+                    break;
+                case 'count-users':
+                    await countUsers();
+                    break;
+                case 'get-user':
+                    if (params.length < 1) {
+                        logToTerminal('Uso: /get-user <username>', 'warning');
+                        return;
+                    }
+                    await getUserDetailsByUsername(params[0]);
+                    break;
+                case 'set-status':
+                    if (params.length < 2) {
+                        logToTerminal('Uso: /set-status <username> <status (active/blocked)> [reason]', 'warning');
+                        return;
+                    }
+                    await setUserStatusByUsername(params[0], params[1], params.slice(2).join(' '));
+                    break;
+                case 'delete-user':
+                    if (params.length < 1) {
+                        logToTerminal('Uso: /delete-user <username>', 'warning');
+                        return;
+                    }
+                    await deleteUserByUsername(params[0]);
+                    break;
+                case 'maintenance': // New maintenance command handler
+                    if (params.length < 1 || (params[0] !== 'on' && params[0] !== 'off')) {
+                        logToTerminal('Uso: /maintenance <on|off>', 'warning');
+                        return;
+                    }
+                    await setMaintenanceMode(params[0]);
+                    break;
+                default:
+                    logToTerminal(`Comando desconhecido: "${cmd}". Digite /help para ver os comandos disponíveis.`, 'error');
+            }
+        }
+
+        async function countUsers() {
+            logToTerminal('Contando usuários...', 'info');
+            try {
+                const studentsSnapshot = await db.collection('alunos').get();
+                const teachersSnapshot = await db.collection('professores').get();
+                logToTerminal(`Total de Alunos: ${studentsSnapshot.size}`, 'info');
+                logToTerminal(`Total de Professores: ${teachersSnapshot.size}`, 'info');
+            }
+            catch (error) {
+                logToTerminal(`Erro ao contar usuários: ${error.message}`, 'error');
+            }
+        }
+
+        async function getUserDetailsByUsername(username) {
+            logToTerminal(`Buscando detalhes do usuário com username: ${username}...`, 'info');
+            try {
+                const userQuery = await db.collection('users').where('username', '==', username).limit(1).get();
+                if (userQuery.empty) {
+                    logToTerminal(`Usuário com username "${username}" não encontrado.`, 'warning');
+                    return;
+                }
+
+                const userDoc = userQuery.docs[0];
+                const userData = userDoc.data();
+                const userId = userData.userId;
+                const userRole = userData.role;
+                const collectionName = userRole === 'student' ? 'alunos' : 'professores';
+
+                const detailsDoc = await db.collection(collectionName).doc(userId).get();
+                if (detailsDoc.exists) {
+                    logToTerminal(`Detalhes do Usuário (${collectionName}/${userId}):`, 'info');
+                    logToTerminal(JSON.stringify(detailsDoc.data(), null, 2), 'debug');
+                } else {
+                    logToTerminal(`Detalhes completos para o usuário "${username}" (ID: ${userId}) não encontrados na coleção ${collectionName}.`, 'warning');
+                }
+            } catch (error) {
+                logToTerminal(`Erro ao buscar detalhes do usuário: ${error.message}`, 'error');
+            }
+        }
+
+        async function setUserStatusByUsername(username, status, reason = '') {
+            logToTerminal(`Alterando status do usuário com username: ${username} para: ${status}...`, 'info');
+            if (status !== 'active' && status !== 'blocked') {
+                logToTerminal('Status inválido. Use "active" ou "blocked".', 'warning');
+                return;
+            }
+            if (status === 'blocked' && !reason) {
+                logToTerminal('Motivo é obrigatório para bloquear um usuário.', 'warning');
+                return;
+            }
+
+            try {
+                const userQuery = await db.collection('users').where('username', '==', username).limit(1).get();
+                if (userQuery.empty) {
+                    logToTerminal(`Usuário com username "${username}" não encontrado.`, 'warning');
+                    return;
+                }
+
+                const userDoc = userQuery.docs[0];
+                const userData = userDoc.data();
+                const userId = userData.userId;
+                const userRole = userData.role;
+                const collectionName = userRole === 'student' ? 'alunos' : 'professores';
+
+                const updateData = {
+                    status: status,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    blockReason: status === 'blocked' ? reason : ''
+                };
+
+                await db.collection(collectionName).doc(userId).update(updateData);
+                await userDoc.ref.update(updateData); // Update in 'users' collection too
+
+                logToTerminal(`Status do usuário "${username}" (ID: ${userId}) alterado para ${status} com sucesso.`, 'success');
+                // Reload users list if currently displayed and matches type
+                if (currentLoadedUserType === collectionName) {
+                    loadUsersForReport(currentLoadedUserType, false); // Pass false to not display in terminal
+                }
+            } catch (error) {
+                logToTerminal(`Erro ao alterar status do usuário: ${error.message}`, 'error');
+            }
+        }
+
+        async function deleteUserByUsername(username) {
+            logToTerminal(`Excluindo usuário com username: ${username}...`, 'warning');
+            if (!confirm(`Tem certeza que deseja EXCLUIR PERMANENTEMENTE o usuário "${username}"? Esta ação é irreversível.`)) {
+                logToTerminal('Exclusão cancelada.', 'info');
+                return;
+            }
+
+            try {
+                const userQuery = await db.collection('users').where('username', '==', username).limit(1).get();
+                if (userQuery.empty) {
+                    logToTerminal(`Usuário com username "${username}" não encontrado.`, 'warning');
+                    return;
+                }
+
+                const userDoc = userQuery.docs[0];
+                const userData = userDoc.data();
+                const userId = userData.userId;
+                const userRole = userData.role;
+                const collectionName = userRole === 'student' ? 'alunos' : 'professores';
+
+                await db.collection(collectionName).doc(userId).delete();
+                await userDoc.ref.delete(); // Delete from 'users' collection
+
+                logToTerminal(`Usuário "${username}" (ID: ${userId}) excluído com sucesso de ${collectionName} e users.`, 'success');
+                // Reload users list if currently displayed and matches type
+                if (currentLoadedUserType === collectionName) {
+                    loadUsersForReport(currentLoadedUserType, false); // Pass false to not display in terminal
+                }
+            } catch (error) {
+                logToTerminal(`Erro ao excluir usuário: ${error.message}`, 'error');
+            }
+        }
+
+        // New function to find data in Firestore
+        async function findInFirestore(keyword) {
+            logToTerminal(`Buscando por "${keyword}" em todas as coleções...`, 'info');
+            const collectionsToSearch = [
+                'alunos',
+                'professores',
+                'Diario',
+                'checkins',
+                'messages',
+                'notifications',
+                'users',
+                'ping', // Added 'ping' to search
+                // Add any other collections you want to search
+            ];
+            let foundCount = 0;
+
+            for (const collectionName of collectionsToSearch) {
+                try {
+                    const snapshot = await db.collection(collectionName).get();
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        const docId = doc.id;
+                        let matchedFields = [];
+
+                        for (const key in data) {
+                            if (typeof data[key] === 'string' && data[key].toLowerCase().includes(keyword.toLowerCase())) {
+                                matchedFields.push(key);
+                            } else if (typeof data[key] === 'object' && data[key] !== null) {
+                                // Recursively search in nested objects (simple level)
+                                for (const nestedKey in data[key]) {
+                                    if (typeof data[key][nestedKey] === 'string' && data[key][nestedKey].toLowerCase().includes(keyword.toLowerCase())) {
+                                        matchedFields.push(`${key}.${nestedKey}`);
+                                    }
+                                }
+                            }
+                        }
+
+                        if (matchedFields.length > 0) {
+                            logToTerminal(`Encontrado em [${collectionName}/${docId}] nos campos: ${matchedFields.join(', ')}`, 'info');
+                            logToTerminal(`  Dados: ${JSON.stringify(data)}`, 'debug');
+                            foundCount++;
+                        }
+                    });
+                } catch (error) {
+                    logToTerminal(`Erro ao buscar na coleção ${collectionName}: ${error.message}`, 'error');
+                }
+            }
+
+            if (foundCount === 0) {
+                logToTerminal(`Nenhum registro encontrado contendo "${keyword}".`, 'warning');
+            } else {
+                logToTerminal(`Busca concluída. Total de ${foundCount} registros encontrados contendo "${keyword}".`, 'success');
+            }
+        }
+
+        // Firestore Real-time Monitor
+        function setupFirestoreMonitor() {
+            // ATENÇÃO: Assim como no backup, o monitoramento precisa de uma lista explícita de coleções.
+            // Se novas coleções forem adicionadas ao Firestore, elas precisarão ser incluídas aqui
+            // para serem monitoradas.
+            const collectionsToMonitor = [
+                'alunos',
+                'professores',
+                'Diario',
+                'checkins',
+                'messages',
+                'notifications',
+                'users',
+                // 'ping', // Removed 'ping' from monitor to avoid logging ping events
+                // Adicione outras coleções aqui para monitoramento em tempo real
+            ];
+            let listeners = []; // To store unsubscribe functions
+
+            // Clear previous listeners if any
+            listeners.forEach(unsubscribe => unsubscribe());
+            listeners = [];
+
+            firestoreMonitorTerminal.innerHTML = '<div class="log-entry log-info">Aguardando alterações no Servidor...</div>'; // Reset monitor terminal
+
+            collectionsToMonitor.forEach(collectionName => {
+                const unsubscribe = db.collection(collectionName).onSnapshot(snapshot => {
+                    snapshot.docChanges().forEach(change => {
+                        const data = change.doc.data();
+                        const docId = change.doc.id;
+                        let logMessage = '';
+                        let logType = 'firestore';
+
+                        switch (change.type) {
+                            case 'added':
+                                logMessage = `[${collectionName}] NOVO: ID ${docId} - ${JSON.stringify(data)}`;
+                                logType = 'success';
+                                break;
+                            case 'modified':
+                                logMessage = `[${collectionName}] MODIFICADO: ID ${docId} - ${JSON.stringify(data)}`;
+                                logType = 'warning';
+                                break;
+                            case 'removed':
+                                logMessage = `[${collectionName}] REMOVIDO: ID ${docId}`;
+                                logType = 'error';
+                                break;
+                        }
+                        logToTerminal(logMessage, logType, firestoreMonitorTerminal);
+                    });
+                }, error => {
+                    logToTerminal(`Erro ao monitorar coleção ${collectionName}: ${error.message}`, 'error', firestoreMonitorTerminal);
+                });
+                listeners.push(unsubscribe); // Store unsubscribe function
+            });
+            logToTerminal('Monitoramento de Servidor em tempo real iniciado para coleções principais.', 'info', firestoreMonitorTerminal);
+        }
+
+        // --- Funções de Manutenção do Servidor ---
+
+        async function setMaintenanceMode(mode) {
+            if (mode === 'on') {
+                logToTerminal('Ativando modo de manutenção...', 'warning');
+                try {
+                    // 1. Criar mensagem de manutenção
+                    await createMaintenanceMessage();
+
+                    // 2. Salvar IDs dos alunos que já estão 'pending' e mudar todos para 'pending'
+                    originalPendingStudents.clear(); // Limpa o set antes de preencher
+                    const studentsSnapshot = await db.collection('alunos').get();
+                    const batch = db.batch();
+                    let studentsUpdatedCount = 0;
+
+                    studentsSnapshot.forEach(doc => {
+                        const studentData = doc.data();
+                        if (studentData.registrationStatus === 'pending') {
+                            originalPendingStudents.add(doc.id);
+                        }
+                        if (studentData.registrationStatus !== 'pending') {
+                            batch.update(doc.ref, { registrationStatus: 'pending' });
+                            studentsUpdatedCount++;
+                        }
+                    });
+
+                    await batch.commit();
+                    logToTerminal(`Modo de manutenção ATIVADO. ${studentsUpdatedCount} alunos tiveram o status de registro alterado para 'pending'.`, 'success');
+                    logToTerminal(`IDs de alunos que já estavam 'pending' (${originalPendingStudents.size}): ${Array.from(originalPendingStudents).join(', ')}`, 'debug');
+
+                } catch (error) {
+                    logToTerminal(`Erro ao ativar modo de manutenção: ${error.message}`, 'error');
+                }
+            } else if (mode === 'off') {
+                logToTerminal('Desativando modo de manutenção...', 'warning');
+                try {
+                    // 1. Remover mensagem de manutenção
+                    await removeMaintenanceMessage();
+
+                    // 2. Mudar registrationStatus para 'approved', exceto os que já estavam 'pending'
+                    const studentsSnapshot = await db.collection('alunos').get();
+                    const batch = db.batch();
+                    let studentsUpdatedCount = 0;
+
+                    studentsSnapshot.forEach(doc => {
+                        // Só muda para 'approved' se o aluno NÃO estava 'pending' originalmente
+                        if (!originalPendingStudents.has(doc.id) && doc.data().registrationStatus === 'pending') {
+                            batch.update(doc.ref, { registrationStatus: 'approved' });
+                            studentsUpdatedCount++;
+                        }
+                    });
+
+                    await batch.commit();
+                    logToTerminal(`Modo de manutenção DESATIVADO. ${studentsUpdatedCount} alunos tiveram o status de registro alterado para 'approved'.`, 'success');
+                    originalPendingStudents.clear(); // Limpa o set após a desativação
+                } catch (error) {
+                    logToTerminal(`Erro ao desativar modo de manutenção: ${error.message}`, 'error');
+                }
+            }
+        }
+
+        async function createMaintenanceMessage() {
+            logToTerminal('Criando mensagem de manutenção...', 'info');
+            try {
+                // Data de criação: 1 de janeiro de 2000 às 21:50:33 UTC-3
+                const createdAtDate = new Date(Date.UTC(2000, 0, 1, 21, 50, 33)); // UTC
+                createdAtDate.setHours(createdAtDate.getHours() + 3); // Ajusta para UTC-3
+
+                // Data de expiração: 1 de janeiro de 2050 às 21:50:33 UTC-3
+                const expirationDate = new Date(Date.UTC(2050, 0, 1, 21, 50, 33)); // UTC
+                expirationDate.setHours(expirationDate.getHours() + 3); // Ajusta para UTC-3
+
+                const messageData = {
+                    content: "O servidor entrou em manutenção. Voltaremos nas próximas horas!",
+                    createdAt: firebase.firestore.Timestamp.fromDate(createdAtDate),
+                    expiration: firebase.firestore.Timestamp.fromDate(expirationDate),
+                    recipientType: "all",
+                    senderId: "admin",
+                    senderName: "Administrador",
+                    title: "Mensagem do T.I"
+                };
+
+                const docRef = await db.collection('messages').add(messageData);
+                maintenanceMessageDocId = docRef.id;
+                logToTerminal(`Mensagem de manutenção criada com sucesso! ID: ${maintenanceMessageDocId}`, 'success');
+            } catch (error) {
+                logToTerminal(`Erro ao criar mensagem de manutenção: ${error.message}`, 'error');
+                maintenanceMessageDocId = null; // Garante que o ID seja nulo em caso de falha
+            }
+        }
+
+        async function removeMaintenanceMessage() {
+            if (!maintenanceMessageDocId) {
+                logToTerminal('Nenhuma mensagem de manutenção ativa para remover.', 'warning');
+                return;
+            }
+            logToTerminal(`Removendo mensagem de manutenção com ID: ${maintenanceMessageDocId}...`, 'info');
+            try {
+                await db.collection('messages').doc(maintenanceMessageDocId).delete();
+                logToTerminal('Mensagem de manutenção removida com sucesso!', 'success');
+                maintenanceMessageDocId = null;
+            } catch (error) {
+                logToTerminal(`Erro ao remover mensagem de manutenção: ${error.message}`, 'error');
+            }
+        }
+
+        // Initial setup on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            displayApiCredentials(); // Display partial credentials on load
+            setupFirestoreMonitor();
+            startFirestorePingInterval(); // Start continuous pinging
+        });
+
+        // Stop pinging when the page is closed or navigated away
+        window.addEventListener('beforeunload', () => {
+            stopFirestorePingInterval();
+        });
+    </script>
+</body>
+</html>
