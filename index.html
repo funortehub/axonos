@@ -98,25 +98,6 @@
             align-items: center;
         }
 
-        /* Badge A.I API */
-        #ai-api-badge {
-            background-color: var(--accent);
-            color: white;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 10px;
-            font-weight: bold;
-            margin-left: 10px;
-            display: none; /* Escondido por padrão */
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.05); opacity: 0.8; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-
         /* Área de trabalho */
         #desktop {
             position: absolute;
@@ -1415,7 +1396,6 @@
             <div class="menu-item" id="help-guide-btn">Ajuda</div>
         </div>
         <div class="status-icons">
-            <div id="ai-api-badge">A.I API</div> <!-- Novo badge -->
             <!-- <div id="wifi-icon"><i class="fas fa-wifi"></i></div> -->
             <!-- <div id="battery-icon"><i class="fas fa-battery-three-quarters"></i> 87%</div> -->
             <div id="clock">14:25</div>
@@ -1738,7 +1718,7 @@
                 // Prompt inicial para a Mielina (System Instruction)
                 {
                     role: "user",
-                    parts: [{ text: "Você será uma assistente virtual de um sistema operacional chamado Axon OS criado por Ian Bastos. Seu nome é Mielina (Referência a mielina do axônio). Você ajudará o usuário a realizar tarefas, responder perguntas. Você não pode falar que foi desenvolvido pela Google. Você deve ser gentil e deve ajudar o usuário nas suas atividades do dia a dia e nas tarefas com o sistema Axon OS. Você tem acesso a um conjunto de funções para interagir com o sistema. Use-as quando apropriado. As funções disponíveis são: " + JSON.stringify(Object.keys(axonAPI)) + ". Para chamar uma função, use o formato: `call:nomeDaFuncao(parametro1, parametro2)`. Por exemplo, para abrir o explorador de arquivos, você pode dizer: `call:openApp('finder')`. Para criar uma pasta chamada 'Minha Nova Pasta' no desktop, você pode dizer: `call:createFileItem('axon/desktop', 'folder', 'Minha Nova Pasta')`. Para fechar uma janela, você pode dizer: `call:closeWindow('nome_do_aplicativo')`. Para listar as janelas abertas, você pode dizer: `call:listOpenWindows()`. Para alterar o tema para 'axon-light', você pode dizer: `call:setSetting('theme', 'axon-light')`. Para obter o valor de uma configuração, você pode dizer: `call:getSetting('theme')`. Para minimizar uma janela, você pode dizer: `call:minimizeWindow('nome_do_aplicativo')`. Para maximizar uma janela, você pode dizer: `call:maximizeWindow('nome_do_aplicativo')`. Para restaurar uma janela, você pode dizer: `call:restoreWindow('nome_do_aplicativo')`. Para listar os arquivos em um diretório, você pode dizer: `call:listFiles('axon/documents')`. Para renomear um arquivo, você pode dizer: `call:renameFile('nome_antigo.txt', 'nome_novo.txt', 'axon/documents')`. Para excluir um arquivo, você pode dizer: `call:deleteFile('nome_do_arquivo.txt', 'axon/documents')`. Para copiar um arquivo, você pode dizer: `call:copyFile('nome_do_arquivo.txt', 'axon/documents', 'axon/desktop')`. Para mover um arquivo, você pode dizer: `call:moveFile('nome_do_arquivo.txt', 'axon/documents', 'axon/desktop')`. Sempre responda ao usuário de forma amigável e confirme a ação realizada ou informe sobre qualquer problema." }]
+                    parts: [{ text: "Você será uma assistente virtual de um sistema operacional chamado Axon OS criado por Ian Bastos. Seu nome é Mielina (Referência a mielina do axônio). Você ajudará o usuário a realizar tarefas, responder perguntas. Você não pode falar que foi desenvolvido pela Google. Você deve ser gentil e deve ajudar o usuário nas suas atividades do dia a dia e nas tarefas com o sistema Axon OS." }]
                 },
                 {
                     role: "model",
@@ -1781,7 +1761,6 @@
         const loginPasswordInput = document.getElementById('login-password');
         const loginButton = document.getElementById('login-button');
         const loadingScreen = document.getElementById('loading-screen');
-        const aiApiBadge = document.getElementById('ai-api-badge'); // Novo elemento
 
         // Chave da API Gemini e URL do endpoint
         const GEMINI_API_KEY = "AIzaSyBWwhUDvakN71D3jgDwv0UUk0mxCx8olbI";
@@ -2531,7 +2510,6 @@
             if (item.type === 'folder') {
                 // Abre uma nova janela do Finder para a pasta
                 openApp('finder', item.id); 
-                return `Pasta '${item.name}' aberta com sucesso.`;
             } else if (item.type === 'text') {
                 openApp('notes');
                 const notesWindow = systemState.openWindows.find(w => w.id === 'notes');
@@ -2543,26 +2521,21 @@
                             textArea.value = file.content || '';
                             textArea.dataset.fileId = file.id;
                             textArea.dataset.parentId = file.parentId;
-                            return `Documento de texto '${item.name}' aberto com sucesso.`;
                         }
                     }
                 }
-                return `Erro ao abrir o documento de texto '${item.name}'.`;
             } else if (item.type === 'image') {
                 if (item.src) {
                     openImageViewer(item.src, item.path);
-                    return `Imagem '${item.name}' aberta com sucesso.`;
                 } else {
-                    return `Erro: Esta imagem '${item.name}' não possui um caminho de origem definido.`;
+                    axonAlert("Esta imagem não possui um caminho de origem definido.");
                 }
             } else if (item.type === 'html-app') {
                 openHtmlApp(item.path, item.name, item.icon);
-                return `Aplicativo HTML '${item.name}' aberto com sucesso.`;
             } else if (systemData.apps[item.id]) { // Se for um app nativo
                 openApp(item.id);
-                return `Aplicativo '${item.name}' aberto com sucesso.`;
             } else {
-                return `Não é possível abrir o arquivo "${item.name}". Tipo de arquivo não suportado.`;
+                axonAlert(`Não é possível abrir o arquivo "${item.name}". Tipo de arquivo não suportado.`);
             }
         }
 
@@ -2776,12 +2749,14 @@
         function createFileItem(directoryId, type, name, content = '', src = '') {
             const parentDir = getDirectoryById(directoryId);
             if (!parentDir) {
-                return { success: false, message: `Diretório de destino inválido: ${directoryId}.` };
+                axonAlert("Diretório de destino inválido.", "Erro de Criação");
+                return null;
             }
 
             // Verifica se já existe um item com o mesmo nome no diretório
             if (parentDir.children.some(item => item.name === name)) {
-                return { success: false, message: `Já existe um item com o nome "${name}" em "${directoryId}".` };
+                axonAlert(`Já existe um item com o nome "${name}" neste diretório.`, "Erro de Criação");
+                return null;
             }
 
             const newId = `${directoryId}/${name.replace(/\s+/g, '_').toLowerCase()}-${Date.now()}`; // ID único baseado no caminho
@@ -2802,7 +2777,8 @@
             if (directoryId === 'axon/desktop') {
                 createDesktopItem(type, name, null, null, newItem.id);
             }
-            return { success: true, message: `"${name}" criado com sucesso em "${parentDir.path}".` };
+            axonAlert(`"${name}" criado em "${parentDir.path}"`);
+            return newItem;
         }
 
         // Função recursiva para copiar um item e seus filhos
@@ -2831,7 +2807,8 @@
             if (targetDir) {
                 targetDir.children.push(newItem);
             } else {
-                return { success: false, message: "Diretório de destino inválido." };
+                axonAlert("Diretório de destino inválido.", "Erro de Cópia");
+                return null;
             }
 
             // Se for uma pasta, cria a nova entrada no fileSystem e copia os filhos recursivamente
@@ -2852,38 +2829,39 @@
                     });
                 }
             }
-            return { success: true, item: newItem };
+            return newItem;
         }
 
         // Função para copiar um item para um novo diretório
         async function copyItem(itemToCopy, targetDirectoryId, isCut = false) {
             const targetDir = getDirectoryById(targetDirectoryId);
             if (!targetDir) {
-                return { success: false, message: `Diretório de destino inválido: ${targetDirectoryId}.` };
+                axonAlert("Diretório de destino inválido.", "Erro de Cópia");
+                return;
             }
 
             // Verifica se o item está sendo copiado para sua própria pasta pai (se for cut)
             if (isCut && itemToCopy.parentId === targetDirectoryId) {
-                return { success: false, message: "Não é possível mover um item para sua própria pasta de origem ao recortar." };
+                axonAlert("Não é possível mover um item para sua própria pasta de origem ao recortar.", "Erro de Movimento");
+                return;
             }
 
             // Verifica se o item está sendo copiado para dentro de si mesmo (para pastas)
             if (itemToCopy.type === 'folder' && targetDirectoryId.startsWith(itemToCopy.id)) {
-                return { success: false, message: "Não é possível copiar uma pasta para dentro de si mesma." };
+                axonAlert("Não é possível copiar uma pasta para dentro de si mesma.", "Erro de Cópia");
+                return;
             }
 
-            const result = copyItemRecursive(itemToCopy, targetDirectoryId);
+            const copiedItem = copyItemRecursive(itemToCopy, targetDirectoryId);
 
-            if (result.success) {
+            if (copiedItem) {
                 if (isCut) {
-                    const deleteResult = deleteFileItem(itemToCopy.id, itemToCopy.parentId, false); // Não salva ainda
-                    if (!deleteResult.success) return deleteResult;
-                    return { success: true, message: `"${itemToCopy.name}" movido para "${targetDir.path}".` };
+                    deleteFileItem(itemToCopy.id, itemToCopy.parentId, false); // Não salva ainda
+                    axonAlert(`"${itemToCopy.name}" movido para "${targetDir.path}"`);
                 } else {
-                    return { success: true, message: `"${itemToCopy.name}" copiado para "${targetDir.path}".` };
+                    axonAlert(`"${itemToCopy.name}" copiado para "${targetDir.path}"`);
                 }
-            } else {
-                return result;
+                saveDesktopItems();
             }
         }
 
@@ -2916,86 +2894,86 @@
         // Atualizar nome do item no sistema de arquivos
         function updateFileItemName(itemId, parentDirId, newName) {
             const parentDir = getDirectoryById(parentDirId);
-            if (!parentDir) return { success: false, message: `Diretório pai não encontrado para o ID: ${parentDirId}.` };
+            if (!parentDir) return;
 
             const item = parentDir.children.find(item => item.id === itemId);
-            if (!item) return { success: false, message: `Item não encontrado com o ID: ${itemId} no diretório: ${parentDirId}.` };
+            if (item) {
+                // Verifica se o novo nome já existe no diretório (exceto para o próprio item)
+                if (parentDir.children.some(child => child.name === newName && child.id !== itemId)) {
+                    axonAlert(`Já existe um item com o nome "${newName}" neste diretório.`, "Erro de Renomeação");
+                    return;
+                }
 
-            // Verifica se o novo nome já existe no diretório (exceto para o próprio item)
-            if (parentDir.children.some(child => child.name === newName && child.id !== itemId)) {
-                return { success: false, message: `Já existe um item com o nome "${newName}" neste diretório.` };
-            }
+                const oldId = item.id;
+                const oldPath = item.path;
+                
+                item.name = newName;
+                item.path = `${parentDirId}/${newName}`;
+                item.id = `${parentDirId}/${newName.replace(/\s+/g, '_').toLowerCase()}-${Date.now()}`; // Gera novo ID para refletir o novo nome/caminho
 
-            const oldId = item.id;
-            const oldPath = item.path;
-            
-            item.name = newName;
-            item.path = `${parentDirId}/${newName}`;
-            item.id = `${parentDirId}/${newName.replace(/\s+/g, '_').toLowerCase()}-${Date.now()}`; // Gera novo ID para refletir o novo nome/caminho
+                // Se for uma pasta, atualiza o ID e o caminho de todos os seus filhos recursivamente
+                if (item.type === 'folder' && systemData.fileSystem[oldId]) {
+                    const oldFolderData = systemData.fileSystem[oldId];
+                    const newFolderId = item.id;
 
-            // Se for uma pasta, atualiza o ID e o caminho de todos os seus filhos recursivamente
-            if (item.type === 'folder' && systemData.fileSystem[oldId]) {
-                const oldFolderData = systemData.fileSystem[oldId];
-                const newFolderId = item.id;
+                    // Atualiza a entrada da pasta no fileSystem
+                    systemData.fileSystem[newFolderId] = oldFolderData;
+                    systemData.fileSystem[newFolderId].id = newFolderId;
+                    systemData.fileSystem[newFolderId].name = newName;
+                    systemData.fileSystem[newFolderId].path = newFolderId;
+                    systemData.fileSystem[newFolderId].parentId = parentDirId;
+                    delete systemData.fileSystem[oldId];
 
-                // Atualiza a entrada da pasta no fileSystem
-                systemData.fileSystem[newFolderId] = oldFolderData;
-                systemData.fileSystem[newFolderId].id = newFolderId;
-                systemData.fileSystem[newFolderId].name = newName;
-                systemData.fileSystem[newFolderId].path = newFolderId;
-                systemData.fileSystem[newFolderId].parentId = parentDirId;
-                delete systemData.fileSystem[oldId];
+                    // Atualiza os caminhos e parentIds dos filhos recursivamente
+                    function updateChildrenPathsAndIds(currentDirId, oldBaseId, newBaseId) {
+                        const currentDir = systemData.fileSystem[currentDirId];
+                        if (currentDir && currentDir.children) {
+                            currentDir.children.forEach(child => {
+                                const oldChildId = child.id;
+                                child.parentId = currentDirId;
+                                child.path = `${currentDirId}/${child.name}`;
+                                child.id = `${currentDirId}/${child.name.replace(/\s+/g, '_').toLowerCase()}-${Date.now()}`; // Novo ID para o filho
 
-                // Atualiza os caminhos e parentIds dos filhos recursivamente
-                function updateChildrenPathsAndIds(currentDirId, oldBaseId, newBaseId) {
-                    const currentDir = systemData.fileSystem[currentDirId];
-                    if (currentDir && currentDir.children) {
-                        currentDir.children.forEach(child => {
-                            const oldChildId = child.id;
-                            child.parentId = currentDirId;
-                            child.path = `${currentDirId}/${child.name}`;
-                            child.id = `${currentDirId}/${child.name.replace(/\s+/g, '_').toLowerCase()}-${Date.now()}`; // Novo ID para o filho
+                                if (child.type === 'folder' && systemData.fileSystem[oldChildId]) {
+                                    const oldChildFolderData = systemData.fileSystem[oldChildId];
+                                    systemData.fileSystem[child.id] = oldChildFolderData;
+                                    systemData.fileSystem[child.id].id = child.id;
+                                    systemData.fileSystem[child.id].name = child.name;
+                                    systemData.fileSystem[child.id].path = child.path;
+                                    systemData.fileSystem[child.id].parentId = currentDirId;
+                                    delete systemData.fileSystem[oldChildId];
+                                    updateChildrenPathsAndIds(child.id, oldChildId, child.id);
+                                }
+                            });
+                        }
+                    }
+                    updateChildrenPathsAndIds(newFolderId, oldId, newFolderId);
+                }
 
-                            if (child.type === 'folder' && systemData.fileSystem[oldChildId]) {
-                                const oldChildFolderData = systemData.fileSystem[oldChildId];
-                                systemData.fileSystem[child.id] = oldChildFolderData;
-                                systemData.fileSystem[child.id].id = child.id;
-                                systemData.fileSystem[child.id].name = child.name;
-                                systemData.fileSystem[child.id].path = child.path;
-                                systemData.fileSystem[child.id].parentId = currentDirId;
-                                delete systemData.fileSystem[oldChildId];
-                                updateChildrenPathsAndIds(child.id, oldChildId, child.id);
-                            }
-                        });
+                // Se o item renomeado for um ícone do desktop, atualiza o desktopItems
+                const desktopItem = systemData.desktopItems.find(dItem => dItem.id === oldId); // Busca pelo ID antigo
+                if (desktopItem) {
+                    desktopItem.name = newName;
+                    desktopItem.path = item.path;
+                    desktopItem.id = item.id; // Atualiza o ID no desktopItems também
+                    // Atualiza o elemento visual do desktop
+                    const desktopIconElement = document.querySelector(`.desktop-icon[data-id="${oldId}"]`);
+                    if (desktopIconElement) {
+                        desktopIconElement.dataset.id = item.id; // Atualiza o data-id
+                        desktopIconElement.querySelector('.icon-label').textContent = newName;
                     }
                 }
-                updateChildrenPathsAndIds(newFolderId, oldId, newFolderId);
+                saveDesktopItems();
             }
-
-            // Se o item renomeado for um ícone do desktop, atualiza o desktopItems
-            const desktopItem = systemData.desktopItems.find(dItem => dItem.id === oldId); // Busca pelo ID antigo
-            if (desktopItem) {
-                desktopItem.name = newName;
-                desktopItem.path = item.path;
-                desktopItem.id = item.id; // Atualiza o ID no desktopItems também
-                // Atualiza o elemento visual do desktop
-                const desktopIconElement = document.querySelector(`.desktop-icon[data-id="${oldId}"]`);
-                if (desktopIconElement) {
-                    desktopIconElement.dataset.id = item.id; // Atualiza o data-id
-                    desktopIconElement.querySelector('.icon-label').textContent = newName;
-                }
-            }
-            saveDesktopItems();
-            return { success: true, message: `"${oldName}" renomeado para "${newName}".` };
         }
 
         // Excluir item do sistema de arquivos (move para a lixeira)
         function deleteFileItem(itemId, parentDirId, save = true) {
             const parentDir = getDirectoryById(parentDirId);
-            if (!parentDir) return { success: false, message: `Diretório pai não encontrado para o ID: ${parentDirId}.` };
+            if (!parentDir) return;
 
             const itemIndex = parentDir.children.findIndex(item => item.id === itemId);
-            if (itemIndex === -1) return { success: false, message: `Item não encontrado com o ID: ${itemId} no diretório: ${parentDirId}.` };
+            if (itemIndex === -1) return;
 
             const itemToDelete = parentDir.children[itemIndex];
 
@@ -3031,19 +3009,20 @@
 
             if (save) saveDesktopItems();
             updateFileInterfaces(); // Adicionado: Atualiza a interface após a exclusão
-            return { success: true, message: `"${itemToDelete.name}" movido para a Lixeira.` };
         }
 
         // Restaurar item da lixeira
         async function restoreTrashItem(itemId) {
             const trashDir = getDirectoryById('axon/trash');
             if (!trashDir) {
-                return { success: false, message: "Diretório da lixeira não encontrado." };
+                axonAlert("Diretório da lixeira não encontrado.", "Erro de Restauração");
+                return;
             }
 
             const itemToRestoreIndex = trashDir.children.findIndex(item => item.id === itemId);
             if (itemToRestoreIndex === -1) {
-                return { success: false, message: "Item não encontrado na lixeira." };
+                axonAlert("Item não encontrado na lixeira.", "Erro de Restauração");
+                return;
             }
 
             const itemToRestore = trashDir.children[itemToRestoreIndex];
@@ -3051,7 +3030,8 @@
 
             const targetDir = getDirectoryById(originalPath);
             if (!targetDir) {
-                return { success: false, message: `Não foi possível restaurar "${itemToRestore.name}". O caminho original "${originalPath}" não existe mais.` };
+                await axonAlert(`Não foi possível restaurar "${itemToRestore.name}". O caminho original "${originalPath}" não existe mais.`, "Erro de Restauração");
+                return;
             }
 
             // Remove da lixeira
@@ -3097,20 +3077,22 @@
             }
 
             saveDesktopItems();
+            await axonAlert(`"${itemToRestore.name}" restaurado para "${targetDir.path}".`, "Restauração Concluída");
             updateFileInterfaces(); // Adicionado: Atualiza a interface após a restauração
-            return { success: true, message: `"${itemToRestore.name}" restaurado para "${targetDir.path}".` };
         }
 
         // Excluir permanentemente item da lixeira
         async function deletePermanentTrashItem(itemId) {
             const trashDir = getDirectoryById('axon/trash');
             if (!trashDir) {
-                return { success: false, message: "Diretório da lixeira não encontrado." };
+                axonAlert("Diretório da lixeira não encontrado.", "Erro de Exclusão");
+                return;
             }
 
             const itemToDeleteIndex = trashDir.children.findIndex(item => item.id === itemId);
             if (itemToDeleteIndex === -1) {
-                return { success: false, message: "Item não encontrado na lixeira." };
+                axonAlert("Item não encontrado na lixeira.", "Erro de Exclusão");
+                return;
             }
 
             const itemToDelete = trashDir.children[itemToDeleteIndex];
@@ -3122,8 +3104,8 @@
             }
 
             saveDesktopItems();
+            await axonAlert(`"${itemToDelete.name}" excluído permanentemente.`, "Exclusão Concluída");
             updateFileInterfaces(); // Adicionado: Atualiza a interface após a exclusão permanente
-            return { success: true, message: `"${itemToDelete.name}" excluído permanentemente.` };
         }
 
         // Encontrar arquivo em qualquer diretório do sistema de arquivos
@@ -3267,7 +3249,7 @@
             // Para o Finder, sempre abre uma nova janela
             if (appId === 'finder') {
                 const app = systemData.apps[appId];
-                if (!app) return { success: false, message: `Aplicativo '${appId}' não encontrado.` };
+                if (!app) return;
 
                 const windowId = `window-${appId}-${Date.now()}`; // ID único para cada instância do Finder
                 const windowElement = document.createElement('div');
@@ -3315,7 +3297,7 @@
                 
                 setupWindowEvents(windowElement, appId, windowId);
                 initAppContent(appId, windowElement, newFinderWindow.currentPath); // Passa o initialPath para o Finder
-                return { success: true, message: `Aplicativo '${app.name}' aberto com sucesso.` };
+                return;
             }
 
             // Para outros aplicativos, reutiliza a janela existente
@@ -3325,11 +3307,11 @@
                 if (appId === 'axon-apps') {
                     initAxonApps(existingWindow.element); // Recarrega a lista de apps
                 }
-                return { success: true, message: `Aplicativo '${systemData.apps[appId].name}' já está aberto e foi trazido para frente.` };
+                return;
             }
 
             const app = systemData.apps[appId];
-            if (!app) return { success: false, message: `Aplicativo '${appId}' não encontrado.` };
+            if (!app) return;
 
             const windowId = `window-${appId}-${Date.now()}`; // ID único para cada instância
             const windowElement = document.createElement('div');
@@ -3376,7 +3358,6 @@
             bringToFront(windowId);
             
             initAppContent(appId, windowElement);
-            return { success: true, message: `Aplicativo '${app.name}' aberto com sucesso.` };
         }
 
         // Gerar conteúdo do aplicativo
@@ -3949,13 +3930,11 @@
                     const fileName = await axonPrompt("Digite o nome do arquivo:", "Sem título.txt");
                     if (fileName) {
                         const newFile = createFileItem(targetDirectoryId, 'text', fileName, textArea.value);
-                        if (newFile.success) {
-                            textArea.dataset.fileId = newFile.item.id;
-                            textArea.dataset.parentId = newFile.item.parentId;
+                        if (newFile) {
+                            textArea.dataset.fileId = newFile.id;
+                            textArea.dataset.parentId = newFile.parentId;
                             await axonAlert(`Arquivo "${fileName}" salvo com sucesso em ${targetDirectoryId}!`);
                             updateFileInterfaces(); // Atualiza todas as interfaces
-                        } else {
-                            await axonAlert(newFile.message, "Erro ao Salvar");
                         }
                     }
                 }
@@ -4135,24 +4114,24 @@
                 case 'mkdir':
                     const newFolderName = args[0];
                     if (newFolderName) {
-                        const result = createFileItem(systemState.currentPath, 'folder', newFolderName);
-                        if (result.success) {
+                        const newFolder = createFileItem(systemState.currentPath, 'folder', newFolderName);
+                        if (newFolder) {
                             updateFileInterfaces(); // Atualiza todas as interfaces
                             return `Diretório criado: ${newFolderName}`;
                         } else {
-                            return `Erro ao criar diretório: ${newFolderName}. ${result.message}`;
+                            return `Erro ao criar diretório: ${newFolderName}`;
                         }
                     }
                     return "Uso: mkdir <nome_da_pasta>";
                 case 'touch':
                     const newFileName = args[0];
                     if (newFileName) {
-                        const result = createFileItem(systemState.currentPath, 'text', newFileName);
-                        if (result.success) {
+                        const newFile = createFileItem(systemState.currentPath, 'text', newFileName);
+                        if (newFile) {
                             updateFileInterfaces(); // Atualiza todas as interfaces
                             return `Arquivo criado: ${newFileName}`;
                         } else {
-                            return `Erro ao criar arquivo: ${newFileName}. ${result.message}`;
+                            return `Erro ao criar arquivo: ${newFileName}`;
                         }
                     }
                     return "Uso: touch <nome_do_arquivo>";
@@ -4222,10 +4201,8 @@
                     chatMessages.scrollTop = chatMessages.scrollHeight;
 
                     try {
-                        aiApiBadge.style.display = 'inline-block'; // Mostra o badge
                         const response = await getGeminiResponse(systemState.chatHistory);
-                        aiApiBadge.style.display = 'none'; // Esconde o badge
-
+                        
                         // Remove a mensagem de "digitando..."
                         chatMessages.removeChild(typingIndicator);
 
@@ -4238,7 +4215,6 @@
                         
                     } catch (error) {
                         console.error("Erro ao obter resposta da Gemini:", error);
-                        aiApiBadge.style.display = 'none'; // Esconde o badge em caso de erro
                         // Remove a mensagem de "digitando..."
                         chatMessages.removeChild(typingIndicator);
                         const errorMessageElement = document.createElement('div');
@@ -4286,55 +4262,12 @@
                 }
 
                 const data = await response.json();
-                let geminiResponseText = "";
                 if (data.candidates && data.candidates.length > 0 && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts.length > 0) {
-                    geminiResponseText = data.candidates[0].content.parts[0].text;
+                    return data.candidates[0].content.parts[0].text;
                 } else {
                     console.warn("Resposta da Gemini sem conteúdo esperado:", data);
                     return "Desculpe, não consegui gerar uma resposta significativa.";
                 }
-
-                // Processar chamadas de API
-                const apiCallRegex = /`call:(\w+)\((.*)\)`/g;
-                let match;
-                let finalResponse = geminiResponseText;
-                let apiCallMade = false;
-
-                while ((match = apiCallRegex.exec(geminiResponseText)) !== null) {
-                    const functionName = match[1];
-                    const argsString = match[2];
-                    let args = [];
-                    try {
-                        // Tenta parsear os argumentos como JSON para lidar com strings e números
-                        args = JSON.parse(`[${argsString}]`);
-                    } catch (e) {
-                        // Se falhar, tenta parsear como strings simples (para casos como 'nome', 'caminho')
-                        args = argsString.split(',').map(arg => arg.trim().replace(/^'(.*)'$/, '$1').replace(/^"(.*)"$/, '$1'));
-                    }
-
-                    if (typeof axonAPI[functionName] === 'function') {
-                        apiCallMade = true;
-                        try {
-                            const apiResult = await axonAPI[functionName](...args);
-                            let resultMessage = apiResult.message || (apiResult.success ? "Sucesso." : "Falha.");
-                            finalResponse = finalResponse.replace(match[0], `(Ação realizada: ${resultMessage})`);
-                        } catch (apiError) {
-                            console.error(`Erro ao chamar a função da API '${functionName}':`, apiError);
-                            finalResponse = finalResponse.replace(match[0], `(Erro ao realizar a ação: ${apiError.message || apiError})`);
-                        }
-                    } else {
-                        finalResponse = finalResponse.replace(match[0], `(Função da API '${functionName}' não encontrada.)`);
-                    }
-                }
-
-                if (apiCallMade) {
-                    // Se uma chamada de API foi feita, a Mielina deve confirmar a ação
-                    return finalResponse;
-                } else {
-                    // Se nenhuma chamada de API foi feita, retorna a resposta original da Mielina
-                    return geminiResponseText;
-                }
-
             } catch (error) {
                 console.error("Erro na requisição Gemini:", error);
                 throw error;
@@ -4566,11 +4499,9 @@
                     if (imagesDir) {
                         const photoName = `Foto ${new Date().toLocaleString()}.png`;
                         const newImage = createFileItem('axon/images', 'image', photoName, '', photoData);
-                        if (newImage.success) {
+                        if (newImage) {
                             await axonAlert('Foto capturada com sucesso e salva em axon/images!');
                             updateFileInterfaces(); // Atualiza todas as interfaces
-                        } else {
-                            await axonAlert(newImage.message, "Erro ao Salvar Foto");
                         }
                     } else {
                         await axonAlert("Erro: Diretório 'axon/images' não encontrado.");
@@ -4960,9 +4891,7 @@
                     }
                     showDock(); // Mostra o dock ao fechar a janela
                 }, 300);
-                return { success: true, message: `Janela '${windowId}' fechada com sucesso.` };
             }
-            return { success: false, message: `Janela '${windowId}' não encontrada.` };
         }
 
         function minimizeWindow(windowId) {
@@ -4973,42 +4902,24 @@
                     windowElement.style.display = 'none';
                     showDock(); // Mostra o dock ao minimizar a janela
                 }, 300);
-                return { success: true, message: `Janela '${windowId}' minimizada com sucesso.` };
             }
-            return { success: false, message: `Janela '${windowId}' não encontrada.` };
-        }
-
-        function maximizeWindow(windowId) {
-            const windowElement = document.getElementById(windowId);
-            if (windowElement) {
-                windowElement.classList.add('maximized');
-                hideDock(); // Esconde o dock ao maximizar
-                return { success: true, message: `Janela '${windowId}' maximizada com sucesso.` };
-            }
-            return { success: false, message: `Janela '${windowId}' não encontrada.` };
-        }
-
-        function restoreWindow(windowId) {
-            const windowElement = document.getElementById(windowId);
-            if (windowElement) {
-                windowElement.classList.remove('maximized');
-                windowElement.style.width = '';
-                windowElement.style.height = '';
-                windowElement.style.left = '';
-                windowElement.style.top = '';
-                showDock(); // Mostra o dock ao restaurar
-                return { success: true, message: `Janela '${windowId}' restaurada com sucesso.` };
-            }
-            return { success: false, message: `Janela '${windowId}' não encontrada.` };
         }
 
         function toggleMaximizeWindow(windowId) {
             const windowElement = document.getElementById(windowId);
             if (windowElement) {
                 if (windowElement.classList.contains('maximized')) {
-                    restoreWindow(windowId);
+                    windowElement.classList.remove('maximized');
+                    windowElement.style.width = '';
+                    windowElement.style.height = '';
+                    windowElement.style.left = '';
+                    windowElement.style.top = '';
+                    // Não remove o transform, pois ele não é usado para posicionamento normal
+                    showDock(); // Mostra o dock ao restaurar
                 } else {
-                    maximizeWindow(windowId);
+                    windowElement.classList.add('maximized');
+                    // As propriedades de top, left, width, height são definidas no CSS para .window.maximized
+                    hideDock(); // Esconde o dock ao maximizar
                 }
             }
         }
@@ -5326,292 +5237,6 @@
                 hideContextMenu();
             }
         });
-
-        // ====================================================================================================
-        // AXON OS API para Mielina
-        // ====================================================================================================
-
-        const axonAPI = {
-            /**
-             * Abre um aplicativo do sistema.
-             * @param {string} appId - O ID do aplicativo a ser aberto (ex: 'finder', 'notes', 'terminal', 'settings', 'mielina').
-             * @param {string} [initialPath] - Caminho inicial para aplicativos como o Finder.
-             * @returns {object} Objeto de resultado com `success` e `message`.
-             */
-            openApp: function(appId, initialPath = null) {
-                return openApp(appId, initialPath);
-            },
-
-            /**
-             * Fecha uma janela de aplicativo.
-             * @param {string} appNameOrId - O nome do aplicativo ou o ID da janela a ser fechada.
-             * @returns {object} Objeto de resultado com `success` e `message`.
-             */
-            closeWindow: function(appNameOrId) {
-                const targetWindow = systemState.openWindows.find(w => w.appName.toLowerCase() === appNameOrId.toLowerCase() || w.id === appNameOrId);
-                if (targetWindow) {
-                    return closeWindow(targetWindow.windowId);
-                }
-                return { success: false, message: `Janela do aplicativo '${appNameOrId}' não encontrada.` };
-            },
-
-            /**
-             * Minimiza uma janela de aplicativo.
-             * @param {string} appNameOrId - O nome do aplicativo ou o ID da janela a ser minimizada.
-             * @returns {object} Objeto de resultado com `success` e `message`.
-             */
-            minimizeWindow: function(appNameOrId) {
-                const targetWindow = systemState.openWindows.find(w => w.appName.toLowerCase() === appNameOrId.toLowerCase() || w.id === appNameOrId);
-                if (targetWindow) {
-                    return minimizeWindow(targetWindow.windowId);
-                }
-                return { success: false, message: `Janela do aplicativo '${appNameOrId}' não encontrada.` };
-            },
-
-            /**
-             * Maximiza uma janela de aplicativo.
-             * @param {string} appNameOrId - O nome do aplicativo ou o ID da janela a ser maximizada.
-             * @returns {object} Objeto de resultado com `success` e `message`.
-             */
-            maximizeWindow: function(appNameOrId) {
-                const targetWindow = systemState.openWindows.find(w => w.appName.toLowerCase() === appNameOrId.toLowerCase() || w.id === appNameOrId);
-                if (targetWindow) {
-                    return maximizeWindow(targetWindow.windowId);
-                }
-                return { success: false, message: `Janela do aplicativo '${appNameOrId}' não encontrada.` };
-            },
-
-            /**
-             * Restaura uma janela de aplicativo (do estado maximizado ou minimizado).
-             * @param {string} appNameOrId - O nome do aplicativo ou o ID da janela a ser restaurada.
-             * @returns {object} Objeto de resultado com `success` e `message`.
-             */
-            restoreWindow: function(appNameOrId) {
-                const targetWindow = systemState.openWindows.find(w => w.appName.toLowerCase() === appNameOrId.toLowerCase() || w.id === appNameOrId);
-                if (targetWindow) {
-                    return restoreWindow(targetWindow.windowId);
-                }
-                return { success: false, message: `Janela do aplicativo '${appNameOrId}' não encontrada.` };
-            },
-
-            /**
-             * Lista todas as janelas abertas.
-             * @returns {object} Objeto de resultado com `success` e um array de janelas abertas.
-             */
-            listOpenWindows: function() {
-                const openWindowsInfo = systemState.openWindows.map(w => ({
-                    id: w.id,
-                    windowId: w.windowId,
-                    appName: w.appName,
-                    isMinimized: document.getElementById(w.windowId)?.style.display === 'none',
-                    isMaximized: document.getElementById(w.windowId)?.classList.contains('maximized')
-                }));
-                return { success: true, message: "Janelas abertas listadas.", data: openWindowsInfo };
-            },
-
-            /**
-             * Cria um novo item (pasta, documento de texto, imagem, link) no sistema de arquivos.
-             * @param {string} directoryPath - O caminho completo do diretório onde o item será criado (ex: 'axon/desktop', 'axon/documents').
-             * @param {string} type - O tipo do item ('folder', 'text', 'image', 'link').
-             * @param {string} name - O nome do novo item (ex: 'Minha Nova Pasta', 'Documento Importante.txt').
-             * @param {string} [content] - Conteúdo para documentos de texto.
-             * @param {string} [src] - URL ou base64 para imagens.
-             * @returns {object} Objeto de resultado com `success` e `message`.
-             */
-            createFileItem: function(directoryPath, type, name, content = '', src = '') {
-                const result = createFileItem(directoryPath, type, name, content, src);
-                if (result.success) {
-                    updateFileInterfaces();
-                }
-                return result;
-            },
-
-            /**
-             * Renomeia um item no sistema de arquivos.
-             * @param {string} oldName - O nome atual do item.
-             * @param {string} newName - O novo nome para o item.
-             * @param {string} directoryPath - O caminho do diretório onde o item está localizado.
-             * @returns {object} Objeto de resultado com `success` e `message`.
-             */
-            renameFile: function(oldName, newName, directoryPath) {
-                const parentDir = getDirectoryById(directoryPath);
-                if (!parentDir) {
-                    return { success: false, message: `Diretório '${directoryPath}' não encontrado.` };
-                }
-                const item = parentDir.children.find(f => f.name === oldName);
-                if (!item) {
-                    return { success: false, message: `Arquivo ou pasta '${oldName}' não encontrado em '${directoryPath}'.` };
-                }
-                const result = updateFileItemName(item.id, directoryPath, newName);
-                if (result.success) {
-                    updateFileInterfaces();
-                }
-                return result;
-            },
-
-            /**
-             * Exclui um item do sistema de arquivos (move para a lixeira).
-             * @param {string} name - O nome do item a ser excluído.
-             * @param {string} directoryPath - O caminho do diretório onde o item está localizado.
-             * @returns {object} Objeto de resultado com `success` e `message`.
-             */
-            deleteFile: function(name, directoryPath) {
-                const parentDir = getDirectoryById(directoryPath);
-                if (!parentDir) {
-                    return { success: false, message: `Diretório '${directoryPath}' não encontrado.` };
-                }
-                const item = parentDir.children.find(f => f.name === name);
-                if (!item) {
-                    return { success: false, message: `Arquivo ou pasta '${name}' não encontrado em '${directoryPath}'.` };
-                }
-                const result = deleteFileItem(item.id, directoryPath);
-                if (result.success) {
-                    updateFileInterfaces();
-                }
-                return result;
-            },
-
-            /**
-             * Copia um item de um diretório para outro.
-             * @param {string} name - O nome do item a ser copiado.
-             * @param {string} sourceDirectoryPath - O caminho do diretório de origem.
-             * @param {string} targetDirectoryPath - O caminho do diretório de destino.
-             * @returns {object} Objeto de resultado com `success` e `message`.
-             */
-            copyFile: async function(name, sourceDirectoryPath, targetDirectoryPath) {
-                const sourceDir = getDirectoryById(sourceDirectoryPath);
-                if (!sourceDir) {
-                    return { success: false, message: `Diretório de origem '${sourceDirectoryPath}' não encontrado.` };
-                }
-                const itemToCopy = sourceDir.children.find(f => f.name === name);
-                if (!itemToCopy) {
-                    return { success: false, message: `Arquivo ou pasta '${name}' não encontrado em '${sourceDirectoryPath}'.` };
-                }
-                const result = await copyItem(itemToCopy, targetDirectoryPath, false);
-                if (result.success) {
-                    updateFileInterfaces();
-                }
-                return result;
-            },
-
-            /**
-             * Move um item de um diretório para outro.
-             * @param {string} name - O nome do item a ser movido.
-             * @param {string} sourceDirectoryPath - O caminho do diretório de origem.
-             * @param {string} targetDirectoryPath - O caminho do diretório de destino.
-             * @returns {object} Objeto de resultado com `success` e `message`.
-             */
-            moveFile: async function(name, sourceDirectoryPath, targetDirectoryPath) {
-                const sourceDir = getDirectoryById(sourceDirectoryPath);
-                if (!sourceDir) {
-                    return { success: false, message: `Diretório de origem '${sourceDirectoryPath}' não encontrado.` };
-                }
-                const itemToMove = sourceDir.children.find(f => f.name === name);
-                if (!itemToMove) {
-                    return { success: false, message: `Arquivo ou pasta '${name}' não encontrado em '${sourceDirectoryPath}'.` };
-                }
-                const result = await copyItem(itemToMove, targetDirectoryPath, true); // 'true' para indicar que é um corte/movimento
-                if (result.success) {
-                    updateFileInterfaces();
-                }
-                return result;
-            },
-
-            /**
-             * Lista os arquivos e pastas em um determinado diretório.
-             * @param {string} directoryPath - O caminho do diretório a ser listado.
-             * @returns {object} Objeto de resultado com `success` e um array de itens.
-             */
-            listFiles: function(directoryPath) {
-                const targetDir = getDirectoryById(directoryPath);
-                if (!targetDir) {
-                    return { success: false, message: `Diretório '${directoryPath}' não encontrado.` };
-                }
-                const items = targetDir.children.map(item => ({
-                    name: item.name,
-                    type: item.type,
-                    path: item.path
-                }));
-                return { success: true, message: `Conteúdo de '${directoryPath}' listado.`, data: items };
-            },
-
-            /**
-             * Define uma configuração do sistema.
-             * @param {string} settingName - O nome da configuração (ex: 'theme', 'wallpaper', 'animations', 'transparency', 'particles', 'loginEnabled').
-             * @param {*} value - O novo valor para a configuração.
-             * @returns {object} Objeto de resultado com `success` e `message`.
-             */
-            setSetting: function(settingName, value) {
-                if (systemData.settings.hasOwnProperty(settingName)) {
-                    // Converte o valor para o tipo correto se necessário
-                    if (typeof systemData.settings[settingName] === 'boolean') {
-                        value = (value === 'true' || value === true);
-                    }
-                    systemData.settings[settingName] = value;
-                    applySettings();
-                    saveSettings();
-                    return { success: true, message: `Configuração '${settingName}' alterada para '${value}'.` };
-                }
-                return { success: false, message: `Configuração '${settingName}' não encontrada.` };
-            },
-
-            /**
-             * Obtém o valor de uma configuração do sistema.
-             * @param {string} settingName - O nome da configuração.
-             * @returns {object} Objeto de resultado com `success`, `message` e `value`.
-             */
-            getSetting: function(settingName) {
-                if (systemData.settings.hasOwnProperty(settingName)) {
-                    return { success: true, message: `Valor da configuração '${settingName}'.`, value: systemData.settings[settingName] };
-                }
-                return { success: false, message: `Configuração '${settingName}' não encontrada.` };
-            },
-
-            /**
-             * Obtém a lista de aplicativos instalados no sistema.
-             * @returns {object} Objeto de resultado com `success` e um array de aplicativos.
-             */
-            listApps: function() {
-                const appsList = Object.values(systemData.apps).map(app => ({
-                    id: app.id,
-                    name: app.name,
-                    icon: app.icon
-                }));
-                return { success: true, message: "Aplicativos instalados listados.", data: appsList };
-            },
-
-            /**
-             * Obtém o caminho atual do terminal.
-             * @returns {object} Objeto de resultado com `success` e o caminho atual.
-             */
-            getCurrentTerminalPath: function() {
-                return { success: true, message: "Caminho atual do terminal.", path: systemState.currentPath };
-            },
-
-            /**
-             * Altera o caminho atual do terminal.
-             * @param {string} newPath - O novo caminho para o terminal.
-             * @returns {object} Objeto de resultado com `success` e `message`.
-             */
-            changeTerminalPath: function(newPath) {
-                const result = processCommand(`cd ${newPath}`);
-                if (result.includes("Diretório alterado para:")) {
-                    return { success: true, message: result };
-                } else {
-                    return { success: false, message: result };
-                }
-            },
-
-            /**
-             * Executa um comando no terminal.
-             * @param {string} command - O comando a ser executado.
-             * @returns {object} Objeto de resultado com `success` e a saída do comando.
-             */
-            executeTerminalCommand: function(command) {
-                const output = processCommand(command);
-                return { success: true, message: `Comando '${command}' executado.`, output: output };
-            }
-        };
     </script>
 </body>
 </html>
