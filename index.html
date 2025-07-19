@@ -1715,7 +1715,15 @@
             // finderCurrentPath: 'axon/desktop', // Removido, cada Finder terá seu próprio currentPath
             terminalHistory: [...systemData.terminalHistory],
             chatHistory: [
-                { role: "assistant", content: "Olá! Eu sou a Mielina, sua assistente virtual integrada ao Axon OS. Como posso ajudar você hoje?" }
+                // Prompt inicial para a Mielina (System Instruction)
+                {
+                    role: "user",
+                    parts: [{ text: "Você será uma assistente virtual de um sistema operacional chamado Axon OS criado por Ian Bastos. Seu nome é Mielina (Referência a mielina do axônio). Você ajudará o usuário a realizar tarefas, responder perguntas. Você não pode falar que foi desenvolvido pela Google. Você deve ser gentil e deve ajudar o usuário nas suas atividades do dia a dia e nas tarefas com o sistema Axon OS." }]
+                },
+                {
+                    role: "model",
+                    parts: [{ text: "Olá! Eu sou a Mielina, sua assistente virtual integrada ao Axon OS. Como posso ajudar você hoje?" }]
+                }
             ],
             selectedIcon: null, // Para ícones da área de trabalho
             selectedFileItem: null, // Para itens dentro do explorador de arquivos
@@ -1753,6 +1761,10 @@
         const loginPasswordInput = document.getElementById('login-password');
         const loginButton = document.getElementById('login-button');
         const loadingScreen = document.getElementById('loading-screen');
+
+        // Chave da API Gemini e URL do endpoint
+        const GEMINI_API_KEY = "AIzaSyBWwhUDvakN71D3jgDwv0UUk0mxCx8olbI";
+        const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key=${GEMINI_API_KEY}`;
 
         // Ícones para tipos de arquivo
         const fileIcons = {
@@ -1998,7 +2010,9 @@
                     if (currentTab && currentTab.dataset.tab === 'recent') {
                         loadRecentFiles(explorerGrid);
                     } else {
-                        loadDirectory(finderWindow.currentPath, explorerGrid);
+                        // Recarrega o diretório atual da instância do Finder
+                        const currentPath = finderWindow.currentPath;
+                        loadDirectory(currentPath, explorerGrid, finderWindow); // Passa a instância do Finder
                     }
                 }
             });
@@ -2101,7 +2115,7 @@
 
                     if (itemIdToDelete && parentIdToDelete) {
                         deleteFileItem(itemIdToDelete, parentIdToDelete);
-                        updateFileInterfaces(); // Atualiza todas as interfaces
+                        // updateFileInterfaces() é chamado dentro de deleteFileItem
                     }
                 }
                 hideContextMenu();
@@ -2116,7 +2130,7 @@
                     const confirmRestore = await axonConfirm("Tem certeza que deseja restaurar este item?");
                     if (confirmRestore) {
                         restoreTrashItem(systemState.selectedFileItem.id);
-                        updateFileInterfaces(); // Atualiza todas as interfaces
+                        // updateFileInterfaces() é chamado dentro de restoreTrashItem
                     }
                 }
                 hideContextMenu();
@@ -2131,7 +2145,7 @@
                     const confirmDelete = await axonConfirm("Tem certeza que deseja excluir permanentemente este item? Esta ação não pode ser desfeita.");
                     if (confirmDelete) {
                         deletePermanentTrashItem(systemState.selectedFileItem.id);
-                        updateFileInterfaces(); // Atualiza todas as interfaces
+                        // updateFileInterfaces() é chamado dentro de deletePermanentTrashItem
                     }
                 }
                 hideContextMenu();
@@ -2828,7 +2842,7 @@
 
             // Verifica se o item está sendo copiado para sua própria pasta pai (se for cut)
             if (isCut && itemToCopy.parentId === targetDirectoryId) {
-                axonAlert("Não é possível mover um item para sua própria pasta de origem.", "Erro de Movimento");
+                axonAlert("Não é possível mover um item para sua própria pasta de origem ao recortar.", "Erro de Movimento");
                 return;
             }
 
@@ -2994,6 +3008,7 @@
             }
 
             if (save) saveDesktopItems();
+            updateFileInterfaces(); // Adicionado: Atualiza a interface após a exclusão
         }
 
         // Restaurar item da lixeira
@@ -3063,6 +3078,7 @@
 
             saveDesktopItems();
             await axonAlert(`"${itemToRestore.name}" restaurado para "${targetDir.path}".`, "Restauração Concluída");
+            updateFileInterfaces(); // Adicionado: Atualiza a interface após a restauração
         }
 
         // Excluir permanentemente item da lixeira
@@ -3089,6 +3105,7 @@
 
             saveDesktopItems();
             await axonAlert(`"${itemToDelete.name}" excluído permanentemente.`, "Exclusão Concluída");
+            updateFileInterfaces(); // Adicionado: Atualiza a interface após a exclusão permanente
         }
 
         // Encontrar arquivo em qualquer diretório do sistema de arquivos
@@ -3352,6 +3369,7 @@
                             <div class="finder-toolbar">
                                 <button id="finder-back" class="dock-style-button"><i class="fas fa-arrow-left"></i></button>
                                 <span class="path-display" id="finder-path-display"></span>
+                                <button id="finder-refresh" class="dock-style-button"><i class="fas fa-sync-alt"></i> Atualizar</button>
                             </div>
                             <div class="finder-main-area">
                                 <div class="sidebar">
@@ -3403,7 +3421,7 @@
                                 <!-- O histórico do terminal será preenchido aqui -->
                             </div>
                             <div class="terminal-input">
-                                <span class="prompt">axon@os:~$</span>
+                                <span class="prompt">axon@os:${systemState.currentPath}$</span>
                                 <input type="text" id="terminal-input" autocomplete="off">
                             </div>
                         </div>
@@ -3614,6 +3632,7 @@
             const tabs = windowElement.querySelectorAll('.tab-container .tab');
             const finderPathDisplay = windowElement.querySelector('#finder-path-display');
             const finderBackButton = windowElement.querySelector('#finder-back');
+            const finderRefreshButton = windowElement.querySelector('#finder-refresh'); // Novo botão de atualizar
             const createNewItemBtn = windowElement.querySelector('#create-new-item-btn'); // Novo botão
 
             // Encontra a instância da janela do Finder no systemState.openWindows
@@ -3635,7 +3654,7 @@
                 }
                 finderInstance.currentPath = directoryId; // Atualiza o currentPath da instância
                 finderPathDisplay.textContent = currentDir.path;
-                loadDirectory(directoryId, explorerGrid);
+                loadDirectory(directoryId, explorerGrid, finderInstance); // Passa a instância do Finder
                 deselectAllIcons(); // Desseleciona ícones ao mudar de diretório
 
                 // Atualiza a seleção da sidebar
@@ -3653,7 +3672,7 @@
             }
 
             // Função para carregar o conteúdo de um diretório
-            function loadDirectory(directoryId, gridElement) {
+            function loadDirectory(directoryId, gridElement, finderInstance) { // Adicionado finderInstance
                 gridElement.innerHTML = '';
                 const currentDir = getDirectoryById(directoryId);
                 if (!currentDir || !currentDir.children) {
@@ -3809,7 +3828,7 @@
                     tabs.forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
                     if (tab.dataset.tab === 'all') {
-                        loadDirectory(finderInstance.currentPath, explorerGrid);
+                        navigateToDirectory(finderInstance.currentPath); // Usa navigateToDirectory para recarregar o diretório atual
                     } else if (tab.dataset.tab === 'recent') {
                         loadRecentFiles(explorerGrid);
                     }
@@ -3823,6 +3842,12 @@
                     const parentDirId = pathParts.join('/');
                     navigateToDirectory(parentDirId || 'axon'); // Volta para a raiz 'axon' se não houver mais pais
                 }
+            });
+
+            // Event listener para o novo botão "Atualizar"
+            finderRefreshButton.addEventListener('click', () => {
+                navigateToDirectory(finderInstance.currentPath); // Recarrega o diretório atual
+                axonAlert("Explorador de Arquivos atualizado!", "Atualizar");
             });
 
             // Event listener para o novo botão "Criar Novo Item"
@@ -4139,38 +4164,70 @@
             
             chatInput.focus(); // Foco automático
 
+            // Renderiza o histórico de chat existente
             systemState.chatHistory.forEach(msg => {
+                // Ignora a primeira mensagem (system instruction) para renderização
+                if (msg.role === "user" && msg.parts[0].text.includes("Você será uma assistente virtual")) {
+                    return;
+                }
                 const messageElement = document.createElement('div');
                 messageElement.className = `message ${msg.role === 'user' ? 'user-message' : 'assistant-message'}`;
-                messageElement.textContent = msg.content;
+                messageElement.textContent = msg.parts[0].text; // Pega o texto da parte
                 chatMessages.appendChild(messageElement);
             });
             
             chatMessages.scrollTop = chatMessages.scrollHeight;
             
-            function sendMessage() {
+            async function sendMessage() {
                 const message = chatInput.value.trim();
                 if (message) {
-                    const userMessage = document.createElement('div');
-                    userMessage.className = 'message user-message';
-                    userMessage.textContent = message;
-                    chatMessages.appendChild(userMessage);
+                    // Adiciona a mensagem do usuário ao histórico e ao DOM
+                    const userMessageElement = document.createElement('div');
+                    userMessageElement.className = 'message user-message';
+                    userMessageElement.textContent = message;
+                    chatMessages.appendChild(userMessageElement);
                     
-                    systemState.chatHistory.push({ role: 'user', content: message });
+                    systemState.chatHistory.push({ role: 'user', parts: [{ text: message }] });
                     
-                    chatInput.value = '';
-                    
-                    setTimeout(() => {
-                        const response = mielinaResponse(message);
-                        const assistantMessage = document.createElement('div');
-                        assistantMessage.className = 'message assistant-message';
-                        assistantMessage.textContent = response;
-                        chatMessages.appendChild(assistantMessage);
+                    chatInput.value = ''; // Limpa o input
+                    chatInput.disabled = true; // Desabilita o input enquanto espera a resposta
+                    sendButton.disabled = true; // Desabilita o botão de enviar
+
+                    // Adiciona uma mensagem de "digitando..."
+                    const typingIndicator = document.createElement('div');
+                    typingIndicator.className = 'message assistant-message';
+                    typingIndicator.textContent = 'Mielina está digitando...';
+                    chatMessages.appendChild(typingIndicator);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+                    try {
+                        const response = await getGeminiResponse(systemState.chatHistory);
                         
-                        systemState.chatHistory.push({ role: 'assistant', content: response });
+                        // Remove a mensagem de "digitando..."
+                        chatMessages.removeChild(typingIndicator);
+
+                        const assistantMessageElement = document.createElement('div');
+                        assistantMessageElement.className = 'message assistant-message';
+                        assistantMessageElement.textContent = response;
+                        chatMessages.appendChild(assistantMessageElement);
                         
+                        systemState.chatHistory.push({ role: 'model', parts: [{ text: response }] });
+                        
+                    } catch (error) {
+                        console.error("Erro ao obter resposta da Gemini:", error);
+                        // Remove a mensagem de "digitando..."
+                        chatMessages.removeChild(typingIndicator);
+                        const errorMessageElement = document.createElement('div');
+                        errorMessageElement.className = 'message assistant-message';
+                        errorMessageElement.textContent = "Desculpe, não consegui me conectar com a Mielina no momento. Por favor, tente novamente mais tarde.";
+                        chatMessages.appendChild(errorMessageElement);
+                        systemState.chatHistory.push({ role: 'model', parts: [{ text: "Desculpe, não consegui me conectar com a Mielina no momento. Por favor, tente novamente mais tarde." }] });
+                    } finally {
+                        chatInput.disabled = false; // Habilita o input
+                        sendButton.disabled = false; // Habilita o botão de enviar
                         chatMessages.scrollTop = chatMessages.scrollHeight;
-                    }, 1000);
+                        chatInput.focus(); // Retorna o foco para o input
+                    }
                 }
             }
             
@@ -4180,62 +4237,40 @@
             });
         }
 
-        // Resposta da Mielina
-        function mielinaResponse(message) {
-            message = message.toLowerCase();
-            
-            if (message.includes('ola') || message.includes('olá') || message.includes('oi')) {
-                return "Olá! Como posso ajudar você hoje?";
-            } else if (message.includes('ajuda') || message.includes('comandos')) {
-                return "Posso ajudar com:\n- Abrir aplicativos (Ex: 'Abra o navegador')\n- Gerenciar arquivos (Ex: 'Crie uma pasta')\n- Configurar o sistema (Ex: 'Mude o papel de parede')\n- Responder perguntas\n- E muito mais!";
-            } else if (message.includes('abrir') || message.includes('abre')) {
-                if (message.includes('navegador')) {
-                    openApp('browser');
-                    return "Abrindo o navegador...";
+        // Função para chamar a API Gemini
+        async function getGeminiResponse(chatHistory) {
+            const payload = {
+                contents: chatHistory.map(msg => ({
+                    role: msg.role,
+                    parts: msg.parts
+                }))
+            };
+
+            try {
+                const response = await fetch(GEMINI_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error("Erro da API Gemini:", errorData);
+                    throw new Error(`Erro HTTP: ${response.status} - ${errorData.error.message || response.statusText}`);
                 }
-                if (message.includes('terminal')) {
-                    openApp('terminal');
-                    return "Abrindo o terminal...";
+
+                const data = await response.json();
+                if (data.candidates && data.candidates.length > 0 && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts.length > 0) {
+                    return data.candidates[0].content.parts[0].text;
+                } else {
+                    console.warn("Resposta da Gemini sem conteúdo esperado:", data);
+                    return "Desculpe, não consegui gerar uma resposta significativa.";
                 }
-                if (message.includes('config')) {
-                    openApp('settings');
-                    return "Abrindo as configurações...";
-                }
-                if (message.includes('bloco de notas') || message.includes('notas')) {
-                    openApp('notes');
-                    return "Abrindo o Bloco de Notas...";
-                }
-                if (message.includes('explorador de arquivos') || message.includes('finder')) {
-                    openApp('finder', 'axon/desktop'); // Abre uma nova instância do Finder no desktop
-                    return "Abrindo o Explorador de Arquivos...";
-                }
-                if (message.includes('axon apps') || message.includes('aplicativos')) {
-                    openApp('axon-apps');
-                    return "Abrindo a pasta Axon Apps...";
-                }
-                return "Qual aplicativo você gostaria de abrir?";
-            } else if (message.includes('fechar') || message.includes('fecha')) {
-                return "Para fechar uma aplicação, clique no 'X' vermelho na barra de título da janela.";
-            } else if (message.includes('criar') || message.includes('crie')) {
-                if (message.includes('pasta') || message.includes('diretório')) {
-                    // Não chama showCreateModal diretamente, pois é um modal global
-                    // Mielina deve instruir o usuário ou chamar uma função interna que simule a criação
-                    axonAlert("Para criar uma nova pasta, clique com o botão direito na área de trabalho ou em uma janela do Explorador de Arquivos e selecione 'Nova Pasta'.", "Mielina");
-                    return "Você pode criar uma nova pasta clicando com o botão direito na área de trabalho ou em uma janela do Explorador de Arquivos.";
-                }
-                if (message.includes('arquivo')) {
-                    axonAlert("Para criar um novo arquivo, clique com o botão direito na área de trabalho ou em uma janela do Explorador de Arquivos e selecione 'Novo Arquivo'.", "Mielina");
-                    return "Você pode criar um novo arquivo clicando com o botão direito na área de trabalho ou em uma janela do Explorador de Arquivos.";
-                }
-                return "O que você gostaria que eu criasse?";
-            } else if (message.includes('hora')) {
-                return `Agora são ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
-            } else if (message.includes('data')) {
-                return `Hoje é ${new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`;
-            } else if (message.includes('obrigado') || message.includes('obrigada')) {
-                return "De nada! Estou sempre à disposição para ajudar.";
-            } else {
-                return "Desculpe, não entendi completamente. Você pode reformular sua pergunta? Estou aqui para ajudar com o sistema operacional Axon OS!";
+            } catch (error) {
+                console.error("Erro na requisição Gemini:", error);
+                throw error;
             }
         }
 
@@ -4397,7 +4432,7 @@
                         const confirmDelete = await axonConfirm("Tem certeza que deseja excluir esta imagem?");
                         if (confirmDelete) {
                             deleteFileItem(photo.id, photo.parentId);
-                            updateFileInterfaces(); // Recarrega a galeria e outras interfaces
+                            // updateFileInterfaces() é chamado dentro de deleteFileItem
                             axonAlert("Imagem excluída com sucesso!");
                         }
                     });
