@@ -98,6 +98,24 @@
             align-items: center;
         }
 
+        /* AI API Badge */
+        #ai-api-badge {
+            background-color: var(--accent);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            display: none; /* Hidden by default */
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
         /* Área de trabalho */
         #desktop {
             position: absolute;
@@ -801,7 +819,7 @@
             justify-content: center;
             z-index: 4000; /* Acima de outros modais */
             opacity: 0;
-            pointer-events: none;
+             pointer-events: none;
             transition: opacity 0.3s ease;
         }
 
@@ -1396,6 +1414,7 @@
             <div class="menu-item" id="help-guide-btn">Ajuda</div>
         </div>
         <div class="status-icons">
+            <div id="ai-api-badge" style="display: none;">A.I API</div>
             <!-- <div id="wifi-icon"><i class="fas fa-wifi"></i></div> -->
             <!-- <div id="battery-icon"><i class="fas fa-battery-three-quarters"></i> 87%</div> -->
             <div id="clock">14:25</div>
@@ -1741,7 +1760,8 @@
                 rows: 0,
                 positions: [] // Array 2D para controlar ocupação
             },
-            draggedItem: null // Item sendo arrastado
+            draggedItem: null, // Item sendo arrastado
+            systemActivityLog: [] // Log de atividades do sistema para a Mielina
         };
 
         // Elementos DOM
@@ -1761,6 +1781,7 @@
         const loginPasswordInput = document.getElementById('login-password');
         const loginButton = document.getElementById('login-button');
         const loadingScreen = document.getElementById('loading-screen');
+        const aiApiBadge = document.getElementById('ai-api-badge');
 
         // Chave da API Gemini e URL do endpoint
         const GEMINI_API_KEY = "AIzaSyBWwhUDvakN71D3jgDwv0UUk0mxCx8olbI";
@@ -2031,6 +2052,7 @@
                     const app = icon.dataset.app;
                     // Ao clicar no Finder no dock, sempre abre o desktop
                     openApp(app, app === 'finder' ? 'axon/desktop' : null);
+                    logSystemActivity({ type: 'app_opened', app: app });
                 });
             });
 
@@ -2038,6 +2060,7 @@
             desktop.addEventListener('click', (e) => {
                 if (e.target === desktop) {
                     deselectAllIcons();
+                    logSystemActivity({ type: 'desktop_clicked', target: 'empty_area' });
                 }
             });
 
@@ -2055,6 +2078,7 @@
                     await copyItem(draggedItemData, targetDirectoryId);
                     systemState.draggedItem = null;
                     updateFileInterfaces(); // Atualiza todas as interfaces
+                    logSystemActivity({ type: 'item_dropped_on_desktop', item: draggedItemData.name });
                 }
             });
 
@@ -2068,6 +2092,7 @@
                 if (folderName) {
                     createFileItem(targetDirectoryId, 'folder', folderName);
                     updateFileInterfaces(); // Atualiza todas as interfaces
+                    logSystemActivity({ type: 'create_folder', name: folderName, path: targetDirectoryId });
                 }
                 hideContextMenu();
             });
@@ -2081,6 +2106,7 @@
                 if (fileName) {
                     createFileItem(targetDirectoryId, 'text', fileName);
                     updateFileInterfaces(); // Atualiza todas as interfaces
+                    logSystemActivity({ type: 'create_file', name: fileName, path: targetDirectoryId });
                 }
                 hideContextMenu();
             });
@@ -2095,6 +2121,7 @@
 
                 if (itemToOpen) {
                     openItem(itemToOpen);
+                    logSystemActivity({ type: 'open_item', item: itemToOpen.name, item_type: itemToOpen.type });
                 }
                 hideContextMenu();
             });
@@ -2104,17 +2131,21 @@
                 if (confirmDelete) {
                     let itemIdToDelete = null;
                     let parentIdToDelete = null;
+                    let itemName = '';
 
                     if (systemState.selectedIcon) {
                         itemIdToDelete = systemState.selectedIcon.dataset.id;
                         parentIdToDelete = 'axon/desktop'; // Ícones do desktop sempre estão em axon/desktop
+                        itemName = systemState.selectedIcon.querySelector('.icon-label').textContent;
                     } else if (systemState.selectedFileItem) {
                         itemIdToDelete = systemState.selectedFileItem.id;
                         parentIdToDelete = systemState.selectedFileItem.parentId;
+                        itemName = systemState.selectedFileItem.name;
                     }
 
                     if (itemIdToDelete && parentIdToDelete) {
                         deleteFileItem(itemIdToDelete, parentIdToDelete);
+                        logSystemActivity({ type: 'delete_item', item: itemName, path: parentIdToDelete });
                         // updateFileInterfaces() é chamado dentro de deleteFileItem
                     }
                 }
@@ -2130,6 +2161,7 @@
                     const confirmRestore = await axonConfirm("Tem certeza que deseja restaurar este item?");
                     if (confirmRestore) {
                         restoreTrashItem(systemState.selectedFileItem.id);
+                        logSystemActivity({ type: 'restore_item', item: systemState.selectedFileItem.name });
                         // updateFileInterfaces() é chamado dentro de restoreTrashItem
                     }
                 }
@@ -2145,6 +2177,7 @@
                     const confirmDelete = await axonConfirm("Tem certeza que deseja excluir permanentemente este item? Esta ação não pode ser desfeita.");
                     if (confirmDelete) {
                         deletePermanentTrashItem(systemState.selectedFileItem.id);
+                        logSystemActivity({ type: 'delete_permanent_item', item: systemState.selectedFileItem.name });
                         // updateFileInterfaces() é chamado dentro de deletePermanentTrashItem
                     }
                 }
@@ -2172,6 +2205,7 @@
                         updateFileItemName(itemId, parentId, newName.trim());
                         updateFileInterfaces(); // Atualiza todas as interfaces
                         axonAlert(`Item renomeado para "${newName.trim()}"`);
+                        logSystemActivity({ type: 'rename_item', old_name: oldName, new_name: newName.trim(), path: parentId });
                     } else if (newName && newName.trim() === oldName) {
                         axonAlert("O nome é o mesmo. Nenhuma alteração foi feita.");
                     }
@@ -2191,6 +2225,7 @@
                     systemData.clipboard = { ...itemToCopy };
                     systemState.clipboardAction = 'copy';
                     axonAlert(`"${itemToCopy.name}" copiado para a área de transferência.`);
+                    logSystemActivity({ type: 'copy_item', item: itemToCopy.name, path: itemToCopy.parentId });
                 }
                 hideContextMenu();
             });
@@ -2207,6 +2242,7 @@
                     systemData.clipboard = { ...itemToCut };
                     systemState.clipboardAction = 'cut';
                     axonAlert(`"${itemToCut.name}" recortado para a área de transferência.`);
+                    logSystemActivity({ type: 'cut_item', item: itemToCut.name, path: itemToCut.parentId });
                 }
                 hideContextMenu();
             });
@@ -2229,6 +2265,7 @@
 
                     await copyItem(originalItem, targetDirectoryId, systemState.clipboardAction === 'cut');
                     updateFileInterfaces(); // Atualiza todas as interfaces
+                    logSystemActivity({ type: 'paste_item', item: originalItem.name, target_path: targetDirectoryId, action: systemState.clipboardAction });
                     systemData.clipboard = null;
                     systemState.clipboardAction = null;
                 } else {
@@ -2257,6 +2294,7 @@
                 createFileItem(targetDirectoryId, type, name);
                 createModal.classList.remove('active');
                 updateFileInterfaces(); // Atualiza todas as interfaces
+                logSystemActivity({ type: 'create_item_modal', item_type: type, name: name, path: targetDirectoryId });
             });
             
             // Context menu for desktop
@@ -2264,6 +2302,7 @@
                 e.preventDefault();
                 deselectAllIcons();
                 showContextMenu(e, null);
+                logSystemActivity({ type: 'context_menu_opened', target: 'desktop' });
             });
             
             // Botão Axon OS (minimiza todas as janelas)
@@ -2271,14 +2310,19 @@
                 systemState.openWindows.forEach(window => {
                     minimizeWindow(window.windowId);
                 });
+                logSystemActivity({ type: 'axon_menu_clicked', action: 'minimize_all_windows' });
             });
 
             // Botão Janela (Carrossel)
-            document.getElementById('window-carousel-btn').addEventListener('click', showWindowCarousel);
+            document.getElementById('window-carousel-btn').addEventListener('click', () => {
+                showWindowCarousel();
+                logSystemActivity({ type: 'window_carousel_opened' });
+            });
 
             // Botão Ajuda
             document.getElementById('help-guide-btn').addEventListener('click', () => {
                 document.getElementById('help-guide-modal').classList.add('active');
+                logSystemActivity({ type: 'help_guide_opened' });
             });
 
             // Botão Fechar Todas as Janelas no Carrossel
@@ -2290,6 +2334,7 @@
                         closeWindow(systemState.openWindows[i].windowId);
                     }
                     closeModal('window-carousel-modal');
+                    logSystemActivity({ type: 'close_all_windows' });
                 }
             });
 
@@ -2341,6 +2386,7 @@
 
                 if (activeWindow) {
                     minimizeWindow(activeWindow.windowId);
+                    logSystemActivity({ type: 'keyboard_shortcut', key: 'Escape', action: 'minimize_active_window' });
                 }
             } else if (e.key === 'Enter') {
                 e.preventDefault();
@@ -2348,24 +2394,29 @@
                     if (systemState.selectedIcon) {
                         // Simula o duplo clique no ícone da área de trabalho
                         currentSelectedElement.dispatchEvent(new Event('dblclick'));
+                        logSystemActivity({ type: 'keyboard_shortcut', key: 'Enter', action: 'open_desktop_icon', item: systemState.selectedIcon.dataset.id });
                     } else if (systemState.selectedFileItem) {
                         // Simula o duplo clique no item do explorador de arquivos
                         currentSelectedElement.dispatchEvent(new Event('dblclick'));
+                        logSystemActivity({ type: 'keyboard_shortcut', key: 'Enter', action: 'open_file_item', item: systemState.selectedFileItem.id });
                     }
                 }
             } else if (e.key === 'Delete') {
                 e.preventDefault();
                 if (currentSelectedElement) {
                     document.getElementById('context-delete').click(); // Simula o clique no item de exclusão do menu de contexto
+                    logSystemActivity({ type: 'keyboard_shortcut', key: 'Delete', action: 'delete_selected_item' });
                 }
             } else if (e.ctrlKey && e.key === 'c') { // CTRL + C
                 e.preventDefault();
                 if (currentSelectedElement) {
                     document.getElementById('context-copy').click();
+                    logSystemActivity({ type: 'keyboard_shortcut', key: 'Ctrl+C', action: 'copy_selected_item' });
                 }
             } else if (e.ctrlKey && e.key === 'v') { // CTRL + V
                 e.preventDefault();
                 document.getElementById('context-paste').click();
+                logSystemActivity({ type: 'keyboard_shortcut', key: 'Ctrl+V', action: 'paste_item' });
             }
             else if (e.key.startsWith('Arrow')) {
                 e.preventDefault();
@@ -2383,10 +2434,12 @@
                 } else if (desktopIcons.length > 0) {
                     // Se nada estiver selecionado, seleciona o primeiro item do desktop
                     selectIcon(desktopIcons[0]);
+                    logSystemActivity({ type: 'keyboard_navigation', action: 'select_first_desktop_icon' });
                     return;
                 } else if (fileItems.length > 0) {
                     // Se nada estiver selecionado, seleciona o primeiro item do explorador de arquivos
                     selectFileItem(fileItems[0]);
+                    logSystemActivity({ type: 'keyboard_navigation', action: 'select_first_file_item' });
                     return;
                 }
 
@@ -2438,6 +2491,7 @@
                         const nextIconElement = document.querySelector(`.desktop-icon[data-id="${nextItemId}"]`);
                         if (nextIconElement) {
                             selectIcon(nextIconElement);
+                            logSystemActivity({ type: 'keyboard_navigation', action: `move_${e.key.replace('Arrow', '').toLowerCase()}`, target_item: nextItemId });
                         }
                     } else {
                         // Se a nova posição estiver vazia, tenta encontrar o próximo item válido na direção
@@ -2447,6 +2501,7 @@
                                 if (systemState.desktopGrid.positions[r][nextCol]) {
                                     selectIcon(document.querySelector(`.desktop-icon[data-id="${systemState.desktopGrid.positions[r][nextCol]}"]`));
                                     found = true;
+                                    logSystemActivity({ type: 'keyboard_navigation', action: `move_${e.key.replace('Arrow', '').toLowerCase()}_search`, target_item: systemState.desktopGrid.positions[r][nextCol] });
                                     break;
                                 }
                             }
@@ -2455,6 +2510,7 @@
                                 if (systemState.desktopGrid.positions[r][nextCol]) {
                                     selectIcon(document.querySelector(`.desktop-icon[data-id="${systemState.desktopGrid.positions[r][nextCol]}"]`));
                                     found = true;
+                                    logSystemActivity({ type: 'keyboard_navigation', action: `move_${e.key.replace('Arrow', '').toLowerCase()}_search`, target_item: systemState.desktopGrid.positions[r][nextCol] });
                                     break;
                                 }
                             }
@@ -2463,6 +2519,7 @@
                                 if (systemState.desktopGrid.positions[nextRow][c]) {
                                     selectIcon(document.querySelector(`.desktop-icon[data-id="${systemState.desktopGrid.positions[nextRow][c]}"]`));
                                     found = true;
+                                    logSystemActivity({ type: 'keyboard_navigation', action: `move_${e.key.replace('Arrow', '').toLowerCase()}_search`, target_item: systemState.desktopGrid.positions[nextRow][c] });
                                     break;
                                 }
                             }
@@ -2471,6 +2528,7 @@
                                 if (systemState.desktopGrid.positions[nextRow][c]) {
                                     selectIcon(document.querySelector(`.desktop-icon[data-id="${systemState.desktopGrid.positions[nextRow][c]}"]`));
                                     found = true;
+                                    logSystemActivity({ type: 'keyboard_navigation', action: `move_${e.key.replace('Arrow', '').toLowerCase()}_search`, target_item: systemState.desktopGrid.positions[nextRow][c] });
                                     break;
                                 }
                             }
@@ -2497,6 +2555,7 @@
                     }
                     if (newIndex !== targetIndex) {
                         selectFileItem(itemsToNavigate[newIndex]);
+                        logSystemActivity({ type: 'keyboard_navigation', action: `move_${e.key.replace('Arrow', '').toLowerCase()}_file_item`, target_item: itemsToNavigate[newIndex].dataset.id });
                     }
                 }
             }
@@ -2506,6 +2565,7 @@
         function openItem(item) {
             // Adiciona o item aos recentes
             addRecentFile(item);
+            logSystemActivity({ type: 'open_item_internal', item: item.name, item_type: item.type, path: item.path });
 
             if (item.type === 'folder') {
                 // Abre uma nova janela do Finder para a pasta
@@ -2569,6 +2629,7 @@
             systemState.selectedIcon = iconElement;
             systemState.selectedFileItem = null;
             iconElement.focus(); // Garante que o elemento tenha foco para navegação por teclado
+            logSystemActivity({ type: 'select_desktop_icon', item: iconElement.dataset.id });
         }
 
         // Função para selecionar um item do explorador de arquivos
@@ -2585,6 +2646,7 @@
             }
             systemState.selectedIcon = null;
             fileItemElement.focus(); // Garante que o elemento tenha foco para acessibilidade
+            logSystemActivity({ type: 'select_file_item', item: fileItemElement.dataset.id });
         }
 
         // Criar ícone na área de trabalho
@@ -2678,6 +2740,7 @@
                     // Anexar listeners ao document para arrastar fora do desktop
                     document.addEventListener('mousemove', elementDragIcon);
                     document.addEventListener('mouseup', stopDragIcon);
+                    logSystemActivity({ type: 'drag_desktop_icon_start', item: id });
                 }
             });
 
@@ -2737,6 +2800,7 @@
                     occupyPosition(row, col, id);
                     updateDesktopItemPosition(id, finalX, finalY, row, col);
                     saveDesktopItems();
+                    logSystemActivity({ type: 'drag_desktop_icon_end', item: id, new_position: { x: finalX, y: finalY } });
                 }
             }
             
@@ -2778,13 +2842,14 @@
                 createDesktopItem(type, name, null, null, newItem.id);
             }
             axonAlert(`"${name}" criado em "${parentDir.path}"`);
+            logSystemActivity({ type: 'file_system_create_item', item_type: type, name: name, path: directoryId });
             return newItem;
         }
 
         // Função recursiva para copiar um item e seus filhos
         function copyItemRecursive(sourceItem, targetDirectoryId) {
             const newId = `${targetDirectoryId}/${sourceItem.name.replace(/\s+/g, '_').toLowerCase()}-${Date.now()}`;
-            const newItem = { ...sourceItem, id: newId, parentId: targetDirectoryId, path: `${targetDirectoryId}/${sourceItem.name}` };
+            const newItem = { ...sourceItem }; // Copia todas as propriedades
             
             // Ajusta o nome se já existir no destino
             let finalName = newItem.name;
@@ -2802,6 +2867,7 @@
             newItem.name = finalName;
             newItem.path = `${targetDirectoryId}/${finalName}`;
             newItem.id = `${targetDirectoryId}/${finalName.replace(/\s+/g, '_').toLowerCase()}-${Date.now()}`;
+            newItem.parentId = targetDirectoryId; // Atualiza o parentId para o novo diretório
 
             // Adiciona o novo item ao diretório de destino
             if (targetDir) {
@@ -2858,8 +2924,10 @@
                 if (isCut) {
                     deleteFileItem(itemToCopy.id, itemToCopy.parentId, false); // Não salva ainda
                     axonAlert(`"${itemToCopy.name}" movido para "${targetDir.path}"`);
+                    logSystemActivity({ type: 'file_system_move_item', item: itemToCopy.name, from: itemToCopy.parentId, to: targetDirectoryId });
                 } else {
                     axonAlert(`"${itemToCopy.name}" copiado para "${targetDir.path}"`);
+                    logSystemActivity({ type: 'file_system_copy_item', item: itemToCopy.name, from: itemToCopy.parentId, to: targetDirectoryId });
                 }
                 saveDesktopItems();
             }
@@ -2964,6 +3032,7 @@
                     }
                 }
                 saveDesktopItems();
+                logSystemActivity({ type: 'file_system_rename_item', old_id: oldId, new_id: item.id, old_name: oldName, new_name: newName, path: parentDirId });
             }
         }
 
@@ -3009,6 +3078,7 @@
 
             if (save) saveDesktopItems();
             updateFileInterfaces(); // Adicionado: Atualiza a interface após a exclusão
+            logSystemActivity({ type: 'file_system_delete_item', item: itemToDelete.name, path: parentDirId, moved_to_trash: true });
         }
 
         // Restaurar item da lixeira
@@ -3079,6 +3149,7 @@
             saveDesktopItems();
             await axonAlert(`"${itemToRestore.name}" restaurado para "${targetDir.path}".`, "Restauração Concluída");
             updateFileInterfaces(); // Adicionado: Atualiza a interface após a restauração
+            logSystemActivity({ type: 'file_system_restore_item', item: itemToRestore.name, path: targetDir.path });
         }
 
         // Excluir permanentemente item da lixeira
@@ -3106,6 +3177,7 @@
             saveDesktopItems();
             await axonAlert(`"${itemToDelete.name}" excluído permanentemente.`, "Exclusão Concluída");
             updateFileInterfaces(); // Adicionado: Atualiza a interface após a exclusão permanente
+            logSystemActivity({ type: 'file_system_delete_permanent_item', item: itemToDelete.name });
         }
 
         // Encontrar arquivo em qualquer diretório do sistema de arquivos
@@ -3297,6 +3369,7 @@
                 
                 setupWindowEvents(windowElement, appId, windowId);
                 initAppContent(appId, windowElement, newFinderWindow.currentPath); // Passa o initialPath para o Finder
+                logSystemActivity({ type: 'open_app', app_id: appId, window_id: windowId, initial_path: initialPath });
                 return;
             }
 
@@ -3307,6 +3380,7 @@
                 if (appId === 'axon-apps') {
                     initAxonApps(existingWindow.element); // Recarrega a lista de apps
                 }
+                logSystemActivity({ type: 'focus_app', app_id: appId, window_id: existingWindow.windowId });
                 return;
             }
 
@@ -3358,6 +3432,7 @@
             bringToFront(windowId);
             
             initAppContent(appId, windowElement);
+            logSystemActivity({ type: 'open_app', app_id: appId, window_id: windowId });
         }
 
         // Gerar conteúdo do aplicativo
@@ -3656,6 +3731,7 @@
                 finderPathDisplay.textContent = currentDir.path;
                 loadDirectory(directoryId, explorerGrid, finderInstance); // Passa a instância do Finder
                 deselectAllIcons(); // Desseleciona ícones ao mudar de diretório
+                logSystemActivity({ type: 'finder_navigate', path: directoryId });
 
                 // Atualiza a seleção da sidebar
                 sidebarItems.forEach(item => {
@@ -3675,7 +3751,7 @@
             function loadDirectory(directoryId, gridElement, finderInstance) { // Adicionado finderInstance
                 gridElement.innerHTML = '';
                 const currentDir = getDirectoryById(directoryId);
-                if (!currentDir || !currentDir.children) {
+                if (!currentDir || !currentDir.children || currentDir.children.length === 0) {
                     gridElement.innerHTML = '<p style="text-align: center; width: 100%;">Diretório vazio ou inválido.</p>';
                     return;
                 }
@@ -3713,6 +3789,7 @@
                         systemState.draggedItem = item; // Armazena o item completo
                         e.dataTransfer.effectAllowed = 'copyMove';
                         e.dataTransfer.setData('text/plain', item.id); // Pode ser útil para depuração
+                        logSystemActivity({ type: 'drag_file_item_start', item: item.name, path: item.parentId });
                     });
 
                     fileItem.addEventListener('dragend', () => {
@@ -3742,6 +3819,7 @@
                                 await copyItem(draggedItemData, targetDirectoryId);
                                 systemState.draggedItem = null;
                                 updateFileInterfaces(); // Atualiza todas as interfaces
+                                logSystemActivity({ type: 'drop_file_item_on_folder', item: draggedItemData.name, target_folder: item.name });
                             }
                         });
                     }
@@ -3755,6 +3833,7 @@
                         e.preventDefault();
                         deselectAllIcons(); // Desseleciona qualquer item
                         showContextMenu(e, null); // Mostra o menu de contexto sem item selecionado
+                        logSystemActivity({ type: 'context_menu_opened', target: 'finder_empty_area', path: finderInstance.currentPath });
                     }
                 });
 
@@ -3772,6 +3851,7 @@
                         await copyItem(draggedItemData, targetDirectoryId);
                         systemState.draggedItem = null;
                         updateFileInterfaces(); // Atualiza todas as interfaces
+                        logSystemActivity({ type: 'drop_file_item_on_finder_background', item: draggedItemData.name, target_path: targetDirectoryId });
                     }
                 });
             }
@@ -3814,6 +3894,7 @@
                     
                     gridElement.appendChild(fileItem);
                 });
+                logSystemActivity({ type: 'finder_view_recent_files' });
             }
             
             sidebarItems.forEach(item => {
@@ -3829,8 +3910,10 @@
                     tab.classList.add('active');
                     if (tab.dataset.tab === 'all') {
                         navigateToDirectory(finderInstance.currentPath); // Usa navigateToDirectory para recarregar o diretório atual
+                        logSystemActivity({ type: 'finder_tab_changed', tab: 'all_items' });
                     } else if (tab.dataset.tab === 'recent') {
                         loadRecentFiles(explorerGrid);
+                        logSystemActivity({ type: 'finder_tab_changed', tab: 'recent_files' });
                     }
                 });
             });
@@ -3841,6 +3924,7 @@
                     pathParts.pop(); // Remove o último elemento
                     const parentDirId = pathParts.join('/');
                     navigateToDirectory(parentDirId || 'axon'); // Volta para a raiz 'axon' se não houver mais pais
+                    logSystemActivity({ type: 'finder_back_button' });
                 }
             });
 
@@ -3848,6 +3932,7 @@
             finderRefreshButton.addEventListener('click', () => {
                 navigateToDirectory(finderInstance.currentPath); // Recarrega o diretório atual
                 axonAlert("Explorador de Arquivos atualizado!", "Atualizar");
+                logSystemActivity({ type: 'finder_refresh' });
             });
 
             // Event listener para o novo botão "Criar Novo Item"
@@ -3860,6 +3945,7 @@
                     pasteOption.disabled = !systemData.clipboard;
                 }
                 createModal.classList.add('active');
+                logSystemActivity({ type: 'finder_create_new_item_button' });
             });
 
             // Atualiza o listener do botão de confirmação do modal de criação
@@ -3883,6 +3969,7 @@
                         await copyItem(originalItem, targetDirectoryId, systemState.clipboardAction === 'cut');
                         systemData.clipboard = null;
                         systemState.clipboardAction = null;
+                        logSystemActivity({ type: 'create_modal_paste', item: originalItem.name, target_path: targetDirectoryId });
                     } else {
                         axonAlert("Nenhum item para colar na área de transferência.");
                     }
@@ -3892,6 +3979,7 @@
                         return;
                     }
                     createFileItem(targetDirectoryId, type, name);
+                    logSystemActivity({ type: 'create_modal_create_item', item_type: type, name: name, path: targetDirectoryId });
                 }
                 closeModal('create-modal');
                 updateFileInterfaces(); // Atualiza todas as interfaces
@@ -3919,6 +4007,7 @@
                         file.content = textArea.value;
                         saveDesktopItems(); // Salva o fileSystem atualizado
                         await axonAlert(`Arquivo salvo com sucesso!`);
+                        logSystemActivity({ type: 'notes_save_existing_file', file: file.name, path: parentId });
                     } else {
                         await axonAlert("Erro: Arquivo não encontrado para salvar. Tente salvar como um novo arquivo.");
                     }
@@ -3935,6 +4024,7 @@
                             textArea.dataset.parentId = newFile.parentId;
                             await axonAlert(`Arquivo "${fileName}" salvo com sucesso em ${targetDirectoryId}!`);
                             updateFileInterfaces(); // Atualiza todas as interfaces
+                            logSystemActivity({ type: 'notes_save_new_file', file: fileName, path: targetDirectoryId });
                         }
                     }
                 }
@@ -3947,11 +4037,13 @@
                     textArea.dataset.fileId = '';
                     textArea.dataset.parentId = '';
                     textArea.focus();
+                    logSystemActivity({ type: 'notes_new_note' });
                 }
             });
             
             openBtn.addEventListener('click', () => {
                 showOpenFileModal(textArea);
+                logSystemActivity({ type: 'notes_open_file_modal' });
             });
         }
 
@@ -4010,9 +4102,11 @@
                         targetTextArea.dataset.fileId = systemState.selectedFile.id;
                         targetTextArea.dataset.parentId = systemState.selectedFile.parentId;
                         openFileModal.classList.remove('active');
+                        logSystemActivity({ type: 'open_file_modal_open_text', file: systemState.selectedFile.name });
                     } else if (systemState.selectedFile.type === 'image') {
                         openImageViewer(systemState.selectedFile.src, systemState.selectedFile.path);
                         openFileModal.classList.remove('active');
+                        logSystemActivity({ type: 'open_file_modal_open_image', file: systemState.selectedFile.name });
                     } else {
                         await axonAlert("Tipo de arquivo não suportado para esta ação.");
                     }
@@ -4025,6 +4119,7 @@
             document.getElementById('cancel-open-file').onclick = () => {
                 openFileModal.classList.remove('active');
                 systemState.selectedFile = null; // Limpa a seleção ao cancelar
+                logSystemActivity({ type: 'open_file_modal_cancel' });
             };
             
             openFileModal.classList.add('active');
@@ -4067,6 +4162,7 @@
                         terminalContent.scrollTop = terminalContent.scrollHeight;
                         
                         systemState.terminalHistory.push({ command, output, path: systemState.currentPath });
+                        logSystemActivity({ type: 'terminal_command', command: command, output: output });
                     }
                 }
             });
@@ -4200,18 +4296,38 @@
                     chatMessages.appendChild(typingIndicator);
                     chatMessages.scrollTop = chatMessages.scrollHeight;
 
+                    // Exibe o badge da API
+                    aiApiBadge.style.display = 'block';
+
                     try {
                         const response = await getGeminiResponse(systemState.chatHistory);
                         
                         // Remove a mensagem de "digitando..."
                         chatMessages.removeChild(typingIndicator);
 
-                        const assistantMessageElement = document.createElement('div');
-                        assistantMessageElement.className = 'message assistant-message';
-                        assistantMessageElement.textContent = response;
-                        chatMessages.appendChild(assistantMessageElement);
-                        
-                        systemState.chatHistory.push({ role: 'model', parts: [{ text: response }] });
+                        // Tenta parsear a resposta como um comando JSON
+                        try {
+                            const command = JSON.parse(response);
+                            if (command.action) {
+                                await executeMielinaCommand(command);
+                                // Se for um comando, a Mielina não precisa responder com texto,
+                                // mas podemos adicionar uma confirmação visual ou textual.
+                                const confirmationMessage = document.createElement('div');
+                                confirmationMessage.className = 'message assistant-message';
+                                confirmationMessage.textContent = `Comando "${command.action}" executado com sucesso.`;
+                                chatMessages.appendChild(confirmationMessage);
+                                systemState.chatHistory.push({ role: 'model', parts: [{ text: `Comando "${command.action}" executado com sucesso.` }] });
+                            } else {
+                                throw new Error("Resposta não é um comando válido.");
+                            }
+                        } catch (parseError) {
+                            // Se não for um JSON de comando, trata como texto normal
+                            const assistantMessageElement = document.createElement('div');
+                            assistantMessageElement.className = 'message assistant-message';
+                            assistantMessageElement.textContent = response;
+                            chatMessages.appendChild(assistantMessageElement);
+                            systemState.chatHistory.push({ role: 'model', parts: [{ text: response }] });
+                        }
                         
                     } catch (error) {
                         console.error("Erro ao obter resposta da Gemini:", error);
@@ -4227,6 +4343,7 @@
                         sendButton.disabled = false; // Habilita o botão de enviar
                         chatMessages.scrollTop = chatMessages.scrollHeight;
                         chatInput.focus(); // Retorna o foco para o input
+                        aiApiBadge.style.display = 'none'; // Esconde o badge da API
                     }
                 }
             }
@@ -4239,8 +4356,25 @@
 
         // Função para chamar a API Gemini
         async function getGeminiResponse(chatHistory) {
+            // Adiciona o contexto do sistema e o log de atividades ao histórico antes de enviar
+            const systemContext = getSystemContext();
+            const activityLog = systemState.systemActivityLog.slice(-5); // Pega as últimas 5 atividades para não sobrecarregar
+
+            const contextMessage = {
+                role: "user", // Usar 'user' para que a Mielina processe como informação do usuário
+                parts: [{ text: `CONTEXTO DO SISTEMA:\n${JSON.stringify(systemContext, null, 2)}\n\nÚLTIMAS ATIVIDADES DO USUÁRIO:\n${JSON.stringify(activityLog, null, 2)}\n\n` }]
+            };
+
+            // Cria um novo histórico para enviar, incluindo o contexto
+            const historyToSend = [
+                systemState.chatHistory[0], // A instrução inicial da Mielina
+                systemState.chatHistory[1], // A primeira resposta da Mielina
+                contextMessage, // O contexto do sistema
+                ...systemState.chatHistory.slice(2) // O restante do histórico de conversas
+            ];
+
             const payload = {
-                contents: chatHistory.map(msg => ({
+                contents: historyToSend.map(msg => ({
                     role: msg.role,
                     parts: msg.parts
                 }))
@@ -4271,6 +4405,234 @@
             } catch (error) {
                 console.error("Erro na requisição Gemini:", error);
                 throw error;
+            } finally {
+                // Limpa o log de atividades após o envio para evitar duplicação de contexto
+                systemState.systemActivityLog = [];
+            }
+        }
+
+        // Função para coletar o contexto atual do sistema
+        function getSystemContext() {
+            const openApps = systemState.openWindows.map(win => ({
+                id: win.id,
+                name: win.appName,
+                windowId: win.windowId,
+                active: systemState.activeWindow === win.windowId,
+                maximized: win.element.classList.contains('maximized'),
+                minimized: win.element.style.display === 'none',
+                currentPath: win.id === 'finder' ? win.currentPath : undefined // Adiciona o path para o Finder
+            }));
+
+            const desktopItems = systemData.desktopItems.map(item => ({
+                id: item.id,
+                name: item.name,
+                type: item.type
+            }));
+
+            const currentFinderPath = systemState.openWindows.find(w => w.id === 'finder' && w.element.classList.contains('active'))?.currentPath || 'axon/desktop';
+            const currentTerminalPath = systemState.currentPath;
+
+            return {
+                open_applications: openApps,
+                desktop_items: desktopItems,
+                current_finder_path: currentFinderPath,
+                current_terminal_path: currentTerminalPath,
+                clipboard_status: systemData.clipboard ? { item_name: systemData.clipboard.name, action: systemState.clipboardAction } : 'empty',
+                settings: {
+                    theme: systemData.settings.theme,
+                    animations: systemData.settings.animations,
+                    transparency: systemData.settings.transparency,
+                    particles: systemData.settings.particles,
+                    login_enabled: systemData.settings.loginEnabled
+                }
+            };
+        }
+
+        // Função para logar atividades do sistema
+        function logSystemActivity(activity) {
+            const timestamp = new Date().toISOString();
+            systemState.systemActivityLog.push({ timestamp, ...activity });
+            // Opcional: Limitar o tamanho do log para não consumir muita memória
+            if (systemState.systemActivityLog.length > 50) {
+                systemState.systemActivityLog.shift(); // Remove o item mais antigo
+            }
+        }
+
+        // Funções de Ação para a Mielina
+        async function executeMielinaCommand(command) {
+            console.log("Mielina executando comando:", command);
+            logSystemActivity({ type: 'mielina_command_executed', command: command.action, params: command.params });
+
+            switch (command.action) {
+                case 'open_app':
+                    if (command.params && command.params.app_id) {
+                        openApp(command.params.app_id, command.params.initial_path);
+                        await axonAlert(`Abrindo ${systemData.apps[command.params.app_id]?.name || command.params.app_id}.`);
+                    } else {
+                        await axonAlert("Comando 'open_app' requer 'app_id'.");
+                    }
+                    break;
+                case 'close_window':
+                    if (command.params && command.params.window_id) {
+                        closeWindow(command.params.window_id);
+                        await axonAlert(`Fechando janela ${command.params.window_id}.`);
+                    } else if (command.params && command.params.app_id) {
+                        const targetWindow = systemState.openWindows.find(w => w.id === command.params.app_id);
+                        if (targetWindow) {
+                            closeWindow(targetWindow.windowId);
+                            await axonAlert(`Fechando ${targetWindow.appName}.`);
+                        } else {
+                            await axonAlert(`Nenhuma janela de ${command.params.app_id} encontrada.`);
+                        }
+                    } else {
+                        await axonAlert("Comando 'close_window' requer 'window_id' ou 'app_id'.");
+                    }
+                    break;
+                case 'minimize_window':
+                    if (command.params && command.params.window_id) {
+                        minimizeWindow(command.params.window_id);
+                        await axonAlert(`Minimizando janela ${command.params.window_id}.`);
+                    } else if (command.params && command.params.app_id) {
+                        const targetWindow = systemState.openWindows.find(w => w.id === command.params.app_id);
+                        if (targetWindow) {
+                            minimizeWindow(targetWindow.windowId);
+                            await axonAlert(`Minimizando ${targetWindow.appName}.`);
+                        } else {
+                            await axonAlert(`Nenhuma janela de ${command.params.app_id} encontrada.`);
+                        }
+                    } else {
+                        await axonAlert("Comando 'minimize_window' requer 'window_id' ou 'app_id'.");
+                    }
+                    break;
+                case 'maximize_window':
+                    if (command.params && command.params.window_id) {
+                        toggleMaximizeWindow(command.params.window_id);
+                        await axonAlert(`Maximizando/Restaurando janela ${command.params.window_id}.`);
+                    } else if (command.params && command.params.app_id) {
+                        const targetWindow = systemState.openWindows.find(w => w.id === command.params.app_id);
+                        if (targetWindow) {
+                            toggleMaximizeWindow(targetWindow.windowId);
+                            await axonAlert(`Maximizando/Restaurando ${targetWindow.appName}.`);
+                        } else {
+                            await axonAlert(`Nenhuma janela de ${command.params.app_id} encontrada.`);
+                        }
+                    } else {
+                        await axonAlert("Comando 'maximize_window' requer 'window_id' ou 'app_id'.");
+                    }
+                    break;
+                case 'create_folder':
+                    if (command.params && command.params.name && command.params.path) {
+                        createFileItem(command.params.path, 'folder', command.params.name);
+                        updateFileInterfaces();
+                        await axonAlert(`Pasta '${command.params.name}' criada em '${command.params.path}'.`);
+                    } else {
+                        await axonAlert("Comando 'create_folder' requer 'name' e 'path'.");
+                    }
+                    break;
+                case 'create_file':
+                    if (command.params && command.params.name && command.params.path && command.params.type) {
+                        createFileItem(command.params.path, command.params.type, command.params.name, command.params.content || '');
+                        updateFileInterfaces();
+                        await axonAlert(`Arquivo '${command.params.name}' (${command.params.type}) criado em '${command.params.path}'.`);
+                    } else {
+                        await axonAlert("Comando 'create_file' requer 'name', 'path' e 'type'.");
+                    }
+                    break;
+                case 'delete_item':
+                    if (command.params && command.params.item_id && command.params.parent_id) {
+                        const item = getItemById(command.params.item_id, command.params.parent_id);
+                        if (item) {
+                            const confirmDelete = await axonConfirm(`Tem certeza que deseja excluir '${item.name}'?`);
+                            if (confirmDelete) {
+                                deleteFileItem(command.params.item_id, command.params.parent_id);
+                                updateFileInterfaces();
+                                await axonAlert(`Item '${item.name}' excluído.`);
+                            }
+                        } else {
+                            await axonAlert(`Item com ID '${command.params.item_id}' não encontrado.`);
+                        }
+                    } else {
+                        await axonAlert("Comando 'delete_item' requer 'item_id' e 'parent_id'.");
+                    }
+                    break;
+                case 'rename_item':
+                    if (command.params && command.params.item_id && command.params.parent_id && command.params.new_name) {
+                        const item = getItemById(command.params.item_id, command.params.parent_id);
+                        if (item) {
+                            updateFileItemName(command.params.item_id, command.params.parent_id, command.params.new_name);
+                            updateFileInterfaces();
+                            await axonAlert(`Item '${item.name}' renomeado para '${command.params.new_name}'.`);
+                        } else {
+                            await axonAlert(`Item com ID '${command.params.item_id}' não encontrado.`);
+                        }
+                    } else {
+                        await axonAlert("Comando 'rename_item' requer 'item_id', 'parent_id' e 'new_name'.");
+                    }
+                    break;
+                case 'change_setting':
+                    if (command.params && command.params.setting_name && command.params.value !== undefined) {
+                        if (systemData.settings.hasOwnProperty(command.params.setting_name)) {
+                            systemData.settings[command.params.setting_name] = command.params.value;
+                            applySettings();
+                            saveSettings();
+                            await axonAlert(`Configuração '${command.params.setting_name}' alterada para '${command.params.value}'.`);
+                        } else {
+                            await axonAlert(`Configuração '${command.params.setting_name}' não encontrada.`);
+                        }
+                    } else {
+                        await axonAlert("Comando 'change_setting' requer 'setting_name' e 'value'.");
+                    }
+                    break;
+                case 'navigate_finder':
+                    if (command.params && command.params.path) {
+                        const finderWindow = systemState.openWindows.find(w => w.id === 'finder' && w.element.classList.contains('active'));
+                        if (finderWindow) {
+                            const sidebarItem = finderWindow.element.querySelector(`.sidebar-item[data-path="${command.params.path}"]`);
+                            if (sidebarItem) {
+                                sidebarItem.click(); // Simula o clique para navegar
+                                await axonAlert(`Navegando no Finder para '${command.params.path}'.`);
+                            } else {
+                                await axonAlert(`Caminho '${command.params.path}' não encontrado na barra lateral do Finder.`);
+                            }
+                        } else {
+                            // Se o Finder não estiver aberto, abre-o no caminho especificado
+                            openApp('finder', command.params.path);
+                            await axonAlert(`Abrindo Finder e navegando para '${command.params.path}'.`);
+                        }
+                    } else {
+                        await axonAlert("Comando 'navigate_finder' requer 'path'.");
+                    }
+                    break;
+                case 'show_alert':
+                    if (command.params && command.params.message) {
+                        await axonAlert(command.params.message, command.params.title || 'Mielina');
+                    } else {
+                        await axonAlert("Comando 'show_alert' requer 'message'.");
+                    }
+                    break;
+                case 'show_confirm':
+                    if (command.params && command.params.message) {
+                        const result = await axonConfirm(command.params.message, command.params.title || 'Mielina');
+                        // Mielina pode precisar de um feedback sobre o resultado do confirm
+                        // Isso pode ser feito adicionando uma mensagem ao chatHistory ou um log de atividade
+                        logSystemActivity({ type: 'mielina_confirm_result', result: result });
+                        await axonAlert(`Confirmação: ${result ? 'Sim' : 'Não'}`);
+                    } else {
+                        await axonAlert("Comando 'show_confirm' requer 'message'.");
+                    }
+                    break;
+                case 'show_prompt':
+                    if (command.params && command.params.message) {
+                        const result = await axonPrompt(command.params.message, command.params.default_value || '', command.params.title || 'Mielina');
+                        logSystemActivity({ type: 'mielina_prompt_result', result: result });
+                        await axonAlert(`Prompt: '${result}'`);
+                    } else {
+                        await axonAlert("Comando 'show_prompt' requer 'message'.");
+                    }
+                    break;
+                default:
+                    await axonAlert(`Comando desconhecido da Mielina: ${command.action}`);
+                    break;
             }
         }
 
@@ -4305,6 +4667,7 @@
                         currentInput += value;
                     }
                 }
+                logSystemActivity({ type: 'calculator_input', value: value });
             }
             
             function handleOperation(op) {
@@ -4313,14 +4676,17 @@
                     previousInput = '';
                     operation = null;
                     resetDisplay = false;
+                    logSystemActivity({ type: 'calculator_clear' });
                     return;
                 }
                 if (op === 'backspace') {
                     currentInput = currentInput.slice(0, -1) || '0';
+                    logSystemActivity({ type: 'calculator_backspace' });
                     return;
                 }
                 if (op === 'percent') {
                     currentInput = (parseFloat(currentInput) / 100).toString();
+                    logSystemActivity({ type: 'calculator_percent' });
                     return;
                 }
 
@@ -4331,6 +4697,7 @@
                 operation = op;
                 previousInput = currentInput;
                 resetDisplay = true; // Prepara para o próximo número
+                logSystemActivity({ type: 'calculator_operation', operation: op });
             }
             
             function calculate() {
@@ -4366,6 +4733,7 @@
                 operation = null;
                 previousInput = '';
                 resetDisplay = true; // Para que o próximo número comece um novo cálculo
+                logSystemActivity({ type: 'calculator_calculate', result: result });
             }
 
             buttons.forEach(button => {
@@ -4425,6 +4793,7 @@
                     galleryItem.querySelector('[data-action="view"]').addEventListener('click', (e) => {
                         e.stopPropagation(); // Evita que o clique no item acione outros listeners
                         openImageViewer(photo.src, photo.path);
+                        logSystemActivity({ type: 'gallery_view_image', image: photo.name });
                     });
 
                     galleryItem.querySelector('[data-action="delete"]').addEventListener('click', async (e) => {
@@ -4434,6 +4803,7 @@
                             deleteFileItem(photo.id, photo.parentId);
                             // updateFileInterfaces() é chamado dentro de deleteFileItem
                             axonAlert("Imagem excluída com sucesso!");
+                            logSystemActivity({ type: 'gallery_delete_image', image: photo.name });
                         }
                     });
 
@@ -4442,10 +4812,12 @@
                         systemData.clipboard = { ...photo, name: `Cópia de ${photo.name}` };
                         systemState.clipboardAction = 'copy';
                         axonAlert(`"${photo.name}" copiada para a área de transferência.`);
+                        logSystemActivity({ type: 'gallery_copy_image', image: photo.name });
                     });
 
                     galleryContainer.appendChild(galleryItem);
                 });
+                logSystemActivity({ type: 'gallery_loaded', image_count: allImages.length });
             }
             
             loadGallery();
@@ -4459,6 +4831,7 @@
             viewerImg.src = src;
             viewerPath.textContent = path;
             viewerModal.classList.add('active');
+            logSystemActivity({ type: 'image_viewer_opened', image_src: src });
         }
 
         // Inicializar câmera
@@ -4484,6 +4857,7 @@
                 
                 cameraPreview.innerHTML = '';
                 cameraPreview.appendChild(video);
+                logSystemActivity({ type: 'camera_started' });
                 
                 captureBtn.addEventListener('click', async () => {
                     const canvas = document.createElement('canvas');
@@ -4502,6 +4876,7 @@
                         if (newImage) {
                             await axonAlert('Foto capturada com sucesso e salva em axon/images!');
                             updateFileInterfaces(); // Atualiza todas as interfaces
+                            logSystemActivity({ type: 'camera_photo_captured', photo_name: photoName });
                         }
                     } else {
                         await axonAlert("Erro: Diretório 'axon/images' não encontrado.");
@@ -4511,6 +4886,7 @@
                 console.error('Erro ao acessar a câmera:', err);
                 cameraPreview.innerHTML = '<p>Não foi possível acessar a câmera. Verifique as permissões.</p>';
                 await axonAlert('Não foi possível acessar a câmera. Verifique as permissões do navegador.', 'Erro de Câmera');
+                logSystemActivity({ type: 'camera_error', message: err.message });
             }
         }
 
@@ -4542,8 +4918,10 @@
                     history.push(url);
                     historyIndex = history.length - 1;
                     browserUrl.value = url;
+                    logSystemActivity({ type: 'browser_navigate', url: url });
                 } catch (e) {
                     browserContent.srcdoc = `<html><body><p>Não foi possível carregar o site: ${url}</p><p>Isso pode ocorrer devido a restrições de segurança (X-Frame-Options) ou URL inválida.</p></body></html>`;
+                    logSystemActivity({ type: 'browser_navigation_error', url: url, error: e.message });
                 }
             }
             
@@ -4564,6 +4942,7 @@
                     historyIndex--;
                     browserContent.src = history[historyIndex];
                     browserUrl.value = history[historyIndex];
+                    logSystemActivity({ type: 'browser_back', url: history[historyIndex] });
                 }
             });
 
@@ -4572,15 +4951,18 @@
                     historyIndex++;
                     browserContent.src = history[historyIndex];
                     browserUrl.value = history[historyIndex];
+                    logSystemActivity({ type: 'browser_forward', url: history[historyIndex] });
                 }
             });
 
             browserReload.addEventListener('click', () => {
                 browserContent.contentWindow.location.reload();
+                logSystemActivity({ type: 'browser_reload', url: browserUrl.value });
             });
 
             browserHome.addEventListener('click', () => {
                 loadUrl('https://www.google.com');
+                logSystemActivity({ type: 'browser_home' });
             });
         }
 
@@ -4596,6 +4978,7 @@
 
                     tab.classList.add('active');
                     document.getElementById(`settings-${tab.dataset.tab}`).classList.add('active');
+                    logSystemActivity({ type: 'settings_tab_changed', tab: tab.dataset.tab });
                 });
             });
 
@@ -4621,18 +5004,22 @@
 
             // Event Listeners para Aparência
             themeSelect.addEventListener('change', () => {
+                const oldTheme = systemData.settings.theme;
                 systemData.settings.theme = themeSelect.value;
                 applySettings();
                 saveSettings();
+                logSystemActivity({ type: 'settings_change_theme', old_theme: oldTheme, new_theme: themeSelect.value });
             });
 
             wallpaperOptions.forEach(opt => {
                 opt.addEventListener('click', () => {
+                    const oldWallpaper = systemData.settings.wallpaper;
                     wallpaperOptions.forEach(o => o.classList.remove('selected'));
                     opt.classList.add('selected');
                     systemData.settings.wallpaper = opt.dataset.wallpaper;
                     applySettings();
                     saveSettings();
+                    logSystemActivity({ type: 'settings_change_wallpaper', old_wallpaper: oldWallpaper, new_wallpaper: opt.dataset.wallpaper });
                 });
             });
 
@@ -4640,18 +5027,21 @@
                 systemData.settings.animations = animationsToggle.checked;
                 applySettings();
                 saveSettings();
+                logSystemActivity({ type: 'settings_toggle_animations', enabled: animationsToggle.checked });
             });
 
             transparencyToggle.addEventListener('change', () => {
                 systemData.settings.transparency = transparencyToggle.checked;
                 applySettings();
                 saveSettings();
+                logSystemActivity({ type: 'settings_toggle_transparency', enabled: transparencyToggle.checked });
             });
 
             particlesToggle.addEventListener('change', () => {
                 systemData.settings.particles = particlesToggle.checked;
                 applySettings();
                 saveSettings();
+                logSystemActivity({ type: 'settings_toggle_particles', enabled: particlesToggle.checked });
             });
 
             // Segurança
@@ -4667,9 +5057,11 @@
                 systemData.settings.loginEnabled = loginEnabledToggle.checked;
                 saveSettings();
                 axonAlert(`Login do sistema ${loginEnabledToggle.checked ? 'habilitado' : 'desabilitado'}.`, "Segurança");
+                logSystemActivity({ type: 'settings_toggle_login', enabled: loginEnabledToggle.checked });
             });
 
             setCredentialsBtn.addEventListener('click', async () => {
+                const oldUsername = systemData.settings.username;
                 const newUsername = await axonPrompt("Digite o novo nome de usuário:", systemData.settings.username || "admin", "Definir Credenciais");
                 if (newUsername === null) return; // Usuário cancelou
 
@@ -4680,10 +5072,12 @@
                 systemData.settings.password = newPassword;
                 saveSettings();
                 axonAlert("Credenciais de login atualizadas com sucesso!", "Segurança");
+                logSystemActivity({ type: 'settings_update_credentials', old_username: oldUsername, new_username: newUsername });
             });
 
             firewallToggle.addEventListener('change', async (e) => {
                 await axonAlert(`Firewall ${e.target.checked ? 'ativado' : 'desativado'}. (Funcionalidade simulada)`, "Segurança");
+                logSystemActivity({ type: 'settings_toggle_firewall', enabled: e.target.checked });
             });
         }
 
@@ -4833,6 +5227,7 @@
                     
                     document.addEventListener('mousemove', elementDrag);
                     document.addEventListener('mouseup', closeDragElement);
+                    logSystemActivity({ type: 'window_drag_start', window_id: windowId, app_id: appId });
                 }
             }
             
@@ -4854,10 +5249,12 @@
                 windowElement.style.cursor = 'grab';
                 document.removeEventListener('mousemove', elementDrag);
                 document.removeEventListener('mouseup', closeDragElement);
+                logSystemActivity({ type: 'window_drag_end', window_id: windowId, app_id: appId });
             }
 
             windowElement.addEventListener('mousedown', () => {
                 bringToFront(windowId);
+                logSystemActivity({ type: 'window_focused', window_id: windowId, app_id: appId });
             });
         }
 
@@ -4890,6 +5287,7 @@
                         }
                     }
                     showDock(); // Mostra o dock ao fechar a janela
+                    logSystemActivity({ type: 'window_closed', window_id: windowId, app_id: app?.id });
                 }, 300);
             }
         }
@@ -4901,6 +5299,8 @@
                 setTimeout(() => {
                     windowElement.style.display = 'none';
                     showDock(); // Mostra o dock ao minimizar a janela
+                    const app = systemState.openWindows.find(w => w.windowId === windowId);
+                    logSystemActivity({ type: 'window_minimized', window_id: windowId, app_id: app?.id });
                 }, 300);
             }
         }
@@ -4916,10 +5316,14 @@
                     windowElement.style.top = '';
                     // Não remove o transform, pois ele não é usado para posicionamento normal
                     showDock(); // Mostra o dock ao restaurar
+                    const app = systemState.openWindows.find(w => w.windowId === windowId);
+                    logSystemActivity({ type: 'window_restored', window_id: windowId, app_id: app?.id });
                 } else {
                     windowElement.classList.add('maximized');
                     // As propriedades de top, left, width, height são definidas no CSS para .window.maximized
                     hideDock(); // Esconde o dock ao maximizar
+                    const app = systemState.openWindows.find(w => w.windowId === windowId);
+                    logSystemActivity({ type: 'window_maximized', window_id: windowId, app_id: app?.id });
                 }
             }
         }
@@ -4984,6 +5388,7 @@
                     if (!e.target.closest('.close-btn')) {
                         bringToFront(win.windowId);
                         closeModal('window-carousel-modal');
+                        logSystemActivity({ type: 'window_carousel_select', window_id: win.windowId });
                     }
                 });
 
@@ -4996,6 +5401,7 @@
                     if (systemState.openWindows.length === 0) {
                         carouselBody.innerHTML = '<p style="text-align: center; width: 100%;">Nenhuma janela aberta.</p>';
                     }
+                    logSystemActivity({ type: 'window_carousel_close_button', window_id: win.windowId });
                 });
 
                 carouselBody.appendChild(thumbnail);
@@ -5065,6 +5471,7 @@
             document.getElementById('desktop').style.display = 'none';
             document.getElementById('windows-container').style.display = 'none';
             loginUsernameInput.focus();
+            logSystemActivity({ type: 'login_screen_shown' });
         }
 
         function hideLoginScreen() {
@@ -5074,6 +5481,7 @@
             document.getElementById('desktop').style.display = 'block';
             document.getElementById('windows-container').style.display = 'block';
             loadDesktopItems(); // Carrega os itens da área de trabalho após o login
+            logSystemActivity({ type: 'login_successful' });
         }
 
         async function handleLogin() {
@@ -5086,6 +5494,7 @@
                 await axonAlert("Usuário ou senha incorretos.", "Erro de Login");
                 loginPasswordInput.value = '';
                 loginUsernameInput.focus();
+                logSystemActivity({ type: 'login_failed', username: username });
             }
         }
 
@@ -5148,6 +5557,7 @@
                 }
             }
             saveDesktopItems(); // Salva o fileSystem atualizado com os apps
+            logSystemActivity({ type: 'axon_apps_loaded', count: systemState.axonApps.length });
         }
 
         // Inicializar a pasta Axon Apps
@@ -5179,6 +5589,7 @@
 
                 axonAppsGrid.appendChild(appItemDiv);
             });
+            logSystemActivity({ type: 'axon_apps_folder_opened' });
         }
 
         // Abrir um aplicativo HTML em uma nova janela do Axon OS
@@ -5226,6 +5637,7 @@
             systemState.activeWindow = windowId;
             bringToFront(windowId);
             setupWindowEvents(windowElement, 'html-app-launcher', windowId); // Configura eventos após adicionar ao DOM
+            logSystemActivity({ type: 'open_html_app', app_name: appName, app_path: appPath, window_id: windowId });
         }
 
         // Iniciar o sistema quando a página carregar
