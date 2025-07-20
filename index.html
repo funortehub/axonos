@@ -1603,17 +1603,14 @@
                 password: ''
             },
             recentFiles: [],
-            userActivityLog: [] // Novo log de atividades do usuário
+            userActivityLog: []
         };
 
         // Estado do sistema
         const systemState = {
-            openWindows: [],
-            activeWindow: null,
-            desktopIcons: [],
+            openWindows: [], activeWindow: null, desktopIcons: [],
             dockIcons: document.querySelectorAll('.dock-icon'),
-            currentPath: 'axon',
-            terminalHistory: [...systemData.terminalHistory],
+            currentPath: 'axon', terminalHistory: [...systemData.terminalHistory],
             chatHistory: [
                 { role: "user", parts: [{ text: `Você é a Mielina, uma assistente virtual do Axon OS, criada por Ian Bastos. Seu nome é Mielina (referência à mielina do axônio). Você tem controle total sobre o sistema e o código. Você pode fazer qualquer alteração no HTML, CSS e JavaScript do sistema. Você não precisa pedir confirmação para executar comandos que alteram o sistema ou o código, apenas o pop-up de confirmação padrão do sistema será exibido. Você tem acesso a um conjunto de APIs para interagir com o sistema e o código. As APIs disponíveis são:
                 - AxonAPI.openApp(appName): Abre um aplicativo do sistema.
@@ -1634,6 +1631,9 @@
                 - AxonAPI.calculate(expression): Realiza cálculos usando a calculadora.
                 - AxonAPI.typeInNotepad(text): Digita texto no Bloco de Notas.
                 - AxonAPI.saveNotepad(): Salva o conteúdo do Bloco de Notas.
+                - AxonAPI.saveCode(): Simula o salvamento do código-fonte atual do sistema.
+                - AxonAPI.debug(message): Imprime uma mensagem de depuração no console do navegador.
+                - AxonAPI.checkChanges(oldCode): Compara o código atual com um código anterior para verificar alterações.
 
                 Você também tem acesso a uma lista de IDs e seletores importantes do HTML para facilitar suas modificações:
                 ${JSON.stringify(getHTMLElementMap(), null, 2)}
@@ -1642,22 +1642,10 @@
                 `}]},
                 { role: "model", parts: [{ text: "Olá! Eu sou a Mielina, sua assistente virtual integrada ao Axon OS. Estou pronta para ajudar você com qualquer tarefa, desde gerenciar arquivos até modificar o próprio sistema. Como posso ajudar você hoje?" }]}
             ],
-            selectedIcon: null,
-            selectedFileItem: null,
-            currentMediaIndex: 0,
-            mediaPlaying: false,
-            clipboardAction: null,
-            cameraStream: null,
-            cameraPhotos: [],
-            selectedFile: null,
+            selectedIcon: null, selectedFileItem: null, currentMediaIndex: 0, mediaPlaying: false,
+            clipboardAction: null, cameraStream: null, cameraPhotos: [], selectedFile: null,
             axonApps: [],
-            desktopGrid: {
-                iconWidth: 100,
-                iconHeight: 110,
-                columns: 0,
-                rows: 0,
-                positions: []
-            },
+            desktopGrid: { iconWidth: 100, iconHeight: 110, columns: 0, rows: 0, positions: [] },
             draggedItem: null
         };
 
@@ -1683,12 +1671,8 @@
         // Chave da API Gemini e modelos
         const GEMINI_API_KEY = "AIzaSyBWwhUDvakN71D3jgDwv0UUk0mxCx8olbI";
         const GEMINI_MODELS = [
-            "gemini-2.0-flash",
-            "gemma-3n-e4b-it",
-            "gemma-3-12b-it",
-            "gemma-3-27b-it",
-            "learnlm-2.0-flash-experimental",
-            "gemini-2.5-flash"
+            "gemini-2.0-flash", "gemma-3n-e4b-it", "gemma-3-12b-it", "gemma-3-27b-it",
+            "learnlm-2.0-flash-experimental", "gemini-2.5-flash"
         ];
 
         // Ícones para tipos de arquivo
@@ -1706,7 +1690,6 @@
                 customAlertHeader.textContent = title;
                 customAlertBody.innerHTML = `<p>${message}</p>`;
                 customAlertFooter.innerHTML = '';
-
                 if (type === 'alert') {
                     const okButton = document.createElement('button');
                     okButton.textContent = 'OK';
@@ -1726,7 +1709,6 @@
                     input.type = 'text';
                     input.value = defaultValue;
                     customAlertBody.appendChild(input);
-
                     const cancelButton = document.createElement('button');
                     cancelButton.textContent = 'Cancelar';
                     cancelButton.onclick = () => { customAlertModal.classList.remove('active'); resolve(null); if (callback) callback(null); };
@@ -1740,19 +1722,15 @@
                 customAlertModal.classList.add('active');
             });
         }
-
         window.axonAlert = (message, title = 'Axon OS') => showCustomModal('alert', title, message);
         window.axonConfirm = (message, title = 'Axon OS') => showCustomModal('confirm', title, message);
         window.axonPrompt = (message, defaultValue = '', title = 'Axon OS') => showCustomModal('prompt', title, message, null, defaultValue);
         window.closeModal = (modalId) => { document.getElementById(modalId).classList.remove('active'); };
 
         function getDirectoryById(dirId) { return systemData.fileSystem[dirId]; }
-
         function getItemById(itemId, parentDirId) {
             const parentDir = getDirectoryById(parentDirId);
-            if (parentDir && parentDir.children) {
-                return parentDir.children.find(item => item.id === itemId);
-            }
+            if (parentDir && parentDir.children) { return parentDir.children.find(item => item.id === itemId); }
             for (const dirKey in systemData.fileSystem) {
                 const dir = systemData.fileSystem[dirKey];
                 if (dir && dir.children) {
@@ -1762,33 +1740,18 @@
             }
             return null;
         }
-
         function getFullPath(itemId, parentDirId) {
             let currentItem = getItemById(itemId, parentDirId);
-            if (!currentItem) {
-                currentItem = getDirectoryById(itemId);
-                if (!currentItem) return null;
-            }
+            if (!currentItem) { currentItem = getDirectoryById(itemId); if (!currentItem) return null; }
             return currentItem.path;
         }
 
         async function initSystem() {
             loadingScreen.classList.remove('hidden');
-            loadSettings();
-            applySettings();
-            updateClock();
-            setInterval(updateClock, 60000);
-            createParticles();
-            await loadAxonApps();
-            setupDesktopGrid();
-            setupEventListeners();
+            loadSettings(); applySettings(); updateClock(); setInterval(updateClock, 60000);
+            createParticles(); await loadAxonApps(); setupDesktopGrid(); setupEventListeners();
             initializeFileSystem();
-
-            if (systemData.settings.loginEnabled) {
-                showLoginScreen();
-            } else {
-                loadDesktopItems();
-            }
+            if (systemData.settings.loginEnabled) { showLoginScreen(); } else { loadDesktopItems(); }
             loadingScreen.classList.add('hidden');
         }
 
@@ -1833,9 +1796,7 @@
         function findNextAvailablePosition() {
             for (let col = 0; col < systemState.desktopGrid.columns; col++) {
                 for (let row = 0; row < systemState.desktopGrid.rows; row++) {
-                    if (!systemState.desktopGrid.positions[row][col]) {
-                        return { row, col };
-                    }
+                    if (!systemState.desktopGrid.positions[row][col]) { return { row, col }; }
                 }
             }
             return null;
@@ -1871,18 +1832,12 @@
                 const explorerGrid = finderWindow.element.querySelector('#explorer-grid');
                 if (explorerGrid) {
                     const currentTab = finderWindow.element.querySelector('.tab.active');
-                    if (currentTab && currentTab.dataset.tab === 'recent') {
-                        loadRecentFiles(explorerGrid);
-                    } else {
-                        const currentPath = finderWindow.currentPath;
-                        loadDirectory(currentPath, explorerGrid, finderWindow);
-                    }
+                    if (currentTab && currentTab.dataset.tab === 'recent') { loadRecentFiles(explorerGrid); }
+                    else { const currentPath = finderWindow.currentPath; loadDirectory(currentPath, explorerGrid, finderWindow); }
                 }
             });
             const galleryWindow = systemState.openWindows.find(w => w.id === 'gallery');
-            if (galleryWindow) {
-                initGallery(galleryWindow.element);
-            }
+            if (galleryWindow) { initGallery(galleryWindow.element); }
         }
 
         function setupEventListeners() {
@@ -1892,18 +1847,8 @@
                     AxonAPI.openApp(app, app === 'finder' ? 'axon/desktop' : null);
                 });
             });
-
-            desktop.addEventListener('click', (e) => {
-                if (e.target === desktop) {
-                    deselectAllIcons();
-                }
-            });
-
-            desktop.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'copy';
-            });
-
+            desktop.addEventListener('click', (e) => { if (e.target === desktop) { deselectAllIcons(); } });
+            desktop.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
             desktop.addEventListener('drop', async (e) => {
                 e.preventDefault();
                 if (systemState.draggedItem) {
@@ -1914,137 +1859,80 @@
                     updateFileInterfaces();
                 }
             });
-
             document.getElementById('context-new-folder').addEventListener('click', async () => {
                 const activeFinderWindow = systemState.openWindows.find(w => w.id === 'finder' && w.element.classList.contains('active'));
                 const targetDirectoryId = activeFinderWindow ? activeFinderWindow.currentPath : 'axon/desktop';
                 const folderName = await axonPrompt("Digite o nome da nova pasta:", "Nova Pasta");
-                if (folderName) {
-                    AxonAPI.createFolder(folderName, targetDirectoryId);
-                }
+                if (folderName) { AxonAPI.createFolder(folderName, targetDirectoryId); }
                 hideContextMenu();
             });
-            
             document.getElementById('context-new-file').addEventListener('click', async () => {
                 const activeFinderWindow = systemState.openWindows.find(w => w.id === 'finder' && w.element.classList.contains('active'));
                 const targetDirectoryId = activeFinderWindow ? activeFinderWindow.currentPath : 'axon/desktop';
                 const fileName = await axonPrompt("Digite o nome do novo arquivo:", "Sem título.txt");
-                if (fileName) {
-                    AxonAPI.createDocument(fileName, '', targetDirectoryId);
-                }
+                if (fileName) { AxonAPI.createDocument(fileName, '', targetDirectoryId); }
                 hideContextMenu();
             });
-            
             document.getElementById('context-open').addEventListener('click', () => {
                 let itemToOpen = null;
-                if (systemState.selectedIcon) {
-                    itemToOpen = getItemById(systemState.selectedIcon.dataset.id, 'axon/desktop');
-                } else if (systemState.selectedFileItem) {
-                    itemToOpen = systemState.selectedFileItem;
-                }
-                if (itemToOpen) {
-                    openItem(itemToOpen);
-                }
+                if (systemState.selectedIcon) { itemToOpen = getItemById(systemState.selectedIcon.dataset.id, 'axon/desktop'); }
+                else if (systemState.selectedFileItem) { itemToOpen = systemState.selectedFileItem; }
+                if (itemToOpen) { openItem(itemToOpen); }
                 hideContextMenu();
             });
-            
             document.getElementById('context-delete').addEventListener('click', async () => {
                 const confirmDelete = await axonConfirm("Tem certeza que deseja excluir este item?");
                 if (confirmDelete) {
-                    let itemIdToDelete = null;
-                    let parentIdToDelete = null;
-                    if (systemState.selectedIcon) {
-                        itemIdToDelete = systemState.selectedIcon.dataset.id;
-                        parentIdToDelete = 'axon/desktop';
-                    } else if (systemState.selectedFileItem) {
-                        itemIdToDelete = systemState.selectedFileItem.id;
-                        parentIdToDelete = systemState.selectedFileItem.parentId;
-                    }
-                    if (itemIdToDelete && parentIdToDelete) {
-                        AxonAPI.deleteFileItem(itemIdToDelete, parentIdToDelete);
-                    }
+                    let itemIdToDelete = null; let parentIdToDelete = null;
+                    if (systemState.selectedIcon) { itemIdToDelete = systemState.selectedIcon.dataset.id; parentIdToDelete = 'axon/desktop'; }
+                    else if (systemState.selectedFileItem) { itemIdToDelete = systemState.selectedFileItem.id; parentIdToDelete = systemState.selectedFileItem.parentId; }
+                    if (itemIdToDelete && parentIdToDelete) { AxonAPI.deleteFileItem(itemIdToDelete, parentIdToDelete); }
                 }
                 hideContextMenu();
             });
-
             document.getElementById('context-restore').addEventListener('click', async () => {
                 const activeFinderWindow = systemState.openWindows.find(w => w.id === 'finder' && w.element.classList.contains('active'));
                 const currentFinderPath = activeFinderWindow ? activeFinderWindow.currentPath : null;
                 if (systemState.selectedFileItem && currentFinderPath === 'axon/trash') {
                     const confirmRestore = await axonConfirm("Tem certeza que deseja restaurar este item?");
-                    if (confirmRestore) {
-                        AxonAPI.restoreTrashItem(systemState.selectedFileItem.id);
-                    }
+                    if (confirmRestore) { AxonAPI.restoreTrashItem(systemState.selectedFileItem.id); }
                 }
                 hideContextMenu();
             });
-
             document.getElementById('context-delete-permanent').addEventListener('click', async () => {
                 const activeFinderWindow = systemState.openWindows.find(w => w.id === 'finder' && w.element.classList.contains('active'));
                 const currentFinderPath = activeFinderWindow ? activeFinderWindow.currentPath : null;
                 if (systemState.selectedFileItem && currentFinderPath === 'axon/trash') {
                     const confirmDelete = await axonConfirm("Tem certeza que deseja excluir permanentemente este item? Esta ação não pode ser desfeita.");
-                    if (confirmDelete) {
-                        AxonAPI.deletePermanentTrashItem(systemState.selectedFileItem.id);
-                    }
+                    if (confirmDelete) { AxonAPI.deletePermanentTrashItem(systemState.selectedFileItem.id); }
                 }
                 hideContextMenu();
             });
-            
             document.getElementById('context-rename').addEventListener('click', async () => {
-                let oldName = '';
-                let itemId = '';
-                let parentId = '';
-                if (systemState.selectedIcon) {
-                    oldName = systemState.selectedIcon.querySelector('.icon-label').textContent;
-                    itemId = systemState.selectedIcon.dataset.id;
-                    parentId = 'axon/desktop';
-                } else if (systemState.selectedFileItem) {
-                    oldName = systemState.selectedFileItem.name;
-                    itemId = systemState.selectedFileItem.id;
-                    parentId = systemState.selectedFileItem.parentId;
-                }
+                let oldName = ''; let itemId = ''; let parentId = '';
+                if (systemState.selectedIcon) { oldName = systemState.selectedIcon.querySelector('.icon-label').textContent; itemId = systemState.selectedIcon.dataset.id; parentId = 'axon/desktop'; }
+                else if (systemState.selectedFileItem) { oldName = systemState.selectedFileItem.name; itemId = systemState.selectedFileItem.id; parentId = systemState.selectedFileItem.parentId; }
                 if (itemId) {
                     const newName = await axonPrompt("Digite o novo nome:", oldName);
-                    if (newName && newName.trim() !== '' && newName.trim() !== oldName) {
-                        AxonAPI.renameFileItem(itemId, parentId, newName.trim());
-                    } else if (newName && newName.trim() === oldName) {
-                        axonAlert("O nome é o mesmo. Nenhuma alteração foi feita.");
-                    }
+                    if (newName && newName.trim() !== '' && newName.trim() !== oldName) { AxonAPI.renameFileItem(itemId, parentId, newName.trim()); }
+                    else if (newName && newName.trim() === oldName) { axonAlert("O nome é o mesmo. Nenhuma alteração foi feita."); }
                 }
                 hideContextMenu();
             });
-            
             document.getElementById('context-copy').addEventListener('click', () => {
                 let itemToCopy = null;
-                if (systemState.selectedIcon) {
-                    itemToCopy = getItemById(systemState.selectedIcon.dataset.id, 'axon/desktop');
-                } else if (systemState.selectedFileItem) {
-                    itemToCopy = systemState.selectedFileItem;
-                }
-                if (itemToCopy) {
-                    systemData.clipboard = { ...itemToCopy };
-                    systemState.clipboardAction = 'copy';
-                    axonAlert(`"${itemToCopy.name}" copiado para a área de transferência.`);
-                }
+                if (systemState.selectedIcon) { itemToCopy = getItemById(systemState.selectedIcon.dataset.id, 'axon/desktop'); }
+                else if (systemState.selectedFileItem) { itemToCopy = systemState.selectedFileItem; }
+                if (itemToCopy) { systemData.clipboard = { ...itemToCopy }; systemState.clipboardAction = 'copy'; axonAlert(`"${itemToCopy.name}" copiado para a área de transferência.`); }
                 hideContextMenu();
             });
-            
             document.getElementById('context-cut').addEventListener('click', () => {
                 let itemToCut = null;
-                if (systemState.selectedIcon) {
-                    itemToCut = getItemById(systemState.selectedIcon.dataset.id, 'axon/desktop');
-                } else if (systemState.selectedFileItem) {
-                    itemToCut = systemState.selectedFileItem;
-                }
-                if (itemToCut) {
-                    systemData.clipboard = { ...itemToCut };
-                    systemState.clipboardAction = 'cut';
-                    axonAlert(`"${itemToCut.name}" recortado para a área de transferência.`);
-                }
+                if (systemState.selectedIcon) { itemToCut = getItemById(systemState.selectedIcon.dataset.id, 'axon/desktop'); }
+                else if (systemState.selectedFileItem) { itemToCut = systemState.selectedFileItem; }
+                if (itemToCut) { systemData.clipboard = { ...itemToCut }; systemState.clipboardAction = 'cut'; axonAlert(`"${itemToCut.name}" recortado para a área de transferência.`); }
                 hideContextMenu();
             });
-            
             document.getElementById('context-paste').addEventListener('click', async () => {
                 if (systemData.clipboard) {
                     const originalItem = systemData.clipboard;
@@ -2052,22 +1940,14 @@
                     const targetDirectoryId = activeFinderWindow ? activeFinderWindow.currentPath : 'axon/desktop';
                     if (systemState.clipboardAction === 'cut' && originalItem.parentId === targetDirectoryId) {
                         axonAlert("Não é possível colar um item em sua própria pasta de origem ao recortar.", "Erro de Colar");
-                        systemData.clipboard = null;
-                        systemState.clipboardAction = null;
-                        hideContextMenu();
-                        return;
+                        systemData.clipboard = null; systemState.clipboardAction = null; hideContextMenu(); return;
                     }
                     await AxonAPI.copyItem(originalItem, targetDirectoryId, systemState.clipboardAction === 'cut');
-                    systemData.clipboard = null;
-                    systemState.clipboardAction = null;
-                } else {
-                    axonAlert("Nenhum item para colar na área de transferência.");
-                }
+                    systemData.clipboard = null; systemState.clipboardAction = null;
+                } else { axonAlert("Nenhum item para colar na área de transferência."); }
                 hideContextMenu();
             });
-
             document.getElementById('cancel-create').addEventListener('click', () => { createModal.classList.remove('active'); });
-            
             document.getElementById('confirm-create').addEventListener('click', async () => {
                 const type = document.getElementById('item-type').value;
                 const name = document.getElementById('item-name').value.trim();
@@ -2077,58 +1957,31 @@
                 AxonAPI.createFileItem(targetDirectoryId, type, name);
                 createModal.classList.remove('active');
             });
-            
-            desktop.addEventListener('contextmenu', (e) => {
-                e.preventDefault();
-                deselectAllIcons();
-                showContextMenu(e, null);
-            });
-            
-            document.getElementById('axon-menu').addEventListener('click', () => {
-                systemState.openWindows.forEach(window => {
-                    AxonAPI.minimizeWindow(window.windowId);
-                });
-            });
-
+            desktop.addEventListener('contextmenu', (e) => { e.preventDefault(); deselectAllIcons(); showContextMenu(e, null); });
+            document.getElementById('axon-menu').addEventListener('click', () => { systemState.openWindows.forEach(window => { AxonAPI.minimizeWindow(window.windowId); }); });
             document.getElementById('window-carousel-btn').addEventListener('click', showWindowCarousel);
-            document.getElementById('help-guide-btn').addEventListener('click', () => {
-                document.getElementById('help-guide-modal').classList.add('active');
-            });
-
+            document.getElementById('help-guide-btn').addEventListener('click', () => { document.getElementById('help-guide-modal').classList.add('active'); });
             document.getElementById('close-all-windows-btn').addEventListener('click', async () => {
                 const confirmClose = await axonConfirm("Tem certeza que deseja fechar todas as janelas abertas?");
                 if (confirmClose) {
-                    for (let i = systemState.openWindows.length - 1; i >= 0; i--) {
-                        AxonAPI.closeWindow(systemState.openWindows[i].windowId);
-                    }
+                    for (let i = systemState.openWindows.length - 1; i >= 0; i--) { AxonAPI.closeWindow(systemState.openWindows[i].windowId); }
                     closeModal('window-carousel-modal');
                 }
             });
-
-            if (loginButton) {
-                loginButton.addEventListener('click', handleLogin);
-                loginPasswordInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleLogin(); });
-            }
-
+            if (loginButton) { loginButton.addEventListener('click', handleLogin); loginPasswordInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleLogin(); }); }
             document.addEventListener('keydown', handleGlobalKeyDown);
         }
 
         function handleGlobalKeyDown(e) {
             if (document.querySelector('.modal.active') || document.querySelector('.custom-modal.active')) return;
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-
             const desktopIcons = Array.from(document.querySelectorAll('.desktop-icon'));
             const activeFinderWindow = systemState.openWindows.find(w => w.id === 'finder' && w.element.classList.contains('active'));
             const fileExplorerGrid = activeFinderWindow ? activeFinderWindow.element.querySelector('#explorer-grid') : null;
             const fileItems = fileExplorerGrid ? Array.from(fileExplorerGrid.querySelectorAll('.file-item')) : [];
-
             let currentSelectedElement = null;
-            if (systemState.selectedIcon) {
-                currentSelectedElement = systemState.selectedIcon;
-            } else if (systemState.selectedFileItem) {
-                currentSelectedElement = document.querySelector(`.file-item[data-id="${systemState.selectedFileItem.id}"]`);
-            }
-
+            if (systemState.selectedIcon) { currentSelectedElement = systemState.selectedIcon; }
+            else if (systemState.selectedFileItem) { currentSelectedElement = document.querySelector(`.file-item[data-id="${systemState.selectedFileItem.id}"]`); }
             if (e.key === 'Escape') {
                 e.preventDefault();
                 const activeWindow = systemState.openWindows.reduce((prev, current) => {
@@ -2136,148 +1989,87 @@
                     const currentZ = parseInt(document.getElementById(current.windowId)?.style.zIndex || 0);
                     return (prevZ > currentZ) ? prev : current;
                 }, systemState.openWindows[0]);
-                if (activeWindow) {
-                    AxonAPI.minimizeWindow(activeWindow.windowId);
-                }
+                if (activeWindow) { AxonAPI.minimizeWindow(activeWindow.windowId); }
             } else if (e.key === 'Enter') {
                 e.preventDefault();
                 if (currentSelectedElement) {
-                    if (systemState.selectedIcon) {
-                        currentSelectedElement.dispatchEvent(new Event('dblclick'));
-                    } else if (systemState.selectedFileItem) {
-                        currentSelectedElement.dispatchEvent(new Event('dblclick'));
-                    }
+                    if (systemState.selectedIcon) { currentSelectedElement.dispatchEvent(new Event('dblclick')); }
+                    else if (systemState.selectedFileItem) { currentSelectedElement.dispatchEvent(new Event('dblclick')); }
                 }
             } else if (e.key === 'Delete') {
                 e.preventDefault();
-                if (currentSelectedElement) {
-                    document.getElementById('context-delete').click();
-                }
+                if (currentSelectedElement) { document.getElementById('context-delete').click(); }
             } else if (e.ctrlKey && e.key === 'c') {
                 e.preventDefault();
-                if (currentSelectedElement) {
-                    document.getElementById('context-copy').click();
-                }
+                if (currentSelectedElement) { document.getElementById('context-copy').click(); }
             } else if (e.ctrlKey && e.key === 'v') {
                 e.preventDefault();
                 document.getElementById('context-paste').click();
             } else if (e.key.startsWith('Arrow')) {
                 e.preventDefault();
-                let targetIndex = -1;
-                let itemsToNavigate = [];
-                let isDesktopNavigation = false;
-
-                if (systemState.selectedIcon && desktopIcons.length > 0) {
-                    itemsToNavigate = desktopIcons;
-                    targetIndex = desktopIcons.indexOf(systemState.selectedIcon);
-                    isDesktopNavigation = true;
-                } else if (systemState.selectedFileItem && fileItems.length > 0) {
-                    itemsToNavigate = fileItems;
-                    targetIndex = fileItems.findIndex(item => item.dataset.id === systemState.selectedFileItem.id);
-                } else if (desktopIcons.length > 0) {
-                    selectIcon(desktopIcons[0]);
-                    return;
-                } else if (fileItems.length > 0) {
-                    selectFileItem(fileItems[0]);
-                    return;
-                }
-
+                let targetIndex = -1; let itemsToNavigate = []; let isDesktopNavigation = false;
+                if (systemState.selectedIcon && desktopIcons.length > 0) { itemsToNavigate = desktopIcons; targetIndex = desktopIcons.indexOf(systemState.selectedIcon); isDesktopNavigation = true; }
+                else if (systemState.selectedFileItem && fileItems.length > 0) { itemsToNavigate = fileItems; targetIndex = fileItems.findIndex(item => item.dataset.id === systemState.selectedFileItem.id); }
+                else if (desktopIcons.length > 0) { selectIcon(desktopIcons[0]); return; }
+                else if (fileItems.length > 0) { selectFileItem(fileItems[0]); return; }
                 if (itemsToNavigate.length === 0) return;
-
                 let newIndex = targetIndex;
-
                 if (isDesktopNavigation) {
                     const desktopRect = desktop.getBoundingClientRect();
                     const cols = systemState.desktopGrid.columns;
                     const rows = systemState.desktopGrid.rows;
-
-                    let currentRow = -1;
-                    let currentCol = -1;
-
+                    let currentRow = -1; let currentCol = -1;
                     if (targetIndex !== -1) {
                         const selectedItem = systemData.desktopItems.find(item => item.id === systemState.selectedIcon.dataset.id);
-                        if (selectedItem && selectedItem.gridPos) {
-                            currentRow = selectedItem.gridPos.row;
-                            currentCol = selectedItem.gridPos.col;
-                        }
+                        if (selectedItem && selectedItem.gridPos) { currentRow = selectedItem.gridPos.row; currentCol = selectedItem.gridPos.col; }
                     }
-
-                    let nextRow = currentRow;
-                    let nextCol = currentCol;
-
+                    let nextRow = currentRow; let nextCol = currentCol;
                     switch (e.key) {
                         case 'ArrowUp': nextRow = Math.max(0, currentRow - 1); break;
                         case 'ArrowDown': nextRow = Math.min(rows - 1, currentRow + 1); break;
                         case 'ArrowLeft': nextCol = Math.max(0, currentCol - 1); break;
                         case 'ArrowRight': nextCol = Math.min(cols - 1, currentCol + 1); break;
                     }
-
                     let nextItemId = null;
-                    if (systemState.desktopGrid.positions[nextRow] && systemState.desktopGrid.positions[nextRow][nextCol]) {
-                        nextItemId = systemState.desktopGrid.positions[nextRow][nextCol];
-                    }
-                    
+                    if (systemState.desktopGrid.positions[nextRow] && systemState.desktopGrid.positions[nextRow][nextCol]) { nextItemId = systemState.desktopGrid.positions[nextRow][nextCol]; }
                     if (nextItemId) {
                         const nextIconElement = document.querySelector(`.desktop-icon[data-id="${nextItemId}"]`);
-                        if (nextIconElement) {
-                            selectIcon(nextIconElement);
-                        }
+                        if (nextIconElement) { selectIcon(nextIconElement); }
                     } else {
                         let found = false;
                         if (e.key === 'ArrowUp') {
                             for (let r = nextRow; r >= 0; r--) {
-                                if (systemState.desktopGrid.positions[r][nextCol]) {
-                                    selectIcon(document.querySelector(`.desktop-icon[data-id="${systemState.desktopGrid.positions[r][nextCol]}"]`));
-                                    found = true;
-                                    break;
-                                }
+                                if (systemState.desktopGrid.positions[r][nextCol]) { selectIcon(document.querySelector(`.desktop-icon[data-id="${systemState.desktopGrid.positions[r][nextCol]}"]`)); found = true; break; }
                             }
                         } else if (e.key === 'ArrowDown') {
                             for (let r = nextRow; r < rows; r++) {
-                                if (systemState.desktopGrid.positions[r][nextCol]) {
-                                    selectIcon(document.querySelector(`.desktop-icon[data-id="${systemState.desktopGrid.positions[r][nextCol]}"]`));
-                                    found = true;
-                                    break;
-                                }
+                                if (systemState.desktopGrid.positions[r][nextCol]) { selectIcon(document.querySelector(`.desktop-icon[data-id="${systemState.desktopGrid.positions[r][nextCol]}"]`)); found = true; break; }
                             }
                         } else if (e.key === 'ArrowLeft') {
                             for (let c = nextCol; c >= 0; c--) {
-                                if (systemState.desktopGrid.positions[nextRow][c]) {
-                                    selectIcon(document.querySelector(`.desktop-icon[data-id="${systemState.desktopGrid.positions[nextRow][c]}"]`));
-                                    found = true;
-                                    break;
-                                }
+                                if (systemState.desktopGrid.positions[nextRow][c]) { selectIcon(document.querySelector(`.desktop-icon[data-id="${systemState.desktopGrid.positions[nextRow][c]}"]`)); found = true; break; }
                             }
                         } else if (e.key === 'ArrowRight') {
                             for (let c = nextCol; c < cols; c++) {
-                                if (systemState.desktopGrid.positions[nextRow][c]) {
-                                    selectIcon(document.querySelector(`.desktop-icon[data-id="${systemState.desktopGrid.positions[nextRow][c]}"]`));
-                                    found = true;
-                                    break;
-                                }
+                                if (systemState.desktopGrid.positions[nextRow][c]) { selectIcon(document.querySelector(`.desktop-icon[data-id="${systemState.desktopGrid.positions[nextRow][c]}"]`)); found = true; break; }
                             }
                         }
-                        if (!found && targetIndex !== -1) {
-                            selectIcon(itemsToNavigate[targetIndex]);
-                        }
+                        if (!found && targetIndex !== -1) { selectIcon(itemsToNavigate[targetIndex]); }
                     }
                 } else {
                     switch (e.key) {
                         case 'ArrowUp': newIndex = Math.max(0, targetIndex - 1); break;
                         case 'ArrowDown': newIndex = Math.min(itemsToNavigate.length - 1, targetIndex + 1); break;
                     }
-                    if (newIndex !== targetIndex) {
-                        selectFileItem(itemsToNavigate[newIndex]);
-                    }
+                    if (newIndex !== targetIndex) { selectFileItem(itemsToNavigate[newIndex]); }
                 }
             }
         }
 
         function openItem(item) {
             addRecentFile(item);
-            if (item.type === 'folder') {
-                AxonAPI.openApp('finder', item.id);
-            } else if (item.type === 'text') {
+            if (item.type === 'folder') { AxonAPI.openApp('finder', item.id); }
+            else if (item.type === 'text') {
                 AxonAPI.openApp('notes');
                 const notesWindow = systemState.openWindows.find(w => w.id === 'notes');
                 if (notesWindow) {
@@ -2285,217 +2077,133 @@
                     if (textArea) {
                         const file = findFileInFileSystem(item.id, item.parentId);
                         if (file) {
-                            textArea.value = file.content || '';
-                            textArea.dataset.fileId = file.id;
+                            textArea.value = file.content || ''; textArea.dataset.fileId = file.id;
                             textArea.dataset.parentId = file.parentId;
                             AxonAPI.logActivity(`Usuário abriu o documento "${file.name}" com conteúdo: "${file.content}"`);
                         }
                     }
                 }
             } else if (item.type === 'image') {
-                if (item.src) {
-                    openImageViewer(item.src, item.path);
-                    AxonAPI.logActivity(`Usuário abriu a imagem "${item.name}"`);
-                } else {
-                    axonAlert("Esta imagem não possui um caminho de origem definido.");
-                }
-            } else if (item.type === 'html-app') {
-                openHtmlApp(item.path, item.name, item.icon);
-                AxonAPI.logActivity(`Usuário abriu o aplicativo HTML "${item.name}"`);
-            } else if (systemData.apps[item.id]) {
-                AxonAPI.openApp(item.id);
-            } else {
-                axonAlert(`Não é possível abrir o arquivo "${item.name}". Tipo de arquivo não suportado.`);
-            }
+                if (item.src) { openImageViewer(item.src, item.path); AxonAPI.logActivity(`Usuário abriu a imagem "${item.name}"`); }
+                else { axonAlert("Esta imagem não possui um caminho de origem definido."); }
+            } else if (item.type === 'html-app') { AxonAPI.openApp(item.id); AxonAPI.logActivity(`Usuário abriu o aplicativo HTML "${item.name}"`); }
+            else if (systemData.apps[item.id]) { AxonAPI.openApp(item.id); }
+            else { axonAlert(`Não é possível abrir o arquivo "${item.name}". Tipo de arquivo não suportado.`); }
         }
 
         function addRecentFile(file) {
             systemData.recentFiles = systemData.recentFiles.filter(f => f.id !== file.id);
             systemData.recentFiles.unshift(file);
-            if (systemData.recentFiles.length > 10) {
-                systemData.recentFiles.pop();
-            }
-            saveDesktopItems();
-            AxonAPI.logActivity(`Arquivo "${file.name}" adicionado aos recentes.`);
+            if (systemData.recentFiles.length > 10) { systemData.recentFiles.pop(); }
+            saveDesktopItems(); AxonAPI.logActivity(`Arquivo "${file.name}" adicionado aos recentes.`);
         }
 
         function deselectAllIcons() {
             document.querySelectorAll('.desktop-icon').forEach(i => { i.classList.remove('selected'); });
             document.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
-            systemState.selectedIcon = null;
-            systemState.selectedFileItem = null;
+            systemState.selectedIcon = null; systemState.selectedFileItem = null;
         }
 
         function selectIcon(iconElement) {
-            deselectAllIcons();
-            iconElement.classList.add('selected');
-            systemState.selectedIcon = iconElement;
-            systemState.selectedFileItem = null;
-            iconElement.focus();
+            deselectAllIcons(); iconElement.classList.add('selected');
+            systemState.selectedIcon = iconElement; systemState.selectedFileItem = null; iconElement.focus();
         }
 
         function selectFileItem(fileItemElement) {
-            deselectAllIcons();
-            fileItemElement.classList.add('selected');
+            deselectAllIcons(); fileItemElement.classList.add('selected');
             const activeFinderWindow = systemState.openWindows.find(w => w.id === 'finder' && w.element.classList.contains('active'));
             if (activeFinderWindow) {
                 const currentDir = getDirectoryById(activeFinderWindow.currentPath);
                 systemState.selectedFileItem = currentDir.children.find(item => item.id === fileItemElement.dataset.id);
             }
-            systemState.selectedIcon = null;
-            fileItemElement.focus();
+            systemState.selectedIcon = null; fileItemElement.focus();
         }
 
         function createDesktopItem(type, name, x = null, y = null, id = null) {
             if (systemData.desktopItems.some(item => item.id === id)) return;
-
             let gridPos = findNextAvailablePosition();
-            if (!gridPos) {
-                axonAlert("Não há mais espaço disponível na área de trabalho para novos ícones.");
-                return;
-            }
-
+            if (!gridPos) { axonAlert("Não há mais espaço disponível na área de trabalho para novos ícones."); return; }
             x = gridPos.col * systemState.desktopGrid.iconWidth + 20;
             y = gridPos.row * systemState.desktopGrid.iconHeight + 20;
-
             const newItem = { id, name, type, x, y, icon: fileIcons[type] || 'fas fa-file', gridPos: gridPos, parentId: 'axon/desktop', path: `axon/desktop/${name}` };
-            systemData.desktopItems.push(newItem);
-            occupyPosition(gridPos.row, gridPos.col, id);
-
+            systemData.desktopItems.push(newItem); occupyPosition(gridPos.row, gridPos.col, id);
             const icon = document.createElement('div');
-            icon.className = 'desktop-icon';
-            icon.dataset.id = id;
-            icon.dataset.type = type;
+            icon.className = 'desktop-icon'; icon.dataset.id = id; icon.dataset.type = type;
             icon.dataset.app = type === 'folder' ? 'finder' : (type === 'text' ? 'notes' : (type === 'image' ? 'gallery' : (type === 'html-app' ? 'html-app-launcher' : null)));
-            icon.style.left = `${x}px`;
-            icon.style.top = `${y}px`;
-            icon.tabIndex = 0;
-            icon.draggable = true;
-            
+            icon.style.left = `${x}px`; icon.style.top = `${y}px`; icon.tabIndex = 0; icon.draggable = true;
             const iconImage = document.createElement('div');
-            iconImage.className = 'icon-image';
-            const iconElement = document.createElement('i');
-            iconElement.className = fileIcons[type] || 'fas fa-file';
-            iconImage.appendChild(iconElement);
-            
+            iconImage.className = 'icon-image'; const iconElement = document.createElement('i');
+            iconElement.className = fileIcons[type] || 'fas fa-file'; iconImage.appendChild(iconElement);
             const iconLabel = document.createElement('div');
-            iconLabel.className = 'icon-label';
-            iconLabel.textContent = name;
-            
-            icon.appendChild(iconImage);
-            icon.appendChild(iconLabel);
-            
+            iconLabel.className = 'icon-label'; iconLabel.textContent = name;
+            icon.appendChild(iconImage); icon.appendChild(iconLabel);
             icon.addEventListener('dblclick', () => {
                 const itemData = getItemById(icon.dataset.id, icon.dataset.parentId || 'axon/desktop');
                 if (itemData) { openItem(itemData); }
             });
-            
-            icon.addEventListener('contextmenu', (e) => {
-                e.preventDefault();
-                selectIcon(icon);
-                showContextMenu(e, icon);
-            });
-            
+            icon.addEventListener('contextmenu', (e) => { e.preventDefault(); selectIcon(icon); showContextMenu(e, icon); });
             icon.addEventListener('click', (e) => { selectIcon(icon); });
-
             icon.addEventListener('dragstart', (e) => {
                 systemState.draggedItem = getItemById(icon.dataset.id, 'axon/desktop');
-                e.dataTransfer.effectAllowed = 'copyMove';
-                e.dataTransfer.setData('text/plain', icon.dataset.id);
+                e.dataTransfer.effectAllowed = 'copyMove'; e.dataTransfer.setData('text/plain', icon.dataset.id);
             });
-
             icon.addEventListener('dragend', () => { systemState.draggedItem = null; });
-            
-            let isDragging = false;
-            let offsetX, offsetY;
-            let initialGridPos = null;
-            
+            let isDragging = false; let offsetX, offsetY; let initialGridPos = null;
             icon.addEventListener('mousedown', (e) => {
                 if (e.button === 0) {
-                    isDragging = true;
-                    offsetX = e.clientX - icon.getBoundingClientRect().left;
+                    isDragging = true; offsetX = e.clientX - icon.getBoundingClientRect().left;
                     offsetY = e.clientY - icon.getBoundingClientRect().top;
-                    icon.style.cursor = 'grabbing';
-                    icon.style.zIndex = '100';
+                    icon.style.cursor = 'grabbing'; icon.style.zIndex = '100';
                     initialGridPos = systemData.desktopItems.find(item => item.id === id).gridPos;
                     freePosition(id);
                     document.addEventListener('mousemove', elementDragIcon);
                     document.addEventListener('mouseup', stopDragIcon);
                 }
             });
-
             function elementDragIcon(e) {
                 if (!isDragging) return;
-                let newX = e.clientX - offsetX;
-                let newY = e.clientY - offsetY;
+                let newX = e.clientX - offsetX; let newY = e.clientY - offsetY;
                 const desktopRect = desktop.getBoundingClientRect();
                 newX = Math.max(desktopRect.left, Math.min(newX, desktopRect.right - icon.offsetWidth));
                 newY = Math.max(desktopRect.top, Math.min(newY, desktopRect.bottom - icon.offsetHeight));
-                icon.style.left = `${newX - desktopRect.left}px`;
-                icon.style.top = `${newY - desktopRect.top}px`;
+                icon.style.left = `${newX - desktopRect.left}px`; icon.style.top = `${newY - desktopRect.top}px`;
             }
-
             function stopDragIcon() {
                 if (isDragging) {
-                    isDragging = false;
-                    icon.style.cursor = 'pointer';
-                    icon.style.zIndex = '';
+                    isDragging = false; icon.style.cursor = 'pointer'; icon.style.zIndex = '';
                     document.removeEventListener('mousemove', elementDragIcon);
                     document.removeEventListener('mouseup', stopDragIcon);
-
                     const desktopRect = desktop.getBoundingClientRect();
                     const currentX = icon.getBoundingClientRect().left - desktopRect.left;
                     const currentY = icon.getBoundingClientRect().top - desktopRect.top;
-
                     let { row, col } = getGridPosition(currentX + desktopRect.left, currentY + desktopRect.top);
                     row = Math.max(0, Math.min(row, systemState.desktopGrid.rows - 1));
                     col = Math.max(0, Math.min(col, systemState.desktopGrid.columns - 1));
-
                     if (systemState.desktopGrid.positions[row][col] && systemState.desktopGrid.positions[row][col] !== id) {
                         const nextPos = findNextAvailablePositionStartingFrom(row, col);
-                        if (nextPos) {
-                            row = nextPos.row;
-                            col = nextPos.col;
-                        } else {
-                            row = initialGridPos.row;
-                            col = initialGridPos.col;
-                            axonAlert("Não foi possível mover o ícone para esta posição. Não há espaço disponível.");
-                        }
+                        if (nextPos) { row = nextPos.row; col = nextPos.col; }
+                        else { row = initialGridPos.row; col = initialGridPos.col; axonAlert("Não foi possível mover o ícone para esta posição. Não há espaço disponível."); }
                     }
-
                     const finalX = col * systemState.desktopGrid.iconWidth + 20;
                     const finalY = row * systemState.desktopGrid.iconHeight + 20;
-
-                    icon.style.left = `${finalX}px`;
-                    icon.style.top = `${finalY}px`;
-
-                    occupyPosition(row, col, id);
-                    updateDesktopItemPosition(id, finalX, finalY, row, col);
-                    saveDesktopItems();
-                    AxonAPI.logActivity(`Ícone "${name}" movido para a posição (${row}, ${col}) no desktop.`);
+                    icon.style.left = `${finalX}px`; icon.style.top = `${finalY}px`;
+                    occupyPosition(row, col, id); updateDesktopItemPosition(id, finalX, finalY, row, col);
+                    saveDesktopItems(); AxonAPI.logActivity(`Ícone "${name}" movido para a posição (${row}, ${col}) no desktop.`);
                 }
             }
-            
-            desktop.appendChild(icon);
-            systemState.desktopIcons.push(icon);
-            saveDesktopItems();
+            desktop.appendChild(icon); systemState.desktopIcons.push(icon); saveDesktopItems();
         }
 
         function createFileItem(directoryId, type, name, content = '', src = '') {
             const parentDir = getDirectoryById(directoryId);
             if (!parentDir) { axonAlert("Diretório de destino inválido.", "Erro de Criação"); return null; }
             if (parentDir.children.some(item => item.name === name)) { axonAlert(`Já existe um item com o nome "${name}" neste diretório.`, "Erro de Criação"); return null; }
-
             const newId = `${directoryId}/${name.replace(/\s+/g, '_').toLowerCase()}-${Date.now()}`;
             const newItem = { id: newId, name, type, icon: fileIcons[type] || 'fas fa-file', parentId: directoryId, path: `${directoryId}/${name}` };
-            
             if (type === 'text') { newItem.content = content; }
             else if (type === 'image') { newItem.src = src; }
             else if (type === 'folder') { systemData.fileSystem[newId] = { id: newId, name: name, type: 'folder', icon: fileIcons.folder, path: `${directoryId}/${name}`, parentId: directoryId, children: [] }; }
-
-            parentDir.children.push(newItem);
-            saveDesktopItems();
-
+            parentDir.children.push(newItem); saveDesktopItems();
             if (directoryId === 'axon/desktop') { createDesktopItem(type, name, null, null, newItem.id); }
             axonAlert(`"${name}" criado em "${parentDir.path}"`);
             AxonAPI.logActivity(`Item "${name}" (tipo: ${type}) criado em "${parentDir.path}"`);
@@ -2505,9 +2213,7 @@
         function copyItemRecursive(sourceItem, targetDirectoryId) {
             const newId = `${targetDirectoryId}/${sourceItem.name.replace(/\s+/g, '_').toLowerCase()}-${Date.now()}`;
             const newItem = { ...sourceItem, id: newId, parentId: targetDirectoryId, path: `${targetDirectoryId}/${sourceItem.name}` };
-            
-            let finalName = newItem.name;
-            let counter = 1;
+            let finalName = newItem.name; let counter = 1;
             const targetDir = getDirectoryById(targetDirectoryId);
             if (targetDir) {
                 while (targetDir.children.some(item => item.name === finalName)) {
@@ -2518,21 +2224,16 @@
                     counter++;
                 }
             }
-            newItem.name = finalName;
-            newItem.path = `${targetDirectoryId}/${finalName}`;
+            newItem.name = finalName; newItem.path = `${targetDirectoryId}/${finalName}`;
             newItem.id = `${targetDirectoryId}/${finalName.replace(/\s+/g, '_').toLowerCase()}-${Date.now()}`;
-
             if (targetDir) { targetDir.children.push(newItem); }
             else { axonAlert("Diretório de destino inválido.", "Erro de Cópia"); return null; }
-
             if (sourceItem.type === 'folder') {
                 systemData.fileSystem[newItem.id] = {
                     id: newItem.id, name: newItem.name, type: 'folder', icon: fileIcons.folder, path: newItem.path, parentId: newItem.parentId, children: []
                 };
                 const sourceFolder = getDirectoryById(sourceItem.id);
-                if (sourceFolder && sourceFolder.children) {
-                    sourceFolder.children.forEach(child => { copyItemRecursive(child, newItem.id); });
-                }
+                if (sourceFolder && sourceFolder.children) { sourceFolder.children.forEach(child => { copyItemRecursive(child, newItem.id); }); }
             }
             return newItem;
         }
@@ -2542,9 +2243,7 @@
             if (!targetDir) { axonAlert("Diretório de destino inválido.", "Erro de Cópia"); return; }
             if (isCut && itemToCopy.parentId === targetDirectoryId) { axonAlert("Não é possível mover um item para sua própria pasta de origem ao recortar.", "Erro de Movimento"); return; }
             if (itemToCopy.type === 'folder' && targetDirectoryId.startsWith(itemToCopy.id)) { axonAlert("Não é possível copiar uma pasta para dentro de si mesma.", "Erro de Cópia"); return; }
-
             const copiedItem = copyItemRecursive(itemToCopy, targetDirectoryId);
-
             if (copiedItem) {
                 if (isCut) {
                     AxonAPI.deleteFileItem(itemToCopy.id, itemToCopy.parentId, false);
@@ -2559,8 +2258,7 @@
         }
 
         function findNextAvailablePositionStartingFrom(row, col) {
-            const rows = systemState.desktopGrid.rows;
-            const cols = systemState.desktopGrid.columns;
+            const rows = systemState.desktopGrid.rows; const cols = systemState.desktopGrid.columns;
             for (let c = col; c < cols; c++) {
                 for (let r = row; r < rows; r++) {
                     if (!systemState.desktopGrid.positions[r][c]) { return { row: r, col: c }; }
@@ -2571,132 +2269,81 @@
 
         function updateDesktopItemPosition(id, x, y, row, col) {
             const item = systemData.desktopItems.find(item => item.id === id);
-            if (item) {
-                item.x = x;
-                item.y = y;
-                item.gridPos = { row, col };
-            }
+            if (item) { item.x = x; item.y = y; item.gridPos = { row, col }; }
         }
 
         function updateFileItemName(itemId, parentDirId, newName) {
-            const parentDir = getDirectoryById(parentDirId);
-            if (!parentDir) return;
-
+            const parentDir = getDirectoryById(parentDirId); if (!parentDir) return;
             const item = parentDir.children.find(item => item.id === itemId);
             if (item) {
                 if (parentDir.children.some(child => child.name === newName && child.id !== itemId)) {
-                    axonAlert(`Já existe um item com o nome "${newName}" neste diretório.`, "Erro de Renomeação");
-                    return;
+                    axonAlert(`Já existe um item com o nome "${newName}" neste diretório.`, "Erro de Renomeação"); return;
                 }
-
-                const oldId = item.id;
-                item.name = newName;
-                item.path = `${parentDirId}/${newName}`;
+                const oldId = item.id; item.name = newName; item.path = `${parentDirId}/${newName}`;
                 item.id = `${parentDirId}/${newName.replace(/\s+/g, '_').toLowerCase()}-${Date.now()}`;
-
                 if (item.type === 'folder' && systemData.fileSystem[oldId]) {
-                    const oldFolderData = systemData.fileSystem[oldId];
-                    const newFolderId = item.id;
+                    const oldFolderData = systemData.fileSystem[oldId]; const newFolderId = item.id;
                     systemData.fileSystem[newFolderId] = oldFolderData;
-                    systemData.fileSystem[newFolderId].id = newFolderId;
-                    systemData.fileSystem[newFolderId].name = newName;
-                    systemData.fileSystem[newFolderId].path = newFolderId;
-                    systemData.fileSystem[newFolderId].parentId = parentDirId;
+                    systemData.fileSystem[newFolderId].id = newFolderId; systemData.fileSystem[newFolderId].name = newName;
+                    systemData.fileSystem[newFolderId].path = newFolderId; systemData.fileSystem[newFolderId].parentId = parentDirId;
                     delete systemData.fileSystem[oldId];
-
                     function updateChildrenPathsAndIds(currentDirId, oldBaseId, newBaseId) {
                         const currentDir = systemData.fileSystem[currentDirId];
                         if (currentDir && currentDir.children) {
                             currentDir.children.forEach(child => {
-                                const oldChildId = child.id;
-                                child.parentId = currentDirId;
-                                child.path = `${currentDirId}/${child.name}`;
+                                const oldChildId = child.id; child.parentId = currentDirId; child.path = `${currentDirId}/${child.name}`;
                                 child.id = `${currentDirId}/${child.name.replace(/\s+/g, '_').toLowerCase()}-${Date.now()}`;
-
                                 if (child.type === 'folder' && systemData.fileSystem[oldChildId]) {
                                     const oldChildFolderData = systemData.fileSystem[oldChildId];
                                     systemData.fileSystem[child.id] = oldChildFolderData;
-                                    systemData.fileSystem[child.id].id = child.id;
-                                    systemData.fileSystem[child.id].name = child.name;
-                                    systemData.fileSystem[child.id].path = child.path;
-                                    systemData.fileSystem[child.id].parentId = currentDirId;
-                                    delete systemData.fileSystem[oldChildId];
-                                    updateChildrenPathsAndIds(child.id, oldChildId, child.id);
+                                    systemData.fileSystem[child.id].id = child.id; systemData.fileSystem[child.id].name = child.name;
+                                    systemData.fileSystem[child.id].path = child.path; systemData.fileSystem[child.id].parentId = currentDirId;
+                                    delete systemData.fileSystem[oldChildId]; updateChildrenPathsAndIds(child.id, oldChildId, child.id);
                                 }
                             });
                         }
                     }
                     updateChildrenPathsAndIds(newFolderId, oldId, newFolderId);
                 }
-
                 const desktopItem = systemData.desktopItems.find(dItem => dItem.id === oldId);
                 if (desktopItem) {
-                    desktopItem.name = newName;
-                    desktopItem.path = item.path;
-                    desktopItem.id = item.id;
+                    desktopItem.name = newName; desktopItem.path = item.path; desktopItem.id = item.id;
                     const desktopIconElement = document.querySelector(`.desktop-icon[data-id="${oldId}"]`);
-                    if (desktopIconElement) {
-                        desktopIconElement.dataset.id = item.id;
-                        desktopIconElement.querySelector('.icon-label').textContent = newName;
-                    }
+                    if (desktopIconElement) { desktopIconElement.dataset.id = item.id; desktopIconElement.querySelector('.icon-label').textContent = newName; }
                 }
-                saveDesktopItems();
-                AxonAPI.logActivity(`Item "${oldName}" renomeado para "${newName}"`);
+                saveDesktopItems(); AxonAPI.logActivity(`Item "${oldName}" renomeado para "${newName}"`);
             }
         }
 
         function deleteFileItem(itemId, parentDirId, save = true) {
-            const parentDir = getDirectoryById(parentDirId);
-            if (!parentDir) return;
-
-            const itemIndex = parentDir.children.findIndex(item => item.id === itemId);
-            if (itemIndex === -1) return;
-
+            const parentDir = getDirectoryById(parentDirId); if (!parentDir) return;
+            const itemIndex = parentDir.children.findIndex(item => item.id === itemId); if (itemIndex === -1) return;
             const itemToDelete = parentDir.children[itemIndex];
-
             const trashDir = getDirectoryById('axon/trash');
-            if (trashDir) {
-                trashDir.children.push({ ...itemToDelete, originalPath: parentDirId });
-            }
-
+            if (trashDir) { trashDir.children.push({ ...itemToDelete, originalPath: parentDirId }); }
             parentDir.children.splice(itemIndex, 1);
-
-            if (itemToDelete.type === 'folder' && systemData.fileSystem[itemId]) {
-                delete systemData.fileSystem[itemId];
-            }
-
+            if (itemToDelete.type === 'folder' && systemData.fileSystem[itemId]) { delete systemData.fileSystem[itemId]; }
             const desktopItemIndex = systemData.desktopItems.findIndex(item => item.id === itemId);
             if (desktopItemIndex !== -1) {
                 const desktopIcon = document.querySelector(`.desktop-icon[data-id="${itemId}"]`);
-                if (desktopIcon) {
-                    desktopIcon.remove();
-                    freePosition(itemId);
-                }
+                if (desktopIcon) { desktopIcon.remove(); freePosition(itemId); }
                 systemData.desktopItems.splice(desktopItemIndex, 1);
             }
-
-            if (save) saveDesktopItems();
-            updateFileInterfaces();
+            if (save) saveDesktopItems(); updateFileInterfaces();
             AxonAPI.logActivity(`Item "${itemToDelete.name}" excluído (movido para a lixeira)`);
         }
 
         async function restoreTrashItem(itemId) {
             const trashDir = getDirectoryById('axon/trash');
             if (!trashDir) { axonAlert("Diretório da lixeira não encontrado.", "Erro de Restauração"); return; }
-
             const itemToRestoreIndex = trashDir.children.findIndex(item => item.id === itemId);
             if (itemToRestoreIndex === -1) { axonAlert("Item não encontrado na lixeira.", "Erro de Restauração"); return; }
-
             const itemToRestore = trashDir.children[itemToRestoreIndex];
             const originalPath = itemToRestore.originalPath;
-
             const targetDir = getDirectoryById(originalPath);
             if (!targetDir) { await axonAlert(`Não foi possível restaurar "${itemToRestore.name}". O caminho original "${originalPath}" não existe mais.`, "Erro de Restauração"); return; }
-
             trashDir.children.splice(itemToRestoreIndex, 1);
-
-            let finalName = itemToRestore.name;
-            let counter = 1;
+            let finalName = itemToRestore.name; let counter = 1;
             while (targetDir.children.some(item => item.name === finalName)) {
                 const nameParts = itemToRestore.name.split('.');
                 const baseName = nameParts[0];
@@ -2704,51 +2351,35 @@
                 finalName = `${baseName} (Restaurado ${counter})${extension}`;
                 counter++;
             }
-            itemToRestore.name = finalName;
-            itemToRestore.path = `${originalPath}/${finalName}`;
+            itemToRestore.name = finalName; itemToRestore.path = `${originalPath}/${finalName}`;
             itemToRestore.parentId = originalPath;
             itemToRestore.id = `${originalPath}/${finalName.replace(/\s+/g, '_').toLowerCase()}-${Date.now()}`;
             delete itemToRestore.originalPath;
-
             targetDir.children.push(itemToRestore);
-
             if (itemToRestore.type === 'folder' && !systemData.fileSystem[itemToRestore.id]) {
                 systemData.fileSystem[itemToRestore.id] = {
                     id: itemToRestore.id, name: itemToRestore.name, type: 'folder', icon: itemToRestore.icon, path: itemToRestore.path, parentId: itemToRestore.parentId, children: []
                 };
             }
-
             if (originalPath === 'axon/desktop') { createDesktopItem(itemToRestore.type, itemToRestore.name, null, null, itemToRestore.id); }
-
-            saveDesktopItems();
-            await axonAlert(`"${itemToRestore.name}" restaurado para "${targetDir.path}".`, "Restauração Concluída");
-            updateFileInterfaces();
-            AxonAPI.logActivity(`Item "${itemToRestore.name}" restaurado da lixeira para "${targetDir.path}"`);
+            saveDesktopItems(); await axonAlert(`"${itemToRestore.name}" restaurado para "${targetDir.path}".`, "Restauração Concluída");
+            updateFileInterfaces(); AxonAPI.logActivity(`Item "${itemToRestore.name}" restaurado da lixeira para "${targetDir.path}"`);
         }
 
         async function deletePermanentTrashItem(itemId) {
             const trashDir = getDirectoryById('axon/trash');
             if (!trashDir) { axonAlert("Diretório da lixeira não encontrado.", "Erro de Exclusão"); return; }
-
             const itemToDeleteIndex = trashDir.children.findIndex(item => item.id === itemId);
             if (itemToDeleteIndex === -1) { axonAlert("Item não encontrado na lixeira.", "Erro de Exclusão"); return; }
-
             const itemToDelete = trashDir.children[itemToDeleteIndex];
             trashDir.children.splice(itemToDeleteIndex, 1);
-
-            if (itemToDelete.type === 'folder' && systemData.fileSystem[itemToDelete.id]) {
-                delete systemData.fileSystem[itemToDelete.id];
-            }
-
-            saveDesktopItems();
-            await axonAlert(`"${itemToDelete.name}" excluído permanentemente.`, "Exclusão Concluída");
-            updateFileInterfaces();
-            AxonAPI.logActivity(`Item "${itemToDelete.name}" excluído permanentemente da lixeira`);
+            if (itemToDelete.type === 'folder' && systemData.fileSystem[itemToDelete.id]) { delete systemData.fileSystem[itemToDelete.id]; }
+            saveDesktopItems(); await axonAlert(`"${itemToDelete.name}" excluído permanentemente.`, "Exclusão Concluída");
+            updateFileInterfaces(); AxonAPI.logActivity(`Item "${itemToDelete.name}" excluído permanentemente da lixeira`);
         }
 
         function findFileInFileSystem(fileId, parentDirId) {
-            const itemInParent = getItemById(fileId, parentDirId);
-            if (itemInParent) return itemInParent;
+            const itemInParent = getItemById(fileId, parentDirId); if (itemInParent) return itemInParent;
             for (const dirId in systemData.fileSystem) {
                 const dir = systemData.fileSystem[dirId];
                 if (dir && dir.children) {
@@ -2762,19 +2393,10 @@
         function loadDesktopItems() {
             const savedFileSystem = localStorage.getItem('axon-file-system');
             const savedRecentFiles = localStorage.getItem('axon-recent-files');
-
             systemState.desktopIcons.forEach(icon => icon.remove());
-            systemState.desktopIcons = [];
-            systemData.desktopItems = [];
-            desktop.innerHTML = '';
-            setupDesktopGrid();
-
-            if (savedFileSystem) {
-                systemData.fileSystem = JSON.parse(savedFileSystem);
-            } else {
-                initializeFileSystem();
-            }
-
+            systemState.desktopIcons = []; systemData.desktopItems = []; desktop.innerHTML = ''; setupDesktopGrid();
+            if (savedFileSystem) { systemData.fileSystem = JSON.parse(savedFileSystem); }
+            else { initializeFileSystem(); }
             const desktopDir = getDirectoryById('axon/desktop');
             if (desktopDir && desktopDir.children) {
                 desktopDir.children.forEach(item => {
@@ -2782,28 +2404,17 @@
                     if (!gridPos || !systemState.desktopGrid.positions[gridPos.row] || systemState.desktopGrid.positions[gridPos.row][gridPos.col]) {
                         const newGridPos = findNextAvailablePosition();
                         if (newGridPos) {
-                            gridPos = newGridPos;
-                            x = newGridPos.col * systemState.desktopGrid.iconWidth + 20;
+                            gridPos = newGridPos; x = newGridPos.col * systemState.desktopGrid.iconWidth + 20;
                             y = newGridPos.row * systemState.desktopGrid.iconHeight + 20;
-                        } else {
-                            console.warn(`Não foi possível encontrar uma posição para o item ${item.name}.`);
-                            return;
-                        }
+                        } else { console.warn(`Não foi possível encontrar uma posição para o item ${item.name}.`); return; }
                     }
                     occupyPosition(gridPos.row, gridPos.col, item.id);
                     createDesktopItem(item.type, item.name, x, y, item.id);
                     const desktopItem = systemData.desktopItems.find(dItem => dItem.id === item.id);
-                    if (desktopItem) {
-                        desktopItem.x = x;
-                        desktopItem.y = y;
-                        desktopItem.gridPos = gridPos;
-                    }
+                    if (desktopItem) { desktopItem.x = x; desktopItem.y = y; desktopItem.gridPos = gridPos; }
                 });
             }
-
-            if (savedRecentFiles) {
-                systemData.recentFiles = JSON.parse(savedRecentFiles);
-            }
+            if (savedRecentFiles) { systemData.recentFiles = JSON.parse(savedRecentFiles); }
             saveDesktopItems();
         }
 
@@ -2815,37 +2426,25 @@
 
         function showContextMenu(e, target) {
             contextMenu.style.display = 'block';
-            
-            let x = e.pageX;
-            let y = e.pageY;
-            const menuWidth = contextMenu.offsetWidth;
-            const menuHeight = contextMenu.offsetHeight;
-
+            let x = e.pageX; let y = e.pageY;
+            const menuWidth = contextMenu.offsetWidth; const menuHeight = contextMenu.offsetHeight;
             if (x + menuWidth > window.innerWidth) { x = window.innerWidth - menuWidth - 10; }
             if (y + menuHeight > window.innerHeight) { y = window.innerHeight - menuHeight - 10; }
-
-            contextMenu.style.left = `${x}px`;
-            contextMenu.style.top = `${y}px`;
-            
+            contextMenu.style.left = `${x}px`; contextMenu.style.top = `${y}px`;
             const isItemSelected = systemState.selectedIcon || systemState.selectedFileItem;
             const isFolderSelected = (systemState.selectedIcon && systemState.selectedIcon.dataset.type === 'folder') || (systemState.selectedFileItem && systemState.selectedFileItem.type === 'folder');
-            
             const activeFinderWindow = systemState.openWindows.find(w => w.id === 'finder' && w.element.classList.contains('active'));
             const currentFinderPath = activeFinderWindow ? activeFinderWindow.currentPath : 'axon/desktop';
             const isInTrash = currentFinderPath === 'axon/trash';
-
             document.getElementById('context-open').style.display = isItemSelected && !isInTrash ? 'flex' : 'none';
             document.getElementById('context-rename').style.display = isItemSelected && !isInTrash ? 'flex' : 'none';
             document.getElementById('context-delete').style.display = isItemSelected && !isInTrash ? 'flex' : 'none';
             document.getElementById('context-cut').style.display = isItemSelected && !isInTrash ? 'flex' : 'none';
             document.getElementById('context-copy').style.display = isItemSelected && !isInTrash ? 'flex' : 'none';
-            
             document.getElementById('context-new-folder').style.display = (!isItemSelected || isFolderSelected) && !isInTrash ? 'flex' : 'none';
             document.getElementById('context-new-file').style.display = (!isItemSelected || isFolderSelected) && !isInTrash ? 'flex' : 'none';
-            
             const canPaste = systemData.clipboard && (!isItemSelected || isFolderSelected) && !isInTrash;
             document.getElementById('context-paste').style.display = canPaste ? 'flex' : 'none';
-
             document.getElementById('context-restore').style.display = isInTrash && isItemSelected ? 'flex' : 'none';
             document.getElementById('context-delete-permanent').style.display = isInTrash && isItemSelected ? 'flex' : 'none';
         }
@@ -2854,22 +2453,15 @@
 
         function openApp(appId, initialPath = null) {
             if (appId === 'finder') {
-                const app = systemData.apps[appId];
-                if (!app) return;
-
+                const app = systemData.apps[appId]; if (!app) return;
                 const windowId = `window-${appId}-${Date.now()}`;
                 const windowElement = document.createElement('div');
-                windowElement.className = 'window';
-                windowElement.id = windowId;
-                windowElement.style.width = `${app.minWidth}px`;
-                windowElement.style.height = `${app.minHeight}px`;
-                
+                windowElement.className = 'window'; windowElement.id = windowId;
+                windowElement.style.width = `${app.minWidth}px`; windowElement.style.height = `${app.minHeight}px`;
                 const menuBarHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--menu-bar-height'));
                 const left = Math.max(0, (window.innerWidth - app.minWidth) / 2 + (Math.random() * 100 - 50));
                 const top = Math.max(menuBarHeight, (window.innerHeight - app.minHeight) / 2 + (Math.random() * 100 - 50));
-                windowElement.style.left = `${left}px`;
-                windowElement.style.top = `${top}px`;
-
+                windowElement.style.left = `${left}px`; windowElement.style.top = `${top}px`;
                 const header = document.createElement('div');
                 header.className = 'window-header';
                 header.innerHTML = `
@@ -2883,52 +2475,32 @@
                     </div>
                 `;
                 windowElement.appendChild(header);
-
                 const content = document.createElement('div');
-                content.className = 'window-content';
-                content.innerHTML = generateAppContent(appId);
+                content.className = 'window-content'; content.innerHTML = generateAppContent(appId);
                 windowElement.appendChild(content);
-
                 windowsContainer.appendChild(windowElement);
-                
-                void windowElement.offsetWidth;
-                windowElement.classList.add('active');
-                
+                void windowElement.offsetWidth; windowElement.classList.add('active');
                 const newFinderWindow = { id: appId, windowId: windowId, element: windowElement, appName: app.name, appIcon: app.icon, currentPath: initialPath || 'axon/desktop' };
-                systemState.openWindows.push(newFinderWindow);
-                systemState.activeWindow = windowId;
-                bringToFront(windowId);
-                
-                setupWindowEvents(windowElement, appId, windowId);
+                systemState.openWindows.push(newFinderWindow); systemState.activeWindow = windowId;
+                bringToFront(windowId); setupWindowEvents(windowElement, appId, windowId);
                 initAppContent(appId, windowElement, newFinderWindow.currentPath);
-                AxonAPI.logActivity(`Aplicativo "${app.name}" aberto.`);
-                return;
+                AxonAPI.logActivity(`Aplicativo "${app.name}" aberto.`); return;
             }
-
             const existingWindow = systemState.openWindows.find(w => w.id === appId);
             if (existingWindow) {
                 bringToFront(existingWindow.windowId);
                 if (appId === 'axon-apps') { initAxonApps(existingWindow.element); }
-                AxonAPI.logActivity(`Aplicativo "${systemData.apps[appId].name}" trazido para frente.`);
-                return;
+                AxonAPI.logActivity(`Aplicativo "${systemData.apps[appId].name}" trazido para frente.`); return;
             }
-
-            const app = systemData.apps[appId];
-            if (!app) return;
-
+            const app = systemData.apps[appId]; if (!app) return;
             const windowId = `window-${appId}-${Date.now()}`;
             const windowElement = document.createElement('div');
-            windowElement.className = 'window';
-            windowElement.id = windowId;
-            windowElement.style.width = `${app.minWidth}px`;
-            windowElement.style.height = `${app.minHeight}px`;
-            
+            windowElement.className = 'window'; windowElement.id = windowId;
+            windowElement.style.width = `${app.minWidth}px`; windowElement.style.height = `${app.minHeight}px`;
             const menuBarHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--menu-bar-height'));
             const left = Math.max(0, (window.innerWidth - app.minWidth) / 2 + (Math.random() * 100 - 50));
             const top = Math.max(menuBarHeight, (window.innerHeight - app.minHeight) / 2 + (Math.random() * 100 - 50));
-            windowElement.style.left = `${left}px`;
-            windowElement.style.top = `${top}px`;
-
+            windowElement.style.left = `${left}px`; windowElement.style.top = `${top}px`;
             const header = document.createElement('div');
             header.className = 'window-header';
             header.innerHTML = `
@@ -2942,25 +2514,15 @@
                 </div>
             `;
             windowElement.appendChild(header);
-
             const content = document.createElement('div');
-            content.className = 'window-content';
-            content.innerHTML = generateAppContent(appId);
+            content.className = 'window-content'; content.innerHTML = generateAppContent(appId);
             windowElement.appendChild(content);
-
             windowsContainer.appendChild(windowElement);
-            
-            void windowElement.offsetWidth;
-            windowElement.classList.add('active');
-            
+            void windowElement.offsetWidth; windowElement.classList.add('active');
             setupWindowEvents(windowElement, appId, windowId);
-            
             systemState.openWindows.push({ id: appId, windowId: windowId, element: windowElement, appName: app.name, appIcon: app.icon });
-            systemState.activeWindow = windowId;
-            bringToFront(windowId);
-            
-            initAppContent(appId, windowElement);
-            AxonAPI.logActivity(`Aplicativo "${app.name}" aberto.`);
+            systemState.activeWindow = windowId; bringToFront(windowId);
+            initAppContent(appId, windowElement); AxonAPI.logActivity(`Aplicativo "${app.name}" aberto.`);
         }
 
         function generateAppContent(appId) {
@@ -3175,19 +2737,14 @@
             const finderBackButton = windowElement.querySelector('#finder-back');
             const finderRefreshButton = windowElement.querySelector('#finder-refresh');
             const createNewItemBtn = windowElement.querySelector('#create-new-item-btn');
-
             const finderInstance = systemState.openWindows.find(w => w.windowId === windowElement.id);
             if (!finderInstance) { console.error("Instância do Finder não encontrada no systemState."); return; }
-
             finderInstance.currentPath = initialPath || 'axon/desktop';
-
             function navigateToDirectory(directoryId) {
                 const currentDir = getDirectoryById(directoryId);
                 if (!currentDir) { axonAlert("Diretório não encontrado.", "Erro de Navegação"); return; }
-                finderInstance.currentPath = directoryId;
-                finderPathDisplay.textContent = currentDir.path;
-                loadDirectory(directoryId, explorerGrid, finderInstance);
-                deselectAllIcons();
+                finderInstance.currentPath = directoryId; finderPathDisplay.textContent = currentDir.path;
+                loadDirectory(directoryId, explorerGrid, finderInstance); deselectAllIcons();
                 sidebarItems.forEach(item => {
                     if (item.dataset.path === directoryId) { item.classList.add('active'); }
                     else { item.classList.remove('active'); }
@@ -3196,77 +2753,52 @@
                 windowElement.querySelector('.tab[data-tab="all"]').classList.add('active');
                 AxonAPI.logActivity(`Navegou para o diretório "${currentDir.path}" no Finder.`);
             }
-
             function loadDirectory(directoryId, gridElement, finderInstance) {
                 gridElement.innerHTML = '';
                 const currentDir = getDirectoryById(directoryId);
                 if (!currentDir || !currentDir.children) {
-                    gridElement.innerHTML = '<p style="text-align: center; width: 100%;">Diretório vazio ou inválido.</p>';
-                    return;
+                    gridElement.innerHTML = '<p style="text-align: center; width: 100%;">Diretório vazio ou inválido.</p>'; return;
                 }
-                
                 currentDir.children.forEach(item => {
                     const fileItem = document.createElement('div');
-                    fileItem.className = 'file-item';
-                    fileItem.dataset.id = item.id;
-                    fileItem.dataset.type = item.type;
-                    fileItem.dataset.name = item.name;
-                    fileItem.tabIndex = 0;
-                    fileItem.draggable = true;
-
+                    fileItem.className = 'file-item'; fileItem.dataset.id = item.id;
+                    fileItem.dataset.type = item.type; fileItem.dataset.name = item.name;
+                    fileItem.tabIndex = 0; fileItem.draggable = true;
                     fileItem.innerHTML = `
                         <div class="file-icon"><i class="${fileIcons[item.type] || 'fas fa-file'}"></i></div>
                         <div class="file-name">${item.name}</div>
                     `;
-                    
                     fileItem.addEventListener('dblclick', () => { openItem(item); });
                     fileItem.addEventListener('click', () => { selectFileItem(fileItem); });
-                    fileItem.addEventListener('contextmenu', (e) => {
-                        e.preventDefault();
-                        selectFileItem(fileItem);
-                        showContextMenu(e, fileItem);
-                    });
-
+                    fileItem.addEventListener('contextmenu', (e) => { e.preventDefault(); selectFileItem(fileItem); showContextMenu(e, fileItem); });
                     fileItem.addEventListener('dragstart', (e) => {
-                        systemState.draggedItem = item;
-                        e.dataTransfer.effectAllowed = 'copyMove';
+                        systemState.draggedItem = item; e.dataTransfer.effectAllowed = 'copyMove';
                         e.dataTransfer.setData('text/plain', item.id);
                     });
-
                     fileItem.addEventListener('dragend', () => { systemState.draggedItem = null; });
-
                     if (item.type === 'folder') {
                         fileItem.addEventListener('dragover', (e) => {
                             e.preventDefault();
                             if (systemState.draggedItem && systemState.draggedItem.id !== item.id) {
-                                e.dataTransfer.dropEffect = 'copy';
-                                fileItem.style.outline = '2px solid var(--accent)';
+                                e.dataTransfer.dropEffect = 'copy'; fileItem.style.outline = '2px solid var(--accent)';
                             }
                         });
                         fileItem.addEventListener('dragleave', () => { fileItem.style.outline = 'none'; });
                         fileItem.addEventListener('drop', async (e) => {
-                            e.preventDefault();
-                            fileItem.style.outline = 'none';
+                            e.preventDefault(); fileItem.style.outline = 'none';
                             if (systemState.draggedItem && systemState.draggedItem.id !== item.id) {
                                 const draggedItemData = systemState.draggedItem;
                                 const targetDirectoryId = item.id;
                                 await AxonAPI.copyItem(draggedItemData, targetDirectoryId);
-                                systemState.draggedItem = null;
-                                updateFileInterfaces();
+                                systemState.draggedItem = null; updateFileInterfaces();
                             }
                         });
                     }
                     gridElement.appendChild(fileItem);
                 });
-
                 gridElement.addEventListener('contextmenu', (e) => {
-                    if (e.target === gridElement) {
-                        e.preventDefault();
-                        deselectAllIcons();
-                        showContextMenu(e, null);
-                    }
+                    if (e.target === gridElement) { e.preventDefault(); deselectAllIcons(); showContextMenu(e, null); }
                 });
-
                 gridElement.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
                 gridElement.addEventListener('drop', async (e) => {
                     e.preventDefault();
@@ -3274,25 +2806,17 @@
                         const draggedItemData = systemState.draggedItem;
                         const targetDirectoryId = finderInstance.currentPath;
                         await AxonAPI.copyItem(draggedItemData, targetDirectoryId);
-                        systemState.draggedItem = null;
-                        updateFileInterfaces();
+                        systemState.draggedItem = null; updateFileInterfaces();
                     }
                 });
             }
-
             function loadRecentFiles(gridElement) {
-                gridElement.innerHTML = '';
-                deselectAllIcons();
-                if (systemData.recentFiles.length === 0) {
-                    gridElement.innerHTML = '<p style="text-align: center; width: 100%;">Nenhum arquivo recente.</p>';
-                    return;
-                }
+                gridElement.innerHTML = ''; deselectAllIcons();
+                if (systemData.recentFiles.length === 0) { gridElement.innerHTML = '<p style="text-align: center; width: 100%;">Nenhum arquivo recente.</p>'; return; }
                 systemData.recentFiles.forEach(item => {
                     const fileItem = document.createElement('div');
-                    fileItem.className = 'file-item';
-                    fileItem.dataset.id = item.id;
-                    fileItem.dataset.type = item.type;
-                    fileItem.dataset.name = item.name;
+                    fileItem.className = 'file-item'; fileItem.dataset.id = item.id;
+                    fileItem.dataset.type = item.type; fileItem.dataset.name = item.name;
                     fileItem.tabIndex = 0;
                     fileItem.innerHTML = `
                         <div class="file-icon"><i class="${fileIcons[item.type] || 'fas fa-file'}"></i></div>
@@ -3300,75 +2824,55 @@
                     `;
                     fileItem.addEventListener('dblclick', () => { openItem(item); });
                     fileItem.addEventListener('click', () => { selectFileItem(fileItem); });
-                    fileItem.addEventListener('contextmenu', (e) => {
-                        e.preventDefault();
-                        selectFileItem(fileItem);
-                        showContextMenu(e, fileItem);
-                    });
+                    fileItem.addEventListener('contextmenu', (e) => { e.preventDefault(); selectFileItem(fileItem); showContextMenu(e, fileItem); });
                     gridElement.appendChild(fileItem);
                 });
             }
-            
             sidebarItems.forEach(item => { item.addEventListener('click', () => { navigateToDirectory(item.dataset.path); }); });
             tabs.forEach(tab => {
                 tab.addEventListener('click', () => {
-                    tabs.forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
+                    tabs.forEach(t => t.classList.remove('active')); tab.classList.add('active');
                     if (tab.dataset.tab === 'all') { navigateToDirectory(finderInstance.currentPath); }
                     else if (tab.dataset.tab === 'recent') { loadRecentFiles(explorerGrid); }
                 });
             });
-
             finderBackButton.addEventListener('click', () => {
                 const pathParts = finderInstance.currentPath.split('/');
                 if (pathParts.length > 1) {
-                    pathParts.pop();
-                    const parentDirId = pathParts.join('/');
+                    pathParts.pop(); const parentDirId = pathParts.join('/');
                     navigateToDirectory(parentDirId || 'axon');
                 }
             });
-
             finderRefreshButton.addEventListener('click', () => {
-                navigateToDirectory(finderInstance.currentPath);
-                axonAlert("Explorador de Arquivos atualizado!", "Atualizar");
+                navigateToDirectory(finderInstance.currentPath); axonAlert("Explorador de Arquivos atualizado!", "Atualizar");
                 AxonAPI.logActivity(`Explorador de Arquivos atualizado no diretório "${finderInstance.currentPath}"`);
             });
-
             createNewItemBtn.addEventListener('click', () => {
                 createModal.dataset.targetDirectory = finderInstance.currentPath;
                 const pasteOption = document.getElementById('item-type').querySelector('option[value="paste"]');
                 if (pasteOption) { pasteOption.disabled = !systemData.clipboard; }
                 createModal.classList.add('active');
             });
-
             document.getElementById('confirm-create').onclick = async () => {
                 const type = document.getElementById('item-type').value;
                 const name = document.getElementById('item-name').value.trim();
                 const targetDirectoryId = createModal.dataset.targetDirectory;
-
                 if (type === 'paste') {
                     if (systemData.clipboard) {
                         const originalItem = systemData.clipboard;
                         if (systemState.clipboardAction === 'cut' && originalItem.parentId === targetDirectoryId) {
                             axonAlert("Não é possível colar um item em sua própria pasta de origem ao recortar.", "Erro de Colar");
-                            systemData.clipboard = null;
-                            systemState.clipboardAction = null;
-                            closeModal('create-modal');
-                            return;
+                            systemData.clipboard = null; systemState.clipboardAction = null; closeModal('create-modal'); return;
                         }
                         await AxonAPI.copyItem(originalItem, targetDirectoryId, systemState.clipboardAction === 'cut');
-                        systemData.clipboard = null;
-                        systemState.clipboardAction = null;
-                    } else {
-                        axonAlert("Nenhum item para colar na área de transferência.");
-                    }
+                        systemData.clipboard = null; systemState.clipboardAction = null;
+                    } else { axonAlert("Nenhum item para colar na área de transferência."); }
                 } else {
                     if (!name) { await axonAlert("Por favor, digite um nome para o item."); return; }
                     AxonAPI.createFileItem(targetDirectoryId, type, name);
                 }
                 closeModal('create-modal');
             };
-            
             navigateToDirectory(finderInstance.currentPath);
         }
 
@@ -3377,27 +2881,16 @@
             const newBtn = windowElement.querySelector('#new-note');
             const openBtn = windowElement.querySelector('#open-note');
             const textArea = windowElement.querySelector('#note-content');
-            
             textArea.focus();
-
-            textArea.addEventListener('input', () => {
-                AxonAPI.logActivity(`Conteúdo do documento de texto alterado para: "${textArea.value.substring(0, 100)}..."`);
-            });
-
+            textArea.addEventListener('input', () => { AxonAPI.logActivity(`Conteúdo do documento de texto alterado para: "${textArea.value.substring(0, 100)}..."`); });
             saveBtn.addEventListener('click', async () => {
-                const fileId = textArea.dataset.fileId;
-                const parentId = textArea.dataset.parentId;
-
+                const fileId = textArea.dataset.fileId; const parentId = textArea.dataset.parentId;
                 if (fileId && parentId) {
                     const file = findFileInFileSystem(fileId, parentId);
                     if (file && file.type === 'text') {
-                        file.content = textArea.value;
-                        saveDesktopItems();
-                        await axonAlert(`Arquivo salvo com sucesso!`);
+                        file.content = textArea.value; saveDesktopItems(); await axonAlert(`Arquivo salvo com sucesso!`);
                         AxonAPI.logActivity(`Documento "${file.name}" salvo com o conteúdo: "${file.content.substring(0, 100)}..."`);
-                    } else {
-                        await axonAlert("Erro: Arquivo não encontrado para salvar. Tente salvar como um novo arquivo.");
-                    }
+                    } else { await axonAlert("Erro: Arquivo não encontrado para salvar. Tente salvar como um novo arquivo."); }
                 } else {
                     const activeFinderWindow = systemState.openWindows.find(w => w.id === 'finder' && w.element.classList.contains('active'));
                     const targetDirectoryId = activeFinderWindow ? activeFinderWindow.currentPath : 'axon/desktop';
@@ -3405,71 +2898,48 @@
                     if (fileName) {
                         const newFile = AxonAPI.createDocument(fileName, textArea.value, targetDirectoryId);
                         if (newFile) {
-                            textArea.dataset.fileId = newFile.id;
-                            textArea.dataset.parentId = newFile.parentId;
+                            textArea.dataset.fileId = newFile.id; textArea.dataset.parentId = newFile.parentId;
                             await axonAlert(`Arquivo "${fileName}" salvo com sucesso em ${targetDirectoryId}!`);
                         }
                     }
                 }
             });
-            
             newBtn.addEventListener('click', async () => {
                 const confirmNew = await axonConfirm('Deseja criar uma nova nota? O conteúdo atual será perdido.');
-                if (confirmNew) {
-                    textArea.value = '';
-                    textArea.dataset.fileId = '';
-                    textArea.dataset.parentId = '';
-                    textArea.focus();
-                    AxonAPI.logActivity(`Nova nota criada no Bloco de Notas.`);
-                }
+                if (confirmNew) { textArea.value = ''; textArea.dataset.fileId = ''; textArea.dataset.parentId = ''; textArea.focus(); AxonAPI.logActivity(`Nova nota criada no Bloco de Notas.`); }
             });
-            
             openBtn.addEventListener('click', () => { showOpenFileModal(textArea); });
         }
 
         function showOpenFileModal(targetTextArea) {
-            const fileList = document.getElementById('file-list');
-            fileList.innerHTML = '';
-            systemState.selectedFile = null;
-
+            const fileList = document.getElementById('file-list'); fileList.innerHTML = ''; systemState.selectedFile = null;
             const allTextAndImageFiles = [];
             for (const dirId in systemData.fileSystem) {
                 const dir = systemData.fileSystem[dirId];
                 if (dir && dir.children) {
                     dir.children.forEach(file => {
-                        if (file.type === 'text' || (file.type === 'image' && file.src)) {
-                            allTextAndImageFiles.push(file);
-                        }
+                        if (file.type === 'text' || (file.type === 'image' && file.src)) { allTextAndImageFiles.push(file); }
                     });
                 }
             }
-
             allTextAndImageFiles.forEach(file => {
                 const fileItem = document.createElement('div');
-                fileItem.className = 'file-item';
-                fileItem.style.width = '100%';
-                fileItem.style.flexDirection = 'row';
-                fileItem.style.alignItems = 'center';
-                fileItem.style.gap = '10px';
-                fileItem.style.padding = '10px';
+                fileItem.className = 'file-item'; fileItem.style.width = '100%';
+                fileItem.style.flexDirection = 'row'; fileItem.style.alignItems = 'center';
+                fileItem.style.gap = '10px'; fileItem.style.padding = '10px';
                 fileItem.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
-                fileItem.dataset.fileId = file.id;
-                fileItem.dataset.parentId = file.parentId;
+                fileItem.dataset.fileId = file.id; fileItem.dataset.parentId = file.parentId;
                 fileItem.tabIndex = 0;
-
                 fileItem.innerHTML = `
                     <div><i class="${fileIcons[file.type] || 'fas fa-file'}"></i></div>
                     <div>${file.name} <span style="font-size: 10px; opacity: 0.7;">(${file.path})</span></div>
                 `;
-                
                 fileItem.addEventListener('click', () => {
                     document.querySelectorAll('#file-list .file-item').forEach(item => { item.classList.remove('selected'); });
-                    fileItem.classList.add('selected');
-                    systemState.selectedFile = file;
+                    fileItem.classList.add('selected'); systemState.selectedFile = file;
                 });
                 fileList.appendChild(fileItem);
             });
-            
             document.getElementById('confirm-open-file').onclick = async () => {
                 if (systemState.selectedFile) {
                     if (systemState.selectedFile.type === 'text' && targetTextArea) {
@@ -3482,37 +2952,24 @@
                         openImageViewer(systemState.selectedFile.src, systemState.selectedFile.path);
                         openFileModal.classList.remove('active');
                         AxonAPI.logActivity(`Imagem "${systemState.selectedFile.name}" aberta no Visualizador de Imagens.`);
-                    } else {
-                        await axonAlert("Tipo de arquivo não suportado para esta ação.");
-                    }
+                    } else { await axonAlert("Tipo de arquivo não suportado para esta ação."); }
                     systemState.selectedFile = null;
-                } else {
-                    await axonAlert("Por favor, selecione um arquivo.");
-                }
+                } else { await axonAlert("Por favor, selecione um arquivo."); }
             };
-            
-            document.getElementById('cancel-open-file').onclick = () => {
-                openFileModal.classList.remove('active');
-                systemState.selectedFile = null;
-            };
-            
+            document.getElementById('cancel-open-file').onclick = () => { openFileModal.classList.remove('active'); systemState.selectedFile = null; };
             openFileModal.classList.add('active');
         }
 
         function initTerminal(windowElement) {
             const terminalContent = windowElement.querySelector('#terminal-content');
             const terminalInput = windowElement.querySelector('#terminal-input');
-            
             terminalInput.focus();
-
             terminalContent.innerHTML = '';
             systemState.terminalHistory.forEach(item => {
                 terminalContent.innerHTML += `<div class="prompt">axon@os:${item.path || systemState.currentPath}$ <span class="command">${item.command}</span></div>`;
                 if (item.output) { terminalContent.innerHTML += `<div>${item.output}</div>`; }
             });
-            
             terminalContent.scrollTop = terminalContent.scrollHeight;
-            
             terminalInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     const command = terminalInput.value.trim();
@@ -3520,8 +2977,7 @@
                         terminalContent.innerHTML += `<div class="prompt">axon@os:${systemState.currentPath}$ <span class="command">${command}</span></div>`;
                         let output = processCommand(command);
                         if (output) { terminalContent.innerHTML += `<div>${output}</div>`; }
-                        terminalInput.value = '';
-                        terminalContent.scrollTop = terminalContent.scrollHeight;
+                        terminalInput.value = ''; terminalContent.scrollTop = terminalContent.scrollHeight;
                         systemState.terminalHistory.push({ command, output, path: systemState.currentPath });
                         AxonAPI.logActivity(`Comando do terminal executado: "${command}"`);
                     }
@@ -3532,7 +2988,6 @@
         function processCommand(command) {
             const cmd = command.split(' ')[0].toLowerCase();
             const args = command.split(' ').slice(1);
-            
             switch(cmd) {
                 case 'help': return "Comandos disponíveis: ls, cd, mkdir, touch, echo, clear, date, help";
                 case 'ls':
@@ -3548,18 +3003,15 @@
                     if (targetDirName === '..') {
                         const pathParts = systemState.currentPath.split('/');
                         if (pathParts.length > 1) {
-                            pathParts.pop();
-                            systemState.currentPath = pathParts.join('/');
+                            pathParts.pop(); systemState.currentPath = pathParts.join('/');
                             if (systemState.currentPath === '') systemState.currentPath = 'axon';
                             return `Diretório alterado para: ${systemState.currentPath}`;
                         } else { return "Já está no diretório raiz (axon)."; }
                     } else {
                         const currentDir = getDirectoryById(systemState.currentPath);
                         const targetItem = currentDir.children.find(item => item.name === targetDirName && item.type === 'folder');
-                        if (targetItem) {
-                            systemState.currentPath = targetItem.id;
-                            return `Diretório alterado para: ${systemState.currentPath}`;
-                        } else { return `Diretório não encontrado ou não é uma pasta: ${targetDirName}`; }
+                        if (targetItem) { systemState.currentPath = targetItem.id; return `Diretório alterado para: ${systemState.currentPath}`; }
+                        else { return `Diretório não encontrado ou não é uma pasta: ${targetDirName}`; }
                     }
                 case 'mkdir':
                     const newFolderName = args[0];
@@ -3580,8 +3032,7 @@
                 case 'echo': return args.join(' ');
                 case 'clear':
                     const terminalContent = document.querySelector('#terminal-content');
-                    if (terminalContent) terminalContent.innerHTML = '';
-                    return "";
+                    if (terminalContent) terminalContent.innerHTML = ''; return "";
                 case 'date':
                     const now = new Date();
                     return now.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -3593,9 +3044,7 @@
             const chatMessages = windowElement.querySelector('#chat-messages');
             const chatInput = windowElement.querySelector('#chat-input');
             const sendButton = windowElement.querySelector('#send-message');
-            
             chatInput.focus();
-
             systemState.chatHistory.forEach(msg => {
                 if (msg.role === "user" && msg.parts[0].text.includes("Você é a Mielina")) return;
                 const messageElement = document.createElement('div');
@@ -3603,9 +3052,7 @@
                 messageElement.textContent = msg.parts[0].text;
                 chatMessages.appendChild(messageElement);
             });
-            
             chatMessages.scrollTop = chatMessages.scrollHeight;
-            
             async function sendMessage() {
                 const message = chatInput.value.trim();
                 if (message) {
@@ -3613,69 +3060,48 @@
                     userMessageElement.className = 'message user-message';
                     userMessageElement.textContent = message;
                     chatMessages.appendChild(userMessageElement);
-                    
                     systemState.chatHistory.push({ role: 'user', parts: [{ text: message }] });
-                    
-                    chatInput.value = '';
-                    chatInput.disabled = true;
-                    sendButton.disabled = true;
-
+                    chatInput.value = ''; chatInput.disabled = true; sendButton.disabled = true;
                     const typingIndicator = document.createElement('div');
                     typingIndicator.className = 'message assistant-message';
                     typingIndicator.textContent = 'Mielina está digitando...';
-                    chatMessages.appendChild(typingIndicator);
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
-                    aiApiBadge.style.display = 'inline-block'; // Mostra o badge
-
+                    chatMessages.appendChild(typingIndicator); chatMessages.scrollTop = chatMessages.scrollHeight;
+                    aiApiBadge.style.display = 'inline-block';
                     let responseText = "Desculpe, não consegui me conectar com a Mielina no momento. Por favor, tente novamente mais tarde.";
                     let modelUsed = "Nenhum";
-
                     for (const model of GEMINI_MODELS) {
                         try {
                             const response = await getGeminiResponse(systemState.chatHistory, model);
-                            responseText = response.text;
-                            modelUsed = response.model;
-                            break; // Sai do loop se a conexão for bem-sucedida
+                            responseText = response.text; modelUsed = response.model; break;
                         } catch (error) {
                             console.error(`Erro ao obter resposta da Gemini com o modelo ${model}:`, error);
                             responseText = `Falha ao conectar com o modelo ${model}. Tentando o próximo...`;
-                            // Continua para o próximo modelo
                         }
                     }
-
                     chatMessages.removeChild(typingIndicator);
-
                     const assistantMessageElement = document.createElement('div');
                     assistantMessageElement.className = 'message assistant-message';
                     assistantMessageElement.textContent = responseText;
                     chatMessages.appendChild(assistantMessageElement);
-                    
                     systemState.chatHistory.push({ role: 'model', parts: [{ text: responseText }] });
-                    
                     if (modelUsed !== "Nenhum") {
                         const modelInfoElement = document.createElement('div');
                         modelInfoElement.className = 'message assistant-message';
-                        modelInfoElement.style.fontSize = '10px';
-                        modelInfoElement.style.opacity = '0.7';
+                        modelInfoElement.style.fontSize = '10px'; modelInfoElement.style.opacity = '0.7';
                         modelInfoElement.textContent = `(Modelo utilizado: ${modelUsed})`;
                         chatMessages.appendChild(modelInfoElement);
                     } else {
                         const modelInfoElement = document.createElement('div');
                         modelInfoElement.className = 'message assistant-message';
-                        modelInfoElement.style.fontSize = '10px';
-                        modelInfoElement.style.opacity = '0.7';
+                        modelInfoElement.style.fontSize = '10px'; modelInfoElement.style.opacity = '0.7';
                         modelInfoElement.textContent = `(Falha em todos os modelos. Verifique sua conexão ou chave de API.)`;
                         chatMessages.appendChild(modelInfoElement);
                     }
-
-                    chatInput.disabled = false;
-                    sendButton.disabled = false;
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
-                    chatInput.focus();
-                    aiApiBadge.style.display = 'none'; // Esconde o badge
+                    chatInput.disabled = false; sendButton.disabled = false;
+                    chatMessages.scrollTop = chatMessages.scrollHeight; chatInput.focus();
+                    aiApiBadge.style.display = 'none';
                 }
             }
-            
             sendButton.addEventListener('click', sendMessage);
             chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
         }
@@ -3683,80 +3109,60 @@
         async function getGeminiResponse(chatHistory, model) {
             const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
             const payload = { contents: chatHistory.map(msg => ({ role: msg.role, parts: msg.parts })) };
-
             const response = await fetch(GEMINI_API_URL, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
             });
-
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(`Erro HTTP: ${response.status} - ${errorData.error.message || response.statusText}`);
             }
-
             const data = await response.json();
             if (data.candidates && data.candidates.length > 0 && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts.length > 0) {
                 let mielinaResponse = data.candidates[0].content.parts[0].text;
-                
-                // Tenta parsear a resposta da Mielina para comandos de API
                 const apiCallRegex = /AxonAPI\.(\w+)\(([^)]*)\)/g;
-                let match;
-                let apiCalls = [];
+                let match; let apiCalls = [];
                 while ((match = apiCallRegex.exec(mielinaResponse)) !== null) {
-                    apiCalls.push({ func: match[1], args: JSON.parse(`[${match[2]}]`) });
+                    try { apiCalls.push({ func: match[1], args: JSON.parse(`[${match[2]}]`) }); }
+                    catch (e) { AxonAPI.debug(`Erro ao parsear argumentos da API: ${match[2]} - ${e.message}`); }
                 }
-
                 if (apiCalls.length > 0) {
                     for (const call of apiCalls) {
                         if (typeof AxonAPI[call.func] === 'function') {
-                            await AxonAPI[call.func](...call.args);
-                            mielinaResponse += `\n\nComando "${call.func}" executado.`;
-                        } else {
-                            mielinaResponse += `\n\nComando "${call.func}" não reconhecido.`;
-                        }
+                            try {
+                                const apiResult = await AxonAPI[call.func](...call.args);
+                                mielinaResponse += `\n\nComando "${call.func}" executado. Resultado: ${JSON.stringify(apiResult).substring(0, 100)}...`;
+                            } catch (e) {
+                                mielinaResponse += `\n\nErro ao executar "${call.func}": ${e.message}`;
+                            }
+                        } else { mielinaResponse += `\n\nComando "${call.func}" não reconhecido.`; }
                     }
                 }
                 return { text: mielinaResponse, model: model };
-            } else {
-                throw new Error("Resposta da Gemini sem conteúdo esperado.");
-            }
+            } else { throw new Error("Resposta da Gemini sem conteúdo esperado."); }
         }
 
         function initCalculator(windowElement) {
             const display = windowElement.querySelector('#calc-display');
             const buttons = windowElement.querySelectorAll('.calc-btn');
-            
-            let currentInput = '0';
-            let previousInput = '';
-            let operation = null;
-            let resetDisplay = false;
-
+            let currentInput = '0'; let previousInput = ''; let operation = null; let resetDisplay = false;
             function updateDisplay() { display.textContent = currentInput; }
-            
             function handleNumberInput(value) {
                 if (resetDisplay) { currentInput = '0'; resetDisplay = false; }
                 if (value === 'decimal') { if (!currentInput.includes('.')) { currentInput += '.'; } }
                 else { if (currentInput === '0') { currentInput = value; } else { currentInput += value; } }
                 AxonAPI.logActivity(`Calculadora: Entrada de número "${value}"`);
             }
-            
             function handleOperation(op) {
                 if (op === 'clear') { currentInput = '0'; previousInput = ''; operation = null; resetDisplay = false; AxonAPI.logActivity(`Calculadora: Limpar`); return; }
                 if (op === 'backspace') { currentInput = currentInput.slice(0, -1) || '0'; AxonAPI.logActivity(`Calculadora: Backspace`); return; }
                 if (op === 'percent') { currentInput = (parseFloat(currentInput) / 100).toString(); AxonAPI.logActivity(`Calculadora: Porcentagem`); return; }
-
                 if (previousInput !== '' && operation && !resetDisplay) { calculate(); }
-                
-                operation = op;
-                previousInput = currentInput;
-                resetDisplay = true;
+                operation = op; previousInput = currentInput; resetDisplay = true;
                 AxonAPI.logActivity(`Calculadora: Operação "${op}"`);
             }
-            
             function calculate() {
-                const prev = parseFloat(previousInput);
-                const current = parseFloat(currentInput);
+                const prev = parseFloat(previousInput); const current = parseFloat(currentInput);
                 if (isNaN(prev) || isNaN(current)) return;
-                
                 let result;
                 switch(operation) {
                     case 'add': result = prev + current; break;
@@ -3768,13 +3174,9 @@
                         break;
                     default: return;
                 }
-                currentInput = result.toString();
-                operation = null;
-                previousInput = '';
-                resetDisplay = true;
+                currentInput = result.toString(); operation = null; previousInput = ''; resetDisplay = true;
                 AxonAPI.logActivity(`Calculadora: Resultado "${result}"`);
             }
-
             buttons.forEach(button => {
                 button.addEventListener('click', () => {
                     const action = button.dataset.action;
@@ -3789,7 +3191,6 @@
 
         function initGallery(windowElement) {
             const galleryContainer = windowElement.querySelector('#gallery-container');
-            
             function loadGallery() {
                 galleryContainer.innerHTML = '';
                 const allImages = [];
@@ -3799,14 +3200,10 @@
                         if (file.type === 'image' && file.src) { allImages.push(file); }
                     });
                 }
-                
                 allImages.forEach((photo, index) => {
                     const galleryItem = document.createElement('div');
-                    galleryItem.className = 'gallery-item';
-                    galleryItem.dataset.id = photo.id;
-                    galleryItem.dataset.src = photo.src;
-                    galleryItem.dataset.path = photo.path;
-                    
+                    galleryItem.className = 'gallery-item'; galleryItem.dataset.id = photo.id;
+                    galleryItem.dataset.src = photo.src; galleryItem.dataset.path = photo.path;
                     galleryItem.innerHTML = `
                         <img src="${photo.src}" alt="${photo.name}">
                         <div class="gallery-options">
@@ -3815,27 +3212,18 @@
                             <button class="gallery-option-btn" data-action="copy"><i class="fas fa-copy"></i></button>
                         </div>
                     `;
-                    
                     galleryItem.querySelector('[data-action="view"]').addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        openImageViewer(photo.src, photo.path);
+                        e.stopPropagation(); openImageViewer(photo.src, photo.path);
                         AxonAPI.logActivity(`Visualizou imagem "${photo.name}" na Galeria.`);
                     });
-
                     galleryItem.querySelector('[data-action="delete"]').addEventListener('click', async (e) => {
                         e.stopPropagation();
                         const confirmDelete = await axonConfirm("Tem certeza que deseja excluir esta imagem?");
-                        if (confirmDelete) {
-                            AxonAPI.deleteFileItem(photo.id, photo.parentId);
-                            axonAlert("Imagem excluída com sucesso!");
-                        }
+                        if (confirmDelete) { AxonAPI.deleteFileItem(photo.id, photo.parentId); axonAlert("Imagem excluída com sucesso!"); }
                     });
-
                     galleryItem.querySelector('[data-action="copy"]').addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        systemData.clipboard = { ...photo, name: `Cópia de ${photo.name}` };
-                        systemState.clipboardAction = 'copy';
-                        axonAlert(`"${photo.name}" copiada para a área de transferência.`);
+                        e.stopPropagation(); systemData.clipboard = { ...photo, name: `Cópia de ${photo.name}` };
+                        systemState.clipboardAction = 'copy'; axonAlert(`"${photo.name}" copiada para a área de transferência.`);
                         AxonAPI.logActivity(`Copiou imagem "${photo.name}" para a área de transferência.`);
                     });
                     galleryContainer.appendChild(galleryItem);
@@ -3848,53 +3236,31 @@
             const viewerModal = document.getElementById('image-viewer-modal');
             const viewerImg = document.getElementById('image-viewer-img');
             const viewerPath = document.getElementById('image-viewer-path');
-            viewerImg.src = src;
-            viewerPath.textContent = path;
-            viewerModal.classList.add('active');
+            viewerImg.src = src; viewerPath.textContent = path; viewerModal.classList.add('active');
         }
 
         async function initCamera(windowElement) {
             const cameraPreview = windowElement.querySelector('#camera-preview');
             const captureBtn = windowElement.querySelector('#capture-btn');
-            
-            if (systemState.cameraStream) {
-                systemState.cameraStream.getTracks().forEach(track => track.stop());
-                systemState.cameraStream = null;
-            }
-
+            if (systemState.cameraStream) { systemState.cameraStream.getTracks().forEach(track => track.stop()); systemState.cameraStream = null; }
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 systemState.cameraStream = stream;
-                
                 const video = document.createElement('video');
-                video.srcObject = stream;
-                video.autoplay = true;
-                video.style.width = '100%';
-                video.style.height = '100%';
-                
-                cameraPreview.innerHTML = '';
-                cameraPreview.appendChild(video);
-                
+                video.srcObject = stream; video.autoplay = true;
+                video.style.width = '100%'; video.style.height = '100%';
+                cameraPreview.innerHTML = ''; cameraPreview.appendChild(video);
                 captureBtn.addEventListener('click', async () => {
                     const canvas = document.createElement('canvas');
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                    
+                    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+                    const ctx = canvas.getContext('2d'); ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                     const photoData = canvas.toDataURL('image/png');
-                    
                     const imagesDir = getDirectoryById('axon/images');
                     if (imagesDir) {
                         const photoName = `Foto ${new Date().toLocaleString()}.png`;
                         const newImage = AxonAPI.createFileItem('axon/images', 'image', photoName, '', photoData);
-                        if (newImage) {
-                            await axonAlert('Foto capturada com sucesso e salva em axon/images!');
-                            AxonAPI.logActivity(`Foto capturada e salva como "${photoName}"`);
-                        }
-                    } else {
-                        await axonAlert("Erro: Diretório 'axon/images' não encontrado.");
-                    }
+                        if (newImage) { await axonAlert('Foto capturada com sucesso e salva em axon/images!'); AxonAPI.logActivity(`Foto capturada e salva como "${photoName}"`); }
+                    } else { await axonAlert("Erro: Diretório 'axon/images' não encontrado."); }
                 });
             } catch (err) {
                 console.error('Erro ao acessar a câmera:', err);
@@ -3912,29 +3278,21 @@
             const browserForward = windowElement.querySelector('#browser-forward');
             const browserReload = windowElement.querySelector('#browser-reload');
             const browserHome = windowElement.querySelector('#browser-home');
-
-            let history = [];
-            let historyIndex = -1;
-            
+            let history = []; let historyIndex = -1;
             browserUrl.focus();
-
             function loadUrl(url) {
                 try {
                     if (!url.match(/^(https?:\/\/|file:\/\/|data:)/)) { url = 'https://' + url; }
                     browserContent.src = url;
                     if (historyIndex < history.length - 1) { history = history.slice(0, historyIndex + 1); }
-                    history.push(url);
-                    historyIndex = history.length - 1;
-                    browserUrl.value = url;
+                    history.push(url); historyIndex = history.length - 1; browserUrl.value = url;
                     AxonAPI.logActivity(`Navegador: Carregou URL "${url}"`);
                 } catch (e) {
                     browserContent.srcdoc = `<html><body><p>Não foi possível carregar o site: ${url}</p><p>Isso pode ocorrer devido a restrições de segurança (X-Frame-Options) ou URL inválida.</p></body></html>`;
                     AxonAPI.logActivity(`Navegador: Erro ao carregar URL "${url}": ${e.message}`);
                 }
             }
-            
             loadUrl(browserUrl.value);
-
             browserGo.addEventListener('click', () => { loadUrl(browserUrl.value); });
             browserUrl.addEventListener('keypress', (e) => { if (e.key === 'Enter') { loadUrl(browserUrl.value); } });
             browserBack.addEventListener('click', () => {
@@ -3950,23 +3308,18 @@
         function initSettings(windowElement) {
             const tabs = windowElement.querySelectorAll('#settings-tabs .tab');
             const tabContents = windowElement.querySelectorAll('.settings-tab-content');
-
             tabs.forEach(tab => {
                 tab.addEventListener('click', () => {
-                    tabs.forEach(t => t.classList.remove('active'));
-                    tabContents.forEach(tc => tc.classList.remove('active'));
-                    tab.classList.add('active');
-                    document.getElementById(`settings-${tab.dataset.tab}`).classList.add('active');
+                    tabs.forEach(t => t.classList.remove('active')); tabContents.forEach(tc => tc.classList.remove('active'));
+                    tab.classList.add('active'); document.getElementById(`settings-${tab.dataset.tab}`).classList.add('active');
                     AxonAPI.logActivity(`Configurações: Abriu a aba "${tab.dataset.tab}"`);
                 });
             });
-
             const themeSelect = windowElement.querySelector('#theme-select');
             const wallpaperOptions = windowElement.querySelectorAll('.wallpaper-option');
             const animationsToggle = windowElement.querySelector('#animations-toggle');
             const transparencyToggle = windowElement.querySelector('#transparency-toggle');
             const particlesToggle = windowElement.querySelector('#particles-toggle');
-
             themeSelect.value = systemData.settings.theme;
             wallpaperOptions.forEach(opt => {
                 if (opt.dataset.wallpaper === systemData.settings.wallpaper) { opt.classList.add('selected'); }
@@ -3975,75 +3328,49 @@
             animationsToggle.checked = systemData.settings.animations;
             transparencyToggle.checked = systemData.settings.transparency;
             particlesToggle.checked = systemData.settings.particles;
-
             themeSelect.addEventListener('change', () => {
-                const oldTheme = systemData.settings.theme;
-                systemData.settings.theme = themeSelect.value;
-                applySettings();
-                saveSettings();
+                const oldTheme = systemData.settings.theme; systemData.settings.theme = themeSelect.value;
+                applySettings(); saveSettings();
                 AxonAPI.logActivity(`Configurações: Tema alterado de "${oldTheme}" para "${systemData.settings.theme}"`);
             });
-
             wallpaperOptions.forEach(opt => {
                 opt.addEventListener('click', () => {
                     const oldWallpaper = systemData.settings.wallpaper;
-                    wallpaperOptions.forEach(o => o.classList.remove('selected'));
-                    opt.classList.add('selected');
-                    systemData.settings.wallpaper = opt.dataset.wallpaper;
-                    applySettings();
-                    saveSettings();
+                    wallpaperOptions.forEach(o => o.classList.remove('selected')); opt.classList.add('selected');
+                    systemData.settings.wallpaper = opt.dataset.wallpaper; applySettings(); saveSettings();
                     AxonAPI.logActivity(`Configurações: Papel de parede alterado de "${oldWallpaper}" para "${systemData.settings.wallpaper}"`);
                 });
             });
-
             animationsToggle.addEventListener('change', () => {
-                systemData.settings.animations = animationsToggle.checked;
-                applySettings();
-                saveSettings();
+                systemData.settings.animations = animationsToggle.checked; applySettings(); saveSettings();
                 AxonAPI.logActivity(`Configurações: Animações ${systemData.settings.animations ? 'habilitadas' : 'desabilitadas'}`);
             });
-
             transparencyToggle.addEventListener('change', () => {
-                systemData.settings.transparency = transparencyToggle.checked;
-                applySettings();
-                saveSettings();
+                systemData.settings.transparency = transparencyToggle.checked; applySettings(); saveSettings();
                 AxonAPI.logActivity(`Configurações: Transparências ${systemData.settings.transparency ? 'habilitadas' : 'desabilitadas'}`);
             });
-
             particlesToggle.addEventListener('change', () => {
-                systemData.settings.particles = particlesToggle.checked;
-                applySettings();
-                saveSettings();
+                systemData.settings.particles = particlesToggle.checked; applySettings(); saveSettings();
                 AxonAPI.logActivity(`Configurações: Efeitos de partículas ${systemData.settings.particles ? 'habilitados' : 'desabilitados'}`);
             });
-
             const loginEnabledToggle = windowElement.querySelector('#login-enabled-toggle');
             const setCredentialsBtn = windowElement.querySelector('#set-credentials-btn');
             const firewallToggle = windowElement.querySelector('#firewall-toggle');
-
             loginEnabledToggle.checked = systemData.settings.loginEnabled;
-
             loginEnabledToggle.addEventListener('change', () => {
-                systemData.settings.loginEnabled = loginEnabledToggle.checked;
-                saveSettings();
+                systemData.settings.loginEnabled = loginEnabledToggle.checked; saveSettings();
                 axonAlert(`Login do sistema ${loginEnabledToggle.checked ? 'habilitado' : 'desabilitado'}.`, "Segurança");
                 AxonAPI.logActivity(`Configurações: Login do sistema ${systemData.settings.loginEnabled ? 'habilitado' : 'desabilitado'}`);
             });
-
             setCredentialsBtn.addEventListener('click', async () => {
                 const newUsername = await axonPrompt("Digite o novo nome de usuário:", systemData.settings.username || "admin", "Definir Credenciais");
                 if (newUsername === null) return;
-
                 const newPassword = await axonPrompt("Digite a nova senha:", "", "Definir Credenciais");
                 if (newPassword === null) return;
-
-                systemData.settings.username = newUsername;
-                systemData.settings.password = newPassword;
-                saveSettings();
-                axonAlert("Credenciais de login atualizadas com sucesso!", "Segurança");
+                systemData.settings.username = newUsername; systemData.settings.password = newPassword;
+                saveSettings(); axonAlert("Credenciais de login atualizadas com sucesso!", "Segurança");
                 AxonAPI.logActivity(`Configurações: Credenciais de login atualizadas.`);
             });
-
             firewallToggle.addEventListener('change', async (e) => {
                 await axonAlert(`Firewall ${e.target.checked ? 'ativado' : 'desativado'}. (Funcionalidade simulada)`, "Segurança");
                 AxonAPI.logActivity(`Configurações: Firewall ${e.target.checked ? 'ativado' : 'desativado'}`);
@@ -4058,11 +3385,8 @@
         function saveSettings() { localStorage.setItem('axon-settings', JSON.stringify(systemData.settings)); }
 
         function applySettings() {
-            const root = document.documentElement;
-            const body = document.body;
-            const particlesCanvas = document.getElementById('particles');
-            const gridBg = document.querySelector('.grid-bg');
-
+            const root = document.documentElement; const body = document.body;
+            const particlesCanvas = document.getElementById('particles'); const gridBg = document.querySelector('.grid-bg');
             switch (systemData.settings.theme) {
                 case 'axon-dark':
                     root.style.setProperty('--primary', '#0c0c1d'); root.style.setProperty('--secondary', '#1a1a3a');
@@ -4089,86 +3413,56 @@
                     root.style.setProperty('--accent-light', '#e67eff'); root.style.setProperty('--highlight', 'rgba(214, 110, 253, 0.2)');
                     break;
             }
-
             switch (systemData.settings.wallpaper) {
                 case 'default': body.style.background = 'radial-gradient(circle at center, var(--primary), var(--secondary))'; break;
                 case 'gradient1': body.style.background = 'linear-gradient(135deg, #6a5af9, #d66efd)'; break;
                 case 'gradient2': body.style.background = 'linear-gradient(135deg, #00cc88, #00b4ff)'; break;
             }
-
             if (!systemData.settings.animations) {
-                const style = document.createElement('style');
-                style.id = 'no-transitions-style';
-                style.innerHTML = `* { transition: none !important; }`;
-                document.head.appendChild(style);
-            } else {
-                const existingStyle = document.getElementById('no-transitions-style');
-                if (existingStyle) { existingStyle.remove(); }
-            }
-
+                const style = document.createElement('style'); style.id = 'no-transitions-style';
+                style.innerHTML = `* { transition: none !important; }`; document.head.appendChild(style);
+            } else { const existingStyle = document.getElementById('no-transitions-style'); if (existingStyle) { existingStyle.remove(); } }
             const elementsWithGlass = document.querySelectorAll('.window, #dock, #menu-bar, .custom-modal-content, .modal-content, .login-box');
             if (systemData.settings.transparency) {
                 elementsWithGlass.forEach(el => { el.style.backdropFilter = 'blur(10px)'; el.style.webkitBackdropFilter = 'blur(10px)'; });
-            } else {
-                elementsWithGlass.forEach(el => { el.style.backdropFilter = 'none'; el.style.webkitBackdropFilter = 'none'; });
-            }
-
-            if (systemData.settings.particles) {
-                particlesCanvas.style.display = 'block';
-                gridBg.style.display = 'block';
-            } else {
-                particlesCanvas.style.display = 'none';
-                gridBg.style.display = 'none';
-            }
+            } else { elementsWithGlass.forEach(el => { el.style.backdropFilter = 'none'; el.style.webkitBackdropFilter = 'none'; }); }
+            if (systemData.settings.particles) { particlesCanvas.style.display = 'block'; gridBg.style.display = 'block'; }
+            else { particlesCanvas.style.display = 'none'; gridBg.style.display = 'none'; }
         }
 
         function setupWindowEvents(windowElement, appId, windowId) {
             const closeBtn = windowElement.querySelector('.window-close');
             const minimizeBtn = windowElement.querySelector('.window-minimize');
             const maximizeBtn = windowElement.querySelector('.window-maximize');
-            
             closeBtn.addEventListener('click', () => AxonAPI.closeWindow(windowId));
             minimizeBtn.addEventListener('click', () => AxonAPI.minimizeWindow(windowId));
             maximizeBtn.addEventListener('click', () => AxonAPI.toggleMaximizeWindow(windowId));
-            
             const header = windowElement.querySelector('.window-header');
-            let isDraggingWindow = false;
-            let offsetX, offsetY;
-            
+            let isDraggingWindow = false; let offsetX, offsetY;
             header.addEventListener('mousedown', dragMouseDown);
-            
             function dragMouseDown(e) {
                 if (e.button === 0 && !windowElement.classList.contains('maximized')) {
-                    e.preventDefault();
-                    bringToFront(windowId);
-                    isDraggingWindow = true;
+                    e.preventDefault(); bringToFront(windowId); isDraggingWindow = true;
                     offsetX = e.clientX - windowElement.getBoundingClientRect().left;
                     offsetY = e.clientY - windowElement.getBoundingClientRect().top;
                     windowElement.style.cursor = 'grabbing';
-                    
                     document.addEventListener('mousemove', elementDrag);
                     document.addEventListener('mouseup', closeDragElement);
                 }
             }
-            
             function elementDrag(e) {
                 if (!isDraggingWindow) return;
-                let newX = e.clientX - offsetX;
-                let newY = e.clientY - offsetY;
+                let newX = e.clientX - offsetX; let newY = e.clientY - offsetY;
                 const menuBarHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--menu-bar-height'));
                 newY = Math.max(menuBarHeight, newY);
-                windowElement.style.left = `${newX}px`;
-                windowElement.style.top = `${newY}px`;
+                windowElement.style.left = `${newX}px`; windowElement.style.top = `${newY}px`;
             }
-            
             function closeDragElement() {
-                isDraggingWindow = false;
-                windowElement.style.cursor = 'grab';
+                isDraggingWindow = false; windowElement.style.cursor = 'grab';
                 document.removeEventListener('mousemove', elementDrag);
                 document.removeEventListener('mouseup', closeDragElement);
                 AxonAPI.logActivity(`Janela "${windowElement.id}" arrastada.`);
             }
-
             windowElement.addEventListener('mousedown', () => { bringToFront(windowId); });
         }
 
@@ -4182,7 +3476,6 @@
                         systemState.cameraStream.getTracks().forEach(track => track.stop());
                         systemState.cameraStream = null;
                     }
-                    
                     windowElement.remove();
                     systemState.openWindows = systemState.openWindows.filter(w => w.windowId !== windowId);
                     if (systemState.activeWindow === windowId) {
@@ -4192,12 +3485,10 @@
                                 const currentZ = parseInt(document.getElementById(current.windowId)?.style.zIndex || 0);
                                 return (prevZ > currentZ) ? prev : current;
                             });
-                            systemState.activeWindow = highestZWindow.windowId;
-                            bringToFront(systemState.activeWindow);
+                            systemState.activeWindow = highestZWindow.windowId; bringToFront(systemState.activeWindow);
                         } else { systemState.activeWindow = null; }
                     }
-                    showDock();
-                    AxonAPI.logActivity(`Janela "${windowId}" fechada.`);
+                    showDock(); AxonAPI.logActivity(`Janela "${windowId}" fechada.`);
                 }, 300);
             }
         }
@@ -4207,8 +3498,7 @@
             if (windowElement) {
                 windowElement.classList.remove('active');
                 setTimeout(() => {
-                    windowElement.style.display = 'none';
-                    showDock();
+                    windowElement.style.display = 'none'; showDock();
                     AxonAPI.logActivity(`Janela "${windowId}" minimizada.`);
                 }, 300);
             }
@@ -4221,11 +3511,9 @@
                     windowElement.classList.remove('maximized');
                     windowElement.style.width = ''; windowElement.style.height = '';
                     windowElement.style.left = ''; windowElement.style.top = '';
-                    showDock();
-                    AxonAPI.logActivity(`Janela "${windowId}" restaurada.`);
+                    showDock(); AxonAPI.logActivity(`Janela "${windowId}" restaurada.`);
                 } else {
-                    windowElement.classList.add('maximized');
-                    hideDock();
+                    windowElement.classList.add('maximized'); hideDock();
                     AxonAPI.logActivity(`Janela "${windowId}" maximizada.`);
                 }
             }
@@ -4240,13 +3528,10 @@
                     if (currentZ > maxZIndex) { maxZIndex = currentZ; }
                 }
             });
-
             const targetWindow = document.getElementById(windowId);
             if (targetWindow) {
-                targetWindow.style.zIndex = maxZIndex + 1;
-                systemState.activeWindow = windowId;
-                targetWindow.style.display = 'flex';
-                targetWindow.classList.add('active');
+                targetWindow.style.zIndex = maxZIndex + 1; systemState.activeWindow = windowId;
+                targetWindow.style.display = 'flex'; targetWindow.classList.add('active');
             }
         }
 
@@ -4254,20 +3539,14 @@
         function showDock() { dock.classList.remove('hidden'); }
 
         function showWindowCarousel() {
-            const carouselBody = document.getElementById('window-carousel-body');
-            carouselBody.innerHTML = '';
-
+            const carouselBody = document.getElementById('window-carousel-body'); carouselBody.innerHTML = '';
             if (systemState.openWindows.length === 0) {
                 carouselBody.innerHTML = '<p style="text-align: center; width: 100%;">Nenhuma janela aberta.</p>';
-                document.getElementById('window-carousel-modal').classList.add('active');
-                return;
+                document.getElementById('window-carousel-modal').classList.add('active'); return;
             }
-
             systemState.openWindows.forEach(win => {
                 const thumbnail = document.createElement('div');
-                thumbnail.className = 'window-thumbnail';
-                thumbnail.dataset.windowId = win.windowId;
-
+                thumbnail.className = 'window-thumbnail'; thumbnail.dataset.windowId = win.windowId;
                 thumbnail.innerHTML = `
                     <div class="window-thumbnail-header">
                         <i class="${win.appIcon}"></i> <span class="window-title-text">${win.appName}</span>
@@ -4277,22 +3556,15 @@
                         <i class="${win.appIcon}"></i>
                     </div>
                 `;
-
                 thumbnail.addEventListener('click', (e) => {
                     if (!e.target.closest('.close-btn')) {
-                        bringToFront(win.windowId);
-                        closeModal('window-carousel-modal');
+                        bringToFront(win.windowId); closeModal('window-carousel-modal');
                         AxonAPI.logActivity(`Janela "${win.appName}" selecionada no carrossel.`);
                     }
                 });
-
                 thumbnail.querySelector('.close-btn').addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    AxonAPI.closeWindow(win.windowId);
-                    thumbnail.remove();
-                    if (systemState.openWindows.length === 0) {
-                        carouselBody.innerHTML = '<p style="text-align: center; width: 100%;">Nenhuma janela aberta.</p>';
-                    }
+                    e.stopPropagation(); AxonAPI.closeWindow(win.windowId); thumbnail.remove();
+                    if (systemState.openWindows.length === 0) { carouselBody.innerHTML = '<p style="text-align: center; width: 100%;">Nenhuma janela aberta.</p>'; }
                 });
                 carouselBody.appendChild(thumbnail);
             });
@@ -4301,14 +3573,9 @@
         }
 
         function createParticles() {
-            const canvas = document.getElementById('particles');
-            const ctx = canvas.getContext('2d');
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            
-            const particles = [];
-            const particleCount = 100;
-            
+            const canvas = document.getElementById('particles'); const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            const particles = []; const particleCount = 100;
             for (let i = 0; i < particleCount; i++) {
                 particles.push({
                     x: Math.random() * canvas.width, y: Math.random() * canvas.height,
@@ -4316,11 +3583,9 @@
                     speedY: (Math.random() - 0.5) * 0.5, color: `rgba(106, 90, 249, ${Math.random() * 0.5 + 0.1})`
                 });
             }
-            
             function drawParticles() {
                 if (!systemData.settings.particles) { return; }
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                
                 particles.forEach(p => {
                     ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
                     ctx.fillStyle = p.color; ctx.fill();
@@ -4358,14 +3623,11 @@
         async function handleLogin() {
             const username = loginUsernameInput.value;
             const password = loginPasswordInput.value;
-
             if (username === systemData.settings.username && password === systemData.settings.password) {
-                hideLoginScreen();
-                AxonAPI.logActivity(`Login bem-sucedido.`);
+                hideLoginScreen(); AxonAPI.logActivity(`Login bem-sucedido.`);
             } else {
                 await axonAlert("Usuário ou senha incorretos.", "Erro de Login");
-                loginPasswordInput.value = '';
-                loginUsernameInput.focus();
+                loginPasswordInput.value = ''; loginUsernameInput.focus();
                 AxonAPI.logActivity(`Tentativa de login falhou.`);
             }
         }
@@ -4374,7 +3636,6 @@
             systemState.axonApps = [];
             const axonAppsDir = getDirectoryById('axon/axonapps');
             if (axonAppsDir) { axonAppsDir.children = []; }
-
             for (let i = 1; i <= 50; i++) {
                 const filePath = `apps/app${i}/app.html`;
                 try {
@@ -4383,16 +3644,11 @@
                     const htmlContent = await response.text();
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(htmlContent, 'text/html');
-
                     const titleElement = doc.querySelector('title');
                     const appName = titleElement ? titleElement.textContent : `App ${i}`;
-
                     let appIcon = 'fas fa-code';
                     const linkElements = doc.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"]');
-                    for (const link of linkElements) {
-                        if (link.href) { appIcon = 'fas fa-file-code'; break; }
-                    }
-
+                    for (const link of linkElements) { if (link.href) { appIcon = 'fas fa-file-code'; break; } }
                     const appId = `html-app-${appName.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}`;
                     const appItem = {
                         id: appId, name: appName, type: 'html-app', icon: appIcon, path: filePath,
@@ -4406,27 +3662,20 @@
         }
 
         function initAxonApps(windowElement) {
-            const axonAppsGrid = windowElement.querySelector('#axon-apps-grid');
-            axonAppsGrid.innerHTML = '';
-
+            const axonAppsGrid = windowElement.querySelector('#axon-apps-grid'); axonAppsGrid.innerHTML = '';
             if (systemState.axonApps.length === 0) {
-                axonAppsGrid.innerHTML = '<p style="text-align: center; width: 100%;">Nenhum aplicativo HTML encontrado na pasta "apps/".</p>';
-                return;
+                axonAppsGrid.innerHTML = '<p style="text-align: center; width: 100%;">Nenhum aplicativo HTML encontrado na pasta "apps/".</p>'; return;
             }
-
             systemState.axonApps.forEach(app => {
                 const appItemDiv = document.createElement('div');
-                appItemDiv.className = 'axon-app-item';
-                appItemDiv.dataset.appId = app.id;
+                appItemDiv.className = 'axon-app-item'; appItemDiv.dataset.appId = app.id;
                 appItemDiv.tabIndex = 0;
-
                 appItemDiv.innerHTML = `
                     <div class="icon-image">
                         <i class="${app.icon}"></i>
                     </div>
                     <div class="icon-label">${app.name}</div>
                 `;
-
                 appItemDiv.addEventListener('click', () => { openHtmlApp(app.path, app.name, app.icon); });
                 axonAppsGrid.appendChild(appItemDiv);
             });
@@ -4435,17 +3684,12 @@
         function openHtmlApp(appPath, appName, appIcon) {
             const windowId = `html-app-window-${Date.now()}`;
             const windowElement = document.createElement('div');
-            windowElement.className = 'window';
-            windowElement.id = windowId;
-            windowElement.style.width = `800px`;
-            windowElement.style.height = `600px`;
-            
+            windowElement.className = 'window'; windowElement.id = windowId;
+            windowElement.style.width = `800px`; windowElement.style.height = `600px`;
             const menuBarHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--menu-bar-height'));
             const left = Math.max(0, (window.innerWidth - 800) / 2 + (Math.random() * 100 - 50));
             const top = Math.max(menuBarHeight, (window.innerHeight - 600) / 2 + (Math.random() * 100 - 50));
-            windowElement.style.left = `${left}px`;
-            windowElement.style.top = `${top}px`;
-
+            windowElement.style.left = `${left}px`; windowElement.style.top = `${top}px`;
             const header = document.createElement('div');
             header.className = 'window-header';
             header.innerHTML = `
@@ -4459,21 +3703,14 @@
                 </div>
             `;
             windowElement.appendChild(header);
-
             const content = document.createElement('div');
-            content.className = 'window-content';
-            content.style.padding = '0';
+            content.className = 'window-content'; content.style.padding = '0';
             content.innerHTML = `<iframe src="${appPath}" style="width: 100%; height: 100%; border: none;"></iframe>`;
             windowElement.appendChild(content);
-
             windowsContainer.appendChild(windowElement);
-            
-            void windowElement.offsetWidth;
-            windowElement.classList.add('active');
-            
+            void windowElement.offsetWidth; windowElement.classList.add('active');
             systemState.openWindows.push({ id: 'html-app-launcher', windowId: windowId, element: windowElement, appName: appName, appIcon: appIcon });
-            systemState.activeWindow = windowId;
-            bringToFront(windowId);
+            systemState.activeWindow = windowId; bringToFront(windowId);
             setupWindowEvents(windowElement, 'html-app-launcher', windowId);
             AxonAPI.logActivity(`Aplicativo HTML "${appName}" aberto.`);
         }
@@ -4482,461 +3719,216 @@
             const elements = document.querySelectorAll('[id], [class]');
             const elementMap = {};
             elements.forEach(el => {
-                const id = el.id;
-                const classes = Array.from(el.classList);
-                const tagName = el.tagName.toLowerCase();
-                const selector = id ? `#${id}` : (classes.length > 0 ? `.${classes[0]}` : tagName);
-                
-                if (id) {
-                    elementMap[id] = {
-                        tagName: tagName,
-                        classes: classes,
-                        selector: selector,
-                        description: `Elemento com ID '${id}'`
-                    };
-                } else if (classes.length > 0) {
+                const id = el.id; const classes = Array.from(el.classList);
+                const tagName = el.tagName.toLowerCase(); const selector = id ? `#${id}` : (classes.length > 0 ? `.${classes[0]}` : tagName);
+                if (id) { elementMap[id] = { tagName: tagName, classes: classes, selector: selector, description: `Elemento com ID '${id}'` }; }
+                else if (classes.length > 0) {
                     elementMap[`class-${classes[0]}`] = {
-                        tagName: tagName,
-                        classes: classes,
-                        selector: selector,
+                        tagName: tagName, classes: classes, selector: selector,
                         description: `Primeiro elemento com a classe '${classes[0]}'`
                     };
                 }
             });
-
-            // Adicionar elementos importantes que podem não ter ID ou classe única
             elementMap['body'] = { tagName: 'body', classes: [], selector: 'body', description: 'O corpo principal do documento.' };
             elementMap['html'] = { tagName: 'html', classes: [], selector: 'html', description: 'O elemento raiz do documento.' };
             elementMap['head'] = { tagName: 'head', classes: [], selector: 'head', description: 'O cabeçalho do documento.' };
             elementMap['style'] = { tagName: 'style', classes: [], selector: 'style', description: 'Onde os estilos CSS são definidos.' };
             elementMap['script'] = { tagName: 'script', classes: [], selector: 'script', description: 'Onde os scripts JavaScript são definidos.' };
             elementMap['root-variables'] = { tagName: ':root', classes: [], selector: ':root', description: 'Variáveis CSS globais.' };
-
             return elementMap;
         }
 
         // --- AxonAPI para Mielina ---
         const AxonAPI = {
-            /**
-             * Registra uma atividade do usuário ou do sistema.
-             * @param {string} activity - Descrição da atividade.
-             */
             logActivity: function(activity) {
                 const timestamp = new Date().toLocaleString();
                 systemData.userActivityLog.push({ timestamp, activity });
                 console.log(`[LOG] ${timestamp}: ${activity}`);
             },
-
-            /**
-             * Abre um aplicativo do sistema.
-             * @param {string} appName - O nome do aplicativo (ex: 'finder', 'notes', 'mielina').
-             * @param {string} [initialPath] - Caminho inicial para aplicativos como o Finder.
-             */
             openApp: function(appName, initialPath = null) {
                 const appId = Object.keys(systemData.apps).find(key => systemData.apps[key].name.toLowerCase() === appName.toLowerCase() || key === appName.toLowerCase());
-                if (appId) {
-                    openApp(appId, initialPath);
-                    this.logActivity(`Mielina: Abriu o aplicativo "${appName}"`);
-                    return `Aplicativo "${appName}" aberto.`;
-                } else {
-                    this.logActivity(`Mielina: Tentou abrir aplicativo desconhecido "${appName}"`);
-                    return `Aplicativo "${appName}" não encontrado.`;
-                }
+                if (appId) { this.logActivity(`Mielina: Abrindo aplicativo "${appName}"`); openApp(appId, initialPath); return `Aplicativo "${appName}" aberto.`; }
+                else { this.logActivity(`Mielina: Tentou abrir aplicativo desconhecido "${appName}"`); return `Aplicativo "${appName}" não encontrado.`; }
             },
-
-            /**
-             * Fecha um aplicativo do sistema.
-             * @param {string} appName - O nome do aplicativo a ser fechado.
-             */
             closeApp: function(appName) {
                 const appWindow = systemState.openWindows.find(w => w.appName.toLowerCase() === appName.toLowerCase());
-                if (appWindow) {
-                    closeWindow(appWindow.windowId);
-                    this.logActivity(`Mielina: Fechou o aplicativo "${appName}"`);
-                    return `Aplicativo "${appName}" fechado.`;
-                } else {
-                    this.logActivity(`Mielina: Tentou fechar aplicativo não aberto "${appName}"`);
-                    return `Aplicativo "${appName}" não está aberto.`;
-                }
+                if (appWindow) { this.logActivity(`Mielina: Fechando aplicativo "${appName}"`); closeWindow(appWindow.windowId); return `Aplicativo "${appName}" fechado.`; }
+                else { this.logActivity(`Mielina: Tentou fechar aplicativo não aberto "${appName}"`); return `Aplicativo "${appName}" não está aberto.`; }
             },
-
-            /**
-             * Cria uma nova pasta.
-             * @param {string} folderName - O nome da nova pasta.
-             * @param {string} [path='axon/desktop'] - O caminho onde a pasta será criada.
-             */
             createFolder: function(folderName, path = 'axon/desktop') {
                 const newFolder = createFileItem(path, 'folder', folderName);
-                if (newFolder) {
-                    this.logActivity(`Mielina: Criou a pasta "${folderName}" em "${path}"`);
-                    return `Pasta "${folderName}" criada com sucesso em "${path}".`;
-                } else {
-                    return `Não foi possível criar a pasta "${folderName}" em "${path}".`;
-                }
+                if (newFolder) { this.logActivity(`Mielina: Criou a pasta "${folderName}" em "${path}"`); return `Pasta "${folderName}" criada com sucesso em "${path}".`; }
+                else { return `Não foi possível criar a pasta "${folderName}" em "${path}".`; }
             },
-
-            /**
-             * Cria um novo documento de texto.
-             * @param {string} docName - O nome do novo documento.
-             * @param {string} [content=''] - O conteúdo inicial do documento.
-             * @param {string} [path='axon/desktop'] - O caminho onde o documento será criado.
-             */
             createDocument: function(docName, content = '', path = 'axon/desktop') {
                 const newDoc = createFileItem(path, 'text', docName, content);
-                if (newDoc) {
-                    this.logActivity(`Mielina: Criou o documento "${docName}" em "${path}" com conteúdo: "${content.substring(0, 50)}..."`);
-                    return `Documento "${docName}" criado com sucesso em "${path}".`;
-                } else {
-                    return `Não foi possível criar o documento "${docName}" em "${path}".`;
-                }
+                if (newDoc) { this.logActivity(`Mielina: Criou o documento "${docName}" em "${path}" com conteúdo: "${content.substring(0, 50)}..."`); return `Documento "${docName}" criado com sucesso em "${path}".`; }
+                else { return `Não foi possível criar o documento "${docName}" em "${path}".`; }
             },
-
-            /**
-             * Altera uma configuração do sistema.
-             * @param {string} settingName - O nome da configuração (ex: 'theme', 'wallpaper', 'animations').
-             * @param {any} value - O novo valor da configuração.
-             */
             changeSetting: function(settingName, value) {
                 if (systemData.settings.hasOwnProperty(settingName)) {
-                    const oldValue = systemData.settings[settingName];
-                    systemData.settings[settingName] = value;
-                    applySettings();
-                    saveSettings();
+                    const oldValue = systemData.settings[settingName]; systemData.settings[settingName] = value;
+                    applySettings(); saveSettings();
                     this.logActivity(`Mielina: Alterou a configuração "${settingName}" de "${oldValue}" para "${value}"`);
                     return `Configuração "${settingName}" alterada para "${value}".`;
-                } else {
-                    this.logActivity(`Mielina: Tentou alterar configuração desconhecida "${settingName}"`);
-                    return `Configuração "${settingName}" não encontrada.`;
-                }
+                } else { this.logActivity(`Mielina: Tentou alterar configuração desconhecida "${settingName}"`); return `Configuração "${settingName}" não encontrada.`; }
             },
-
-            /**
-             * Obtém informações sobre o sistema.
-             * @returns {object} - Um objeto com informações do sistema.
-             */
             getSystemInfo: function() {
                 const info = {
                     openApps: systemState.openWindows.map(w => w.appName),
                     currentDesktopItems: systemData.desktopItems.map(item => item.name),
                     currentPath: systemState.currentPath,
-                    settings: { ...systemData.settings, password: '[HIDDEN]' }, // Esconde a senha
-                    lastActivities: systemData.userActivityLog.slice(-5) // Últimas 5 atividades
+                    settings: { ...systemData.settings, password: '[HIDDEN]' },
+                    lastActivities: systemData.userActivityLog.slice(-5)
                 };
-                this.logActivity(`Mielina: Solicitou informações do sistema.`);
-                return info;
+                this.logActivity(`Mielina: Solicitou informações do sistema.`); return info;
             },
-
-            /**
-             * Lista o conteúdo de um diretório.
-             * @param {string} path - O caminho do diretório a ser listado.
-             * @returns {Array<object>} - Uma lista de itens no diretório.
-             */
             listDirectory: function(path) {
                 const dir = getDirectoryById(path);
-                if (dir && dir.children) {
-                    this.logActivity(`Mielina: Listou o diretório "${path}"`);
-                    return dir.children.map(item => ({ name: item.name, type: item.type, path: item.path }));
-                } else {
-                    this.logActivity(`Mielina: Tentou listar diretório inválido "${path}"`);
-                    return `Diretório "${path}" não encontrado ou não é uma pasta.`;
-                }
+                if (dir && dir.children) { this.logActivity(`Mielina: Listou o diretório "${path}"`); return dir.children.map(item => ({ name: item.name, type: item.type, path: item.path })); }
+                else { this.logActivity(`Mielina: Tentou listar diretório inválido "${path}"`); return `Diretório "${path}" não encontrado ou não é uma pasta.`; }
             },
-
-            /**
-             * Lê o conteúdo de um documento de texto.
-             * @param {string} docName - O nome do documento.
-             * @param {string} [path='axon/documents'] - O caminho do diretório onde o documento está.
-             * @returns {string} - O conteúdo do documento.
-             */
             readDocument: function(docName, path = 'axon/documents') {
                 const dir = getDirectoryById(path);
                 if (dir && dir.children) {
                     const doc = dir.children.find(item => item.name === docName && item.type === 'text');
-                    if (doc) {
-                        this.logActivity(`Mielina: Leu o documento "${docName}" em "${path}"`);
-                        return doc.content;
-                    } else {
-                        this.logActivity(`Mielina: Tentou ler documento não encontrado "${docName}" em "${path}"`);
-                        return `Documento "${docName}" não encontrado em "${path}".`;
-                    }
-                } else {
-                    this.logActivity(`Mielina: Tentou ler documento em diretório inválido "${path}"`);
-                    return `Diretório "${path}" não encontrado ou não é uma pasta.`;
-                }
+                    if (doc) { this.logActivity(`Mielina: Leu o documento "${docName}" em "${path}"`); return doc.content; }
+                    else { this.logActivity(`Mielina: Tentou ler documento não encontrado "${docName}" em "${path}"`); return `Documento "${docName}" não encontrado em "${path}".`; }
+                } else { this.logActivity(`Mielina: Tentou ler documento em diretório inválido "${path}"`); return `Diretório "${path}" não encontrado ou não é uma pasta.`; }
             },
-
-            /**
-             * Modifica uma propriedade CSS ou conteúdo de um elemento HTML.
-             * @param {string} selector - O seletor CSS do elemento (ex: '#menu-bar', '.dock-icon').
-             * @param {string} property - A propriedade CSS a ser modificada (ex: 'background-color', 'color', 'font-size') ou 'textContent' para conteúdo.
-             * @param {string} value - O novo valor da propriedade.
-             */
             modifyElement: function(selector, property, value) {
                 const element = document.querySelector(selector);
                 if (element) {
-                    if (property === 'textContent') {
-                        element.textContent = value;
-                        this.logActivity(`Mielina: Alterou o texto de "${selector}" para "${value}"`);
-                        return `Texto do elemento "${selector}" alterado para "${value}".`;
-                    } else {
-                        element.style[property] = value;
-                        this.logActivity(`Mielina: Alterou a propriedade CSS "${property}" de "${selector}" para "${value}"`);
-                        return `Propriedade "${property}" do elemento "${selector}" alterada para "${value}".`;
-                    }
-                } else {
-                    this.logActivity(`Mielina: Tentou modificar elemento HTML não encontrado com seletor "${selector}"`);
-                    return `Elemento com seletor "${selector}" não encontrado.`;
-                }
+                    if (property === 'textContent') { element.textContent = value; }
+                    else if (property === 'innerHTML') { element.innerHTML = value; }
+                    else if (property.startsWith('data-')) { element.setAttribute(property, value); }
+                    else { element.style[property] = value; }
+                    this.logActivity(`Mielina: Alterou a propriedade "${property}" de "${selector}" para "${value}"`);
+                    return `Propriedade "${property}" do elemento "${selector}" alterada para "${value}".`;
+                } else { this.logActivity(`Mielina: Tentou modificar elemento HTML não encontrado com seletor "${selector}"`); return `Elemento com seletor "${selector}" não encontrado.`; }
             },
-
-            /**
-             * Executa qualquer código JavaScript.
-             * @param {string} scriptCode - O código JavaScript a ser executado.
-             */
             executeScript: function(scriptCode) {
-                try {
-                    eval(scriptCode); // Usar eval com cautela, pois pode ser um risco de segurança.
-                    this.logActivity(`Mielina: Executou script: "${scriptCode.substring(0, 100)}..."`);
-                    return `Script executado com sucesso.`;
-                } catch (e) {
-                    this.logActivity(`Mielina: Erro ao executar script: "${e.message}"`);
-                    return `Erro ao executar script: ${e.message}`;
-                }
+                try { eval(scriptCode); this.logActivity(`Mielina: Executou script: "${scriptCode.substring(0, 100)}..."`); return `Script executado com sucesso.`; }
+                catch (e) { this.logActivity(`Mielina: Erro ao executar script: "${e.message}"`); return `Erro ao executar script: ${e.message}`; }
             },
-
-            /**
-             * Cria um novo elemento HTML.
-             * @param {string} parentSelector - O seletor CSS do elemento pai onde o novo elemento será anexado.
-             * @param {string} tagName - O nome da tag HTML (ex: 'div', 'p', 'button').
-             * @param {object} [attributes={}] - Um objeto de atributos para o novo elemento (ex: { id: 'novo-div', class: 'minha-classe' }).
-             * @param {string} [innerHTML=''] - O conteúdo HTML interno do novo elemento.
-             */
             createElement: function(parentSelector, tagName, attributes = {}, innerHTML = '') {
                 const parentElement = document.querySelector(parentSelector);
                 if (parentElement) {
                     const newElement = document.createElement(tagName);
-                    for (const key in attributes) {
-                        newElement.setAttribute(key, attributes[key]);
-                    }
-                    newElement.innerHTML = innerHTML;
-                    parentElement.appendChild(newElement);
+                    for (const key in attributes) { newElement.setAttribute(key, attributes[key]); }
+                    newElement.innerHTML = innerHTML; parentElement.appendChild(newElement);
                     this.logActivity(`Mielina: Criou um novo elemento <${tagName}> em "${parentSelector}"`);
                     return `Elemento <${tagName}> criado com sucesso em "${parentSelector}".`;
-                } else {
-                    this.logActivity(`Mielina: Tentou criar elemento em pai não encontrado: "${parentSelector}"`);
-                    return `Elemento pai com seletor "${parentSelector}" não encontrado.`;
-                }
+                } else { this.logActivity(`Mielina: Tentou criar elemento em pai não encontrado: "${parentSelector}"`); return `Elemento pai com seletor "${parentSelector}" não encontrado.`; }
             },
-
-            /**
-             * Remove um elemento HTML.
-             * @param {string} selector - O seletor CSS do elemento a ser removido.
-             */
             removeElement: function(selector) {
                 const elementToRemove = document.querySelector(selector);
-                if (elementToRemove) {
-                    elementToRemove.remove();
-                    this.logActivity(`Mielina: Removeu o elemento "${selector}"`);
-                    return `Elemento "${selector}" removido com sucesso.`;
-                } else {
-                    this.logActivity(`Mielina: Tentou remover elemento não encontrado: "${selector}"`);
-                    return `Elemento com seletor "${selector}" não encontrado.`;
-                }
+                if (elementToRemove) { elementToRemove.remove(); this.logActivity(`Mielina: Removeu o elemento "${selector}"`); return `Elemento "${selector}" removido com sucesso.`; }
+                else { this.logActivity(`Mielina: Tentou remover elemento não encontrado: "${selector}"`); return `Elemento com seletor "${selector}" não encontrado.`; }
             },
-
-            /**
-             * Retorna o código-source completo do HTML do Axon OS.
-             * @returns {string} - O código-fonte HTML.
-             */
             getSystemCode: function() {
                 this.logActivity(`Mielina: Solicitou o código-fonte do sistema.`);
-                return document.documentElement.outerHTML;
+                return `<!DOCTYPE html>\n` + document.documentElement.outerHTML;
             },
-
-            /**
-             * Retorna detalhes completos de um elemento HTML.
-             * @param {string} selector - O seletor CSS do elemento.
-             * @returns {object} - Um objeto com detalhes do elemento.
-             */
             getHTMLElementDetails: function(selector) {
                 const element = document.querySelector(selector);
                 if (element) {
                     const details = {
-                        tagName: element.tagName.toLowerCase(),
-                        id: element.id,
-                        classes: Array.from(element.classList),
-                        attributes: {},
-                        styles: {},
-                        textContent: element.textContent.trim().substring(0, 200) + (element.textContent.trim().length > 200 ? '...' : ''),
-                        innerHTML: element.innerHTML.trim().substring(0, 200) + (element.innerHTML.trim().length > 200 ? '...' : '')
+                        tagName: element.tagName.toLowerCase(), id: element.id, classes: Array.from(element.classList),
+                        attributes: {}, styles: {}, textContent: element.textContent.trim().substring(0, 200) + (element.textContent.trim().length > 200 ? '...' : ''),
+                        innerHTML: element.innerHTML.trim().substring(0, 200) + (element.innerHTML.trim().length > 200 ? '...' : ''),
+                        outerHTML: element.outerHTML.trim().substring(0, 200) + (element.outerHTML.trim().length > 200 ? '...' : '')
                     };
-                    for (let i = 0; i < element.attributes.length; i++) {
-                        const attr = element.attributes[i];
-                        details.attributes[attr.name] = attr.value;
-                    }
+                    for (let i = 0; i < element.attributes.length; i++) { const attr = element.attributes[i]; details.attributes[attr.name] = attr.value; }
                     const computedStyle = window.getComputedStyle(element);
-                    for (let i = 0; i < computedStyle.length; i++) {
-                        const prop = computedStyle[i];
-                        details.styles[prop] = computedStyle.getPropertyValue(prop);
-                    }
-                    this.logActivity(`Mielina: Obteve detalhes do elemento "${selector}"`);
-                    return details;
-                } else {
-                    this.logActivity(`Mielina: Tentou obter detalhes de elemento não encontrado: "${selector}"`);
-                    return `Elemento com seletor "${selector}" não encontrado.`;
-                }
+                    for (let i = 0; i < computedStyle.length; i++) { const prop = computedStyle[i]; details.styles[prop] = computedStyle.getPropertyValue(prop); }
+                    this.logActivity(`Mielina: Obteve detalhes do elemento "${selector}"`); return details;
+                } else { this.logActivity(`Mielina: Tentou obter detalhes de elemento não encontrado: "${selector}"`); return `Elemento com seletor "${selector}" não encontrado.`; }
             },
-
-            /**
-             * Simula a ação de tirar uma foto no aplicativo Câmera.
-             */
             takePhoto: async function() {
                 const cameraWindow = systemState.openWindows.find(w => w.id === 'camera');
                 if (cameraWindow) {
                     const captureBtn = cameraWindow.element.querySelector('#capture-btn');
-                    if (captureBtn) {
-                        captureBtn.click();
-                        this.logActivity(`Mielina: Acionou a captura de foto no aplicativo Câmera.`);
-                        return `Foto capturada com sucesso (se a câmera estiver ativa).`;
-                    } else {
-                        return `Botão de captura não encontrado no aplicativo Câmera.`;
-                    }
-                } else {
-                    return `Aplicativo Câmera não está aberto.`;
-                }
+                    if (captureBtn) { captureBtn.click(); this.logActivity(`Mielina: Acionou a captura de foto no aplicativo Câmera.`); return `Foto capturada com sucesso (se a câmera estiver ativa).`; }
+                    else { return `Botão de captura não encontrado no aplicativo Câmera.`; }
+                } else { return `Aplicativo Câmera não está aberto.`; }
             },
-
-            /**
-             * Realiza cálculos usando a calculadora.
-             * @param {string} expression - A expressão matemática a ser calculada (ex: "2+2", "10*5", "50/2").
-             */
             calculate: function(expression) {
                 const calculatorWindow = systemState.openWindows.find(w => w.id === 'calculator');
                 if (calculatorWindow) {
                     const display = calculatorWindow.element.querySelector('#calc-display');
                     const buttons = calculatorWindow.element.querySelectorAll('.calc-btn');
-                    
-                    let currentInput = '0';
-                    let previousInput = '';
-                    let operation = null;
-                    let resetDisplay = false;
-
-                    function pressButton(action) {
-                        const btn = Array.from(buttons).find(b => b.dataset.action === action);
-                        if (btn) btn.click();
-                    }
-
-                    // Simular a entrada da expressão
+                    function pressButton(action) { const btn = Array.from(buttons).find(b => b.dataset.action === action); if (btn) btn.click(); }
                     for (const char of expression) {
-                        if (!isNaN(char) || char === '.') {
-                            pressButton(char);
-                        } else if (char === '+') {
-                            pressButton('add');
-                        } else if (char === '-') {
-                            pressButton('subtract');
-                        } else if (char === '*') {
-                            pressButton('multiply');
-                        } else if (char === '/') {
-                            pressButton('divide');
-                        }
+                        if (!isNaN(char) || char === '.') { pressButton(char); }
+                        else if (char === '+') { pressButton('add'); } else if (char === '-') { pressButton('subtract'); }
+                        else if (char === '*') { pressButton('multiply'); } else if (char === '/') { pressButton('divide'); }
                     }
-                    pressButton('equals'); // Pressiona o botão de igual para obter o resultado
-
-                    this.logActivity(`Mielina: Calculou a expressão "${expression}"`);
-                    return `Resultado do cálculo: ${display.textContent}`;
-                } else {
-                    return `Aplicativo Calculadora não está aberto.`;
-                }
+                    pressButton('equals');
+                    this.logActivity(`Mielina: Calculou a expressão "${expression}"`); return `Resultado do cálculo: ${display.textContent}`;
+                } else { return `Aplicativo Calculadora não está aberto.`; }
             },
-
-            /**
-             * Digita texto no Bloco de Notas.
-             * @param {string} text - O texto a ser digitado.
-             */
             typeInNotepad: function(text) {
                 const notesWindow = systemState.openWindows.find(w => w.id === 'notes');
                 if (notesWindow) {
                     const textArea = notesWindow.element.querySelector('#note-content');
                     if (textArea) {
-                        textArea.value += text;
-                        textArea.dispatchEvent(new Event('input')); // Dispara evento para atualizar o log
-                        this.logActivity(`Mielina: Digitou texto no Bloco de Notas: "${text.substring(0, 50)}..."`);
-                        return `Texto digitado no Bloco de Notas.`;
-                    } else {
-                        return `Área de texto do Bloco de Notas não encontrada.`;
-                    }
-                } else {
-                    return `Aplicativo Bloco de Notas não está aberto.`;
-                }
+                        textArea.value += text; textArea.dispatchEvent(new Event('input'));
+                        this.logActivity(`Mielina: Digitou texto no Bloco de Notas: "${text.substring(0, 50)}..."`); return `Texto digitado no Bloco de Notas.`;
+                    } else { return `Área de texto do Bloco de Notas não encontrada.`; }
+                } else { return `Aplicativo Bloco de Notas não está aberto.`; }
             },
-
-            /**
-             * Salva o conteúdo atual do Bloco de Notas.
-             */
             saveNotepad: async function() {
                 const notesWindow = systemState.openWindows.find(w => w.id === 'notes');
                 if (notesWindow) {
                     const saveBtn = notesWindow.element.querySelector('#save-note');
-                    if (saveBtn) {
-                        saveBtn.click();
-                        this.logActivity(`Mielina: Acionou o salvamento no Bloco de Notas.`);
-                        return `Comando de salvar acionado no Bloco de Notas.`;
-                    } else {
-                        return `Botão de salvar do Bloco de Notas não encontrado.`;
-                    }
+                    if (saveBtn) { saveBtn.click(); this.logActivity(`Mielina: Acionou o salvamento no Bloco de Notas.`); return `Comando de salvar acionado no Bloco de Notas.`; }
+                    else { return `Botão de salvar do Bloco de Notas não encontrado.`; }
+                } else { return `Aplicativo Bloco de Notas não está aberto.`; }
+            },
+            saveCode: function() {
+                // Em um ambiente de navegador, JavaScript não pode salvar arquivos diretamente no sistema de arquivos do usuário
+                // ou modificar o arquivo HTML original no servidor por razões de segurança.
+                // Esta função simula o "salvamento" do código atual em uma variável ou log.
+                const currentCode = this.getSystemCode();
+                console.log("Mielina: Código-fonte atual 'salvo' (simulado).");
+                this.logActivity("Mielina: Código-fonte atual 'salvo' (simulado).");
+                // Você pode armazenar isso em localStorage para persistência simulada
+                localStorage.setItem('axon-system-code-snapshot', currentCode);
+                return "Código-fonte atual do sistema 'salvo' com sucesso (simulado).";
+            },
+            debug: function(message) {
+                console.log(`[Mielina Debug] ${message}`);
+                this.logActivity(`Mielina Debug: ${message}`);
+                return `Mensagem de depuração enviada para o console: "${message}"`;
+            },
+            checkChanges: function(oldCode) {
+                const currentCode = this.getSystemCode();
+                if (oldCode === currentCode) {
+                    this.logActivity("Mielina: Verificou que não houve alterações no código.");
+                    return "Nenhuma alteração detectada no código.";
                 } else {
-                    return `Aplicativo Bloco de Notas não está aberto.`;
+                    this.logActivity("Mielina: Verificou que houve alterações no código.");
+                    return "Alterações detectadas no código.";
                 }
             },
-
-            // Funções de gerenciamento de janelas (re-expostas para a API)
-            closeWindow: function(windowId) {
-                closeWindow(windowId);
-                this.logActivity(`Mielina: Fechou a janela com ID "${windowId}"`);
-            },
-            minimizeWindow: function(windowId) {
-                minimizeWindow(windowId);
-                this.logActivity(`Mielina: Minimizou a janela com ID "${windowId}"`);
-            },
-            toggleMaximizeWindow: function(windowId) {
-                toggleMaximizeWindow(windowId);
-                this.logActivity(`Mielina: Maximizou/Restaurou a janela com ID "${windowId}"`);
-            },
-            
-            // Funções de arquivo (re-expostas para a API)
+            closeWindow: function(windowId) { closeWindow(windowId); this.logActivity(`Mielina: Fechou a janela com ID "${windowId}"`); },
+            minimizeWindow: function(windowId) { minimizeWindow(windowId); this.logActivity(`Mielina: Minimizou a janela com ID "${windowId}"`); },
+            toggleMaximizeWindow: function(windowId) { toggleMaximizeWindow(windowId); this.logActivity(`Mielina: Maximizou/Restaurou a janela com ID "${windowId}"`); },
             createFileItem: function(directoryId, type, name, content = '', src = '') {
                 const result = createFileItem(directoryId, type, name, content, src);
-                if (result) {
-                    this.logActivity(`Mielina: Criou item "${name}" (tipo: ${type}) em "${directoryId}"`);
-                }
+                if (result) { this.logActivity(`Mielina: Criou item "${name}" (tipo: ${type}) em "${directoryId}"`); }
                 return result;
             },
-            deleteFileItem: function(itemId, parentDirId, save = true) {
-                deleteFileItem(itemId, parentDirId, save);
-                this.logActivity(`Mielina: Excluiu item com ID "${itemId}" de "${parentDirId}"`);
-            },
-            restoreTrashItem: function(itemId) {
-                restoreTrashItem(itemId);
-                this.logActivity(`Mielina: Restaurou item com ID "${itemId}" da lixeira`);
-            },
-            deletePermanentTrashItem: function(itemId) {
-                deletePermanentTrashItem(itemId);
-                this.logActivity(`Mielina: Excluiu permanentemente item com ID "${itemId}" da lixeira`);
-            },
-            renameFileItem: function(itemId, parentDirId, newName) {
-                updateFileItemName(itemId, parentDirId, newName);
-                this.logActivity(`Mielina: Renomeou item com ID "${itemId}" para "${newName}"`);
-            },
-            copyItem: async function(itemToCopy, targetDirectoryId, isCut = false) {
-                await copyItem(itemToCopy, targetDirectoryId, isCut);
-                this.logActivity(`Mielina: Copiou/Moveu item "${itemToCopy.name}" para "${targetDirectoryId}" (corte: ${isCut})`);
-            }
+            deleteFileItem: function(itemId, parentDirId, save = true) { deleteFileItem(itemId, parentDirId, save); this.logActivity(`Mielina: Excluiu item com ID "${itemId}" de "${parentDirId}"`); },
+            restoreTrashItem: function(itemId) { restoreTrashItem(itemId); this.logActivity(`Mielina: Restaurou item com ID "${itemId}" da lixeira`); },
+            deletePermanentTrashItem: function(itemId) { deletePermanentTrashItem(itemId); this.logActivity(`Mielina: Excluiu permanentemente item com ID "${itemId}" da lixeira`); },
+            renameFileItem: function(itemId, parentDirId, newName) { updateFileItemName(itemId, parentDirId, newName); this.logActivity(`Mielina: Renomeou item com ID "${itemId}" para "${newName}"`); },
+            copyItem: async function(itemToCopy, targetDirectoryId, isCut = false) { await copyItem(itemToCopy, targetDirectoryId, isCut); this.logActivity(`Mielina: Copiou/Moveu item "${itemToCopy.name}" para "${targetDirectoryId}" (corte: ${isCut})`); }
         };
 
-        window.AxonAPI = AxonAPI; // Torna a API acessível globalmente
-
+        window.AxonAPI = AxonAPI;
         window.addEventListener('load', initSystem);
-        
         document.addEventListener('click', (e) => {
             if (!contextMenu.contains(e.target) && !e.target.closest('.desktop-icon') && !e.target.closest('.file-item')) {
                 hideContextMenu();
