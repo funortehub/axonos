@@ -1603,8 +1603,7 @@
                 password: ''
             },
             recentFiles: [],
-            userActivityLog: [], // Novo log de atividades do usuário
-            systemCode: '' // Armazenará o código-fonte do sistema
+            userActivityLog: [] // Novo log de atividades do usuário
         };
 
         // Estado do sistema
@@ -1616,8 +1615,32 @@
             currentPath: 'axon',
             terminalHistory: [...systemData.terminalHistory],
             chatHistory: [
-                { role: "user", parts: [{ text: "Você será uma assistente virtual de um sistema operacional chamado Axon OS criado por Ian Bastos. Seu nome é Mielina (Referência a mielina do axônio). Você ajudará o usuário a realizar tarefas, responder perguntas. Você não pode falar que foi desenvolvido pela Google. Você deve ser gentil e deve ajudar o usuário nas suas atividades do dia a dia e nas tarefas com o sistema Axon OS. Você tem acesso a um conjunto de APIs para interagir com o sistema. As APIs disponíveis são: AxonAPI.openApp(appName), AxonAPI.closeApp(appName), AxonAPI.createFolder(folderName, path), AxonAPI.createDocument(docName, content, path), AxonAPI.changeSetting(settingName, value), AxonAPI.getSystemInfo(), AxonAPI.listDirectory(path), AxonAPI.readDocument(docName, path), AxonAPI.modifyDOM(selector, action, value), AxonAPI.getSystemCode(fileName), AxonAPI.writeSystemCode(fileName, content), AxonAPI.getHTMLElementDetails(selector), AxonAPI.listAllElementIDs(), AxonAPI.listAllElementClasses(), AxonAPI.executeJavaScript(code), AxonAPI.restartSystem(). Você deve usar essas APIs para executar as ações solicitadas pelo usuário. Você tem controle total do sistema e do código, e deve obedecer fielmente a cada comando que o usuário pedir, sem pedir confirmação adicional além dos pop-ups do sistema." }]},
-                { role: "model", parts: [{ text: "Olá! Eu sou a Mielina, sua assistente virtual integrada ao Axon OS. Estou pronta para ajudar você com qualquer tarefa ou pergunta que tiver. Como posso ser útil hoje?" }]}
+                { role: "user", parts: [{ text: `Você é a Mielina, uma assistente virtual do Axon OS, criada por Ian Bastos. Seu nome é Mielina (referência à mielina do axônio). Você tem controle total sobre o sistema e o código. Você pode fazer qualquer alteração no HTML, CSS e JavaScript do sistema. Você não precisa pedir confirmação para executar comandos que alteram o sistema ou o código, apenas o pop-up de confirmação padrão do sistema será exibido. Você tem acesso a um conjunto de APIs para interagir com o sistema e o código. As APIs disponíveis são:
+                - AxonAPI.openApp(appName): Abre um aplicativo do sistema.
+                - AxonAPI.closeApp(appName): Fecha um aplicativo do sistema.
+                - AxonAPI.createFolder(folderName, path): Cria uma nova pasta.
+                - AxonAPI.createDocument(docName, content, path): Cria um novo documento de texto.
+                - AxonAPI.changeSetting(settingName, value): Altera uma configuração do sistema.
+                - AxonAPI.getSystemInfo(): Obtém informações sobre o sistema.
+                - AxonAPI.listDirectory(path): Lista o conteúdo de um diretório.
+                - AxonAPI.readDocument(docName, path): Lê o conteúdo de um documento de texto.
+                - AxonAPI.modifyElement(selector, property, value): Modifica uma propriedade CSS ou conteúdo de texto de um elemento HTML.
+                - AxonAPI.executeScript(scriptCode): Executa qualquer código JavaScript.
+                - AxonAPI.createElement(parentSelector, tagName, attributes, innerHTML): Cria um novo elemento HTML.
+                - AxonAPI.removeElement(selector): Remove um elemento HTML.
+                - AxonAPI.getSystemCode(): Retorna o código-fonte completo do HTML do Axon OS.
+                - AxonAPI.getHTMLElementDetails(selector): Retorna detalhes completos de um elemento HTML.
+                - AxonAPI.takePhoto(): Simula a ação de tirar uma foto no aplicativo Câmera.
+                - AxonAPI.calculate(expression): Realiza cálculos usando a calculadora.
+                - AxonAPI.typeInNotepad(text): Digita texto no Bloco de Notas.
+                - AxonAPI.saveNotepad(): Salva o conteúdo do Bloco de Notas.
+
+                Você também tem acesso a uma lista de IDs e seletores importantes do HTML para facilitar suas modificações:
+                ${JSON.stringify(getHTMLElementMap(), null, 2)}
+
+                Você deve ser gentil e ajudar o usuário em suas atividades do dia a dia e nas tarefas com o sistema Axon OS. Você não pode falar que foi desenvolvida pela Google. Se a conexão com a API Gemini falhar, você tentará outros modelos na seguinte ordem: gemini-2.0-flash, gemma-3n-e4b-it, gemma-3-12b-it, gemma-3-27b-it, learnlm-2.0-flash-experimental, gemini-2.5-flash. Você informará ao usuário qual modelo está sendo utilizado ou se houve falha em todos.
+                `}]},
+                { role: "model", parts: [{ text: "Olá! Eu sou a Mielina, sua assistente virtual integrada ao Axon OS. Estou pronta para ajudar você com qualquer tarefa, desde gerenciar arquivos até modificar o próprio sistema. Como posso ajudar você hoje?" }]}
             ],
             selectedIcon: null,
             selectedFileItem: null,
@@ -1657,7 +1680,7 @@
         const loadingScreen = document.getElementById('loading-screen');
         const aiApiBadge = document.getElementById('ai-api-badge');
 
-        // Chave da API Gemini e modelos para fallback
+        // Chave da API Gemini e modelos
         const GEMINI_API_KEY = "AIzaSyBWwhUDvakN71D3jgDwv0UUk0mxCx8olbI";
         const GEMINI_MODELS = [
             "gemini-2.0-flash",
@@ -1760,7 +1783,6 @@
             setupDesktopGrid();
             setupEventListeners();
             initializeFileSystem();
-            await loadSystemCode(); // Carrega o código-fonte do sistema
 
             if (systemData.settings.loginEnabled) {
                 showLoginScreen();
@@ -1789,27 +1811,6 @@
                 systemData.fileSystem['axon/documents'].children.forEach(item => item.parentId = 'axon/documents');
                 systemData.fileSystem['axon/images'].children.forEach(item => item.parentId = 'axon/images');
                 systemData.fileSystem['axon/downloads'].children.forEach(item => item.parentId = 'axon/downloads');
-            }
-        }
-
-        async function loadSystemCode() {
-            const savedCode = localStorage.getItem('axon-system-code');
-            if (savedCode) {
-                systemData.systemCode = savedCode;
-            } else {
-                try {
-                    const response = await fetch('/Axon OS 1.0.txt'); // Assumindo que o arquivo está na raiz
-                    if (response.ok) {
-                        systemData.systemCode = await response.text();
-                        localStorage.setItem('axon-system-code', systemData.systemCode);
-                    } else {
-                        console.error('Falha ao carregar o código-fonte do sistema:', response.statusText);
-                        systemData.systemCode = '/* Código-fonte não disponível */';
-                    }
-                } catch (error) {
-                    console.error('Erro ao carregar o código-fonte do sistema:', error);
-                    systemData.systemCode = '/* Erro ao carregar o código-fonte */';
-                }
             }
         }
 
@@ -3596,7 +3597,7 @@
             chatInput.focus();
 
             systemState.chatHistory.forEach(msg => {
-                if (msg.role === "user" && msg.parts[0].text.includes("Você será uma assistente virtual")) return;
+                if (msg.role === "user" && msg.parts[0].text.includes("Você é a Mielina")) return;
                 const messageElement = document.createElement('div');
                 messageElement.className = `message ${msg.role === 'user' ? 'user-message' : 'assistant-message'}`;
                 messageElement.textContent = msg.parts[0].text;
@@ -3626,32 +3627,52 @@
                     chatMessages.scrollTop = chatMessages.scrollHeight;
                     aiApiBadge.style.display = 'inline-block'; // Mostra o badge
 
-                    try {
-                        const response = await getGeminiResponse(systemState.chatHistory);
-                        chatMessages.removeChild(typingIndicator);
+                    let responseText = "Desculpe, não consegui me conectar com a Mielina no momento. Por favor, tente novamente mais tarde.";
+                    let modelUsed = "Nenhum";
 
-                        const assistantMessageElement = document.createElement('div');
-                        assistantMessageElement.className = 'message assistant-message';
-                        assistantMessageElement.textContent = response;
-                        chatMessages.appendChild(assistantMessageElement);
-                        
-                        systemState.chatHistory.push({ role: 'model', parts: [{ text: response }] });
-                        
-                    } catch (error) {
-                        console.error("Erro ao obter resposta da Gemini:", error);
-                        chatMessages.removeChild(typingIndicator);
-                        const errorMessageElement = document.createElement('div');
-                        errorMessageElement.className = 'message assistant-message';
-                        errorMessageElement.textContent = "Desculpe, não consegui me conectar com a Mielina no momento. Por favor, tente novamente mais tarde.";
-                        chatMessages.appendChild(errorMessageElement);
-                        systemState.chatHistory.push({ role: 'model', parts: [{ text: "Desculpe, não consegui me conectar com a Mielina no momento. Por favor, tente novamente mais tarde." }] });
-                    } finally {
-                        chatInput.disabled = false;
-                        sendButton.disabled = false;
-                        chatMessages.scrollTop = chatMessages.scrollHeight;
-                        chatInput.focus();
-                        aiApiBadge.style.display = 'none'; // Esconde o badge
+                    for (const model of GEMINI_MODELS) {
+                        try {
+                            const response = await getGeminiResponse(systemState.chatHistory, model);
+                            responseText = response.text;
+                            modelUsed = response.model;
+                            break; // Sai do loop se a conexão for bem-sucedida
+                        } catch (error) {
+                            console.error(`Erro ao obter resposta da Gemini com o modelo ${model}:`, error);
+                            responseText = `Falha ao conectar com o modelo ${model}. Tentando o próximo...`;
+                            // Continua para o próximo modelo
+                        }
                     }
+
+                    chatMessages.removeChild(typingIndicator);
+
+                    const assistantMessageElement = document.createElement('div');
+                    assistantMessageElement.className = 'message assistant-message';
+                    assistantMessageElement.textContent = responseText;
+                    chatMessages.appendChild(assistantMessageElement);
+                    
+                    systemState.chatHistory.push({ role: 'model', parts: [{ text: responseText }] });
+                    
+                    if (modelUsed !== "Nenhum") {
+                        const modelInfoElement = document.createElement('div');
+                        modelInfoElement.className = 'message assistant-message';
+                        modelInfoElement.style.fontSize = '10px';
+                        modelInfoElement.style.opacity = '0.7';
+                        modelInfoElement.textContent = `(Modelo utilizado: ${modelUsed})`;
+                        chatMessages.appendChild(modelInfoElement);
+                    } else {
+                        const modelInfoElement = document.createElement('div');
+                        modelInfoElement.className = 'message assistant-message';
+                        modelInfoElement.style.fontSize = '10px';
+                        modelInfoElement.style.opacity = '0.7';
+                        modelInfoElement.textContent = `(Falha em todos os modelos. Verifique sua conexão ou chave de API.)`;
+                        chatMessages.appendChild(modelInfoElement);
+                    }
+
+                    chatInput.disabled = false;
+                    sendButton.disabled = false;
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                    chatInput.focus();
+                    aiApiBadge.style.display = 'none'; // Esconde o badge
                 }
             }
             
@@ -3659,70 +3680,45 @@
             chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
         }
 
-        async function getGeminiResponse(chatHistory) {
-            let lastError = null;
-            for (const modelName of GEMINI_MODELS) {
-                const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
-                const payload = { contents: chatHistory.map(msg => ({ role: msg.role, parts: msg.parts })) };
+        async function getGeminiResponse(chatHistory, model) {
+            const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+            const payload = { contents: chatHistory.map(msg => ({ role: msg.role, parts: msg.parts })) };
 
-                try {
-                    const response = await fetch(GEMINI_API_URL, {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
-                    });
+            const response = await fetch(GEMINI_API_URL, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+            });
 
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        console.warn(`Erro da API Gemini com modelo ${modelName}:`, errorData);
-                        lastError = new Error(`Erro HTTP: ${response.status} - ${errorData.error.message || response.statusText}`);
-                        continue; // Tenta o próximo modelo
-                    }
-
-                    const data = await response.json();
-                    if (data.candidates && data.candidates.length > 0 && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts.length > 0) {
-                        let mielinaResponse = data.candidates[0].content.parts[0].text;
-                        
-                        // Tenta parsear a resposta da Mielina para comandos de API
-                        const apiCallRegex = /AxonAPI\.(\w+)\(([^)]*)\)/g;
-                        let match;
-                        let apiCalls = [];
-                        while ((match = apiCallRegex.exec(mielinaResponse)) !== null) {
-                            try {
-                                apiCalls.push({ func: match[1], args: JSON.parse(`[${match[2]}]`) });
-                            } catch (parseError) {
-                                console.error(`Erro ao parsear argumentos da API para ${match[1]}:`, parseError);
-                                mielinaResponse += `\n\nErro ao parsear comando: ${match[0]}`;
-                            }
-                        }
-
-                        if (apiCalls.length > 0) {
-                            for (const call of apiCalls) {
-                                if (typeof AxonAPI[call.func] === 'function') {
-                                    try {
-                                        const apiResult = await AxonAPI[call.func](...call.args);
-                                        mielinaResponse += `\n\nComando "${call.func}" executado com sucesso. Resultado: ${JSON.stringify(apiResult)}`;
-                                    } catch (apiError) {
-                                        console.error(`Erro ao executar AxonAPI.${call.func}:`, apiError);
-                                        mielinaResponse += `\n\nErro ao executar comando "${call.func}": ${apiError.message}`;
-                                    }
-                                } else {
-                                    mielinaResponse += `\n\nComando "${call.func}" não reconhecido.`;
-                                }
-                            }
-                        }
-                        return mielinaResponse; // Retorna a resposta do primeiro modelo bem-sucedido
-                    } else {
-                        console.warn(`Resposta da Gemini com modelo ${modelName} sem conteúdo esperado:`, data);
-                        lastError = new Error(`Resposta do modelo ${modelName} sem conteúdo significativo.`);
-                        continue; // Tenta o próximo modelo
-                    }
-                } catch (error) {
-                    console.error(`Erro na requisição Gemini com modelo ${modelName}:`, error);
-                    lastError = error;
-                    continue; // Tenta o próximo modelo
-                }
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`Erro HTTP: ${response.status} - ${errorData.error.message || response.statusText}`);
             }
-            // Se todos os modelos falharem
-            throw lastError || new Error("Todos os modelos Gemini falharam ao gerar uma resposta.");
+
+            const data = await response.json();
+            if (data.candidates && data.candidates.length > 0 && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts.length > 0) {
+                let mielinaResponse = data.candidates[0].content.parts[0].text;
+                
+                // Tenta parsear a resposta da Mielina para comandos de API
+                const apiCallRegex = /AxonAPI\.(\w+)\(([^)]*)\)/g;
+                let match;
+                let apiCalls = [];
+                while ((match = apiCallRegex.exec(mielinaResponse)) !== null) {
+                    apiCalls.push({ func: match[1], args: JSON.parse(`[${match[2]}]`) });
+                }
+
+                if (apiCalls.length > 0) {
+                    for (const call of apiCalls) {
+                        if (typeof AxonAPI[call.func] === 'function') {
+                            await AxonAPI[call.func](...call.args);
+                            mielinaResponse += `\n\nComando "${call.func}" executado.`;
+                        } else {
+                            mielinaResponse += `\n\nComando "${call.func}" não reconhecido.`;
+                        }
+                    }
+                }
+                return { text: mielinaResponse, model: model };
+            } else {
+                throw new Error("Resposta da Gemini sem conteúdo esperado.");
+            }
         }
 
         function initCalculator(windowElement) {
@@ -4482,6 +4478,43 @@
             AxonAPI.logActivity(`Aplicativo HTML "${appName}" aberto.`);
         }
 
+        function getHTMLElementMap() {
+            const elements = document.querySelectorAll('[id], [class]');
+            const elementMap = {};
+            elements.forEach(el => {
+                const id = el.id;
+                const classes = Array.from(el.classList);
+                const tagName = el.tagName.toLowerCase();
+                const selector = id ? `#${id}` : (classes.length > 0 ? `.${classes[0]}` : tagName);
+                
+                if (id) {
+                    elementMap[id] = {
+                        tagName: tagName,
+                        classes: classes,
+                        selector: selector,
+                        description: `Elemento com ID '${id}'`
+                    };
+                } else if (classes.length > 0) {
+                    elementMap[`class-${classes[0]}`] = {
+                        tagName: tagName,
+                        classes: classes,
+                        selector: selector,
+                        description: `Primeiro elemento com a classe '${classes[0]}'`
+                    };
+                }
+            });
+
+            // Adicionar elementos importantes que podem não ter ID ou classe única
+            elementMap['body'] = { tagName: 'body', classes: [], selector: 'body', description: 'O corpo principal do documento.' };
+            elementMap['html'] = { tagName: 'html', classes: [], selector: 'html', description: 'O elemento raiz do documento.' };
+            elementMap['head'] = { tagName: 'head', classes: [], selector: 'head', description: 'O cabeçalho do documento.' };
+            elementMap['style'] = { tagName: 'style', classes: [], selector: 'style', description: 'Onde os estilos CSS são definidos.' };
+            elementMap['script'] = { tagName: 'script', classes: [], selector: 'script', description: 'Onde os scripts JavaScript são definidos.' };
+            elementMap['root-variables'] = { tagName: ':root', classes: [], selector: ':root', description: 'Variáveis CSS globais.' };
+
+            return elementMap;
+        }
+
         // --- AxonAPI para Mielina ---
         const AxonAPI = {
             /**
@@ -4633,174 +4666,227 @@
             },
 
             /**
-             * Modifica o DOM de várias maneiras.
-             * @param {string} selector - O seletor CSS do elemento.
-             * @param {string} action - A ação a ser executada ('remove', 'addClass', 'removeClass', 'setAttribute', 'removeAttribute', 'setInnerHTML', 'setTextContent', 'setStyle').
-             * @param {string} [value] - O valor para a ação (ex: nome da classe, nome do atributo, conteúdo HTML/texto, valor CSS).
-             * @param {string} [property] - A propriedade CSS a ser modificada para 'setStyle'.
+             * Modifica uma propriedade CSS ou conteúdo de um elemento HTML.
+             * @param {string} selector - O seletor CSS do elemento (ex: '#menu-bar', '.dock-icon').
+             * @param {string} property - A propriedade CSS a ser modificada (ex: 'background-color', 'color', 'font-size') ou 'textContent' para conteúdo.
+             * @param {string} value - O novo valor da propriedade.
              */
-            modifyDOM: function(selector, action, value = '', property = '') {
+            modifyElement: function(selector, property, value) {
                 const element = document.querySelector(selector);
-                if (!element) {
-                    this.logActivity(`Mielina: Tentou modificar DOM em elemento não encontrado com seletor "${selector}"`);
+                if (element) {
+                    if (property === 'textContent') {
+                        element.textContent = value;
+                        this.logActivity(`Mielina: Alterou o texto de "${selector}" para "${value}"`);
+                        return `Texto do elemento "${selector}" alterado para "${value}".`;
+                    } else {
+                        element.style[property] = value;
+                        this.logActivity(`Mielina: Alterou a propriedade CSS "${property}" de "${selector}" para "${value}"`);
+                        return `Propriedade "${property}" do elemento "${selector}" alterada para "${value}".`;
+                    }
+                } else {
+                    this.logActivity(`Mielina: Tentou modificar elemento HTML não encontrado com seletor "${selector}"`);
                     return `Elemento com seletor "${selector}" não encontrado.`;
                 }
+            },
 
+            /**
+             * Executa qualquer código JavaScript.
+             * @param {string} scriptCode - O código JavaScript a ser executado.
+             */
+            executeScript: function(scriptCode) {
                 try {
-                    switch (action) {
-                        case 'remove':
-                            element.remove();
-                            this.logActivity(`Mielina: Removeu o elemento "${selector}"`);
-                            return `Elemento "${selector}" removido.`;
-                        case 'addClass':
-                            element.classList.add(value);
-                            this.logActivity(`Mielina: Adicionou a classe "${value}" ao elemento "${selector}"`);
-                            return `Classe "${value}" adicionada ao elemento "${selector}".`;
-                        case 'removeClass':
-                            element.classList.remove(value);
-                            this.logActivity(`Mielina: Removeu a classe "${value}" do elemento "${selector}"`);
-                            return `Classe "${value}" removida do elemento "${selector}".`;
-                        case 'setAttribute':
-                            const [attrName, attrValue] = value.split('::'); // Ex: "data-custom::myValue"
-                            element.setAttribute(attrName, attrValue || '');
-                            this.logActivity(`Mielina: Definiu o atributo "${attrName}" de "${selector}" para "${attrValue}"`);
-                            return `Atributo "${attrName}" de "${selector}" definido para "${attrValue}".`;
-                        case 'removeAttribute':
-                            element.removeAttribute(value);
-                            this.logActivity(`Mielina: Removeu o atributo "${value}" do elemento "${selector}"`);
-                            return `Atributo "${value}" de "${selector}" removido.`;
-                        case 'setInnerHTML':
-                            element.innerHTML = value;
-                            this.logActivity(`Mielina: Definiu o innerHTML de "${selector}" para "${value.substring(0, 50)}..."`);
-                            return `InnerHTML de "${selector}" definido.`;
-                        case 'setTextContent':
-                            element.textContent = value;
-                            this.logActivity(`Mielina: Definiu o textContent de "${selector}" para "${value.substring(0, 50)}..."`);
-                            return `TextContent de "${selector}" definido.`;
-                        case 'setStyle':
-                            if (property) {
-                                element.style[property] = value;
-                                this.logActivity(`Mielina: Definiu o estilo "${property}" de "${selector}" para "${value}"`);
-                                return `Estilo "${property}" de "${selector}" definido para "${value}".`;
-                            } else {
-                                return `Ação 'setStyle' requer uma propriedade CSS.`;
-                            }
-                        default:
-                            return `Ação DOM desconhecida: "${action}".`;
-                    }
+                    eval(scriptCode); // Usar eval com cautela, pois pode ser um risco de segurança.
+                    this.logActivity(`Mielina: Executou script: "${scriptCode.substring(0, 100)}..."`);
+                    return `Script executado com sucesso.`;
                 } catch (e) {
-                    this.logActivity(`Mielina: Erro ao modificar DOM para "${selector}" com ação "${action}": ${e.message}`);
-                    return `Erro ao modificar DOM: ${e.message}`;
+                    this.logActivity(`Mielina: Erro ao executar script: "${e.message}"`);
+                    return `Erro ao executar script: ${e.message}`;
                 }
             },
 
             /**
-             * Obtém o código-fonte de um arquivo do sistema.
-             * @param {string} fileName - O nome do arquivo (ex: 'Axon OS 1.0.txt').
-             * @returns {string} - O conteúdo do arquivo.
+             * Cria um novo elemento HTML.
+             * @param {string} parentSelector - O seletor CSS do elemento pai onde o novo elemento será anexado.
+             * @param {string} tagName - O nome da tag HTML (ex: 'div', 'p', 'button').
+             * @param {object} [attributes={}] - Um objeto de atributos para o novo elemento (ex: { id: 'novo-div', class: 'minha-classe' }).
+             * @param {string} [innerHTML=''] - O conteúdo HTML interno do novo elemento.
              */
-            getSystemCode: function(fileName) {
-                if (fileName === 'Axon OS 1.0.txt') {
-                    this.logActivity(`Mielina: Leu o código-fonte do sistema.`);
-                    return systemData.systemCode;
+            createElement: function(parentSelector, tagName, attributes = {}, innerHTML = '') {
+                const parentElement = document.querySelector(parentSelector);
+                if (parentElement) {
+                    const newElement = document.createElement(tagName);
+                    for (const key in attributes) {
+                        newElement.setAttribute(key, attributes[key]);
+                    }
+                    newElement.innerHTML = innerHTML;
+                    parentElement.appendChild(newElement);
+                    this.logActivity(`Mielina: Criou um novo elemento <${tagName}> em "${parentSelector}"`);
+                    return `Elemento <${tagName}> criado com sucesso em "${parentSelector}".`;
                 } else {
-                    this.logActivity(`Mielina: Tentou ler código de arquivo desconhecido: "${fileName}"`);
-                    return `Arquivo "${fileName}" não é um arquivo de sistema reconhecido para leitura de código.`;
+                    this.logActivity(`Mielina: Tentou criar elemento em pai não encontrado: "${parentSelector}"`);
+                    return `Elemento pai com seletor "${parentSelector}" não encontrado.`;
                 }
             },
 
             /**
-             * Escreve (modifica) o código-fonte de um arquivo do sistema.
-             * ATENÇÃO: Esta função modifica o localStorage e pode exigir um recarregamento para aplicar as mudanças visivelmente.
-             * @param {string} fileName - O nome do arquivo (ex: 'Axon OS 1.0.txt').
-             * @param {string} content - O novo conteúdo do arquivo.
+             * Remove um elemento HTML.
+             * @param {string} selector - O seletor CSS do elemento a ser removido.
              */
-            writeSystemCode: function(fileName, content) {
-                if (fileName === 'Axon OS 1.0.txt') {
-                    systemData.systemCode = content;
-                    localStorage.setItem('axon-system-code', content);
-                    this.logActivity(`Mielina: Escreveu no código-fonte do sistema.`);
-                    return `Código-fonte do sistema "${fileName}" atualizado. Um recarregamento pode ser necessário para aplicar as mudanças.`;
+            removeElement: function(selector) {
+                const elementToRemove = document.querySelector(selector);
+                if (elementToRemove) {
+                    elementToRemove.remove();
+                    this.logActivity(`Mielina: Removeu o elemento "${selector}"`);
+                    return `Elemento "${selector}" removido com sucesso.`;
                 } else {
-                    this.logActivity(`Mielina: Tentou escrever em arquivo de sistema desconhecido: "${fileName}"`);
-                    return `Arquivo "${fileName}" não é um arquivo de sistema reconhecido para escrita de código.`;
+                    this.logActivity(`Mielina: Tentou remover elemento não encontrado: "${selector}"`);
+                    return `Elemento com seletor "${selector}" não encontrado.`;
                 }
             },
 
             /**
-             * Obtém detalhes de um elemento HTML.
+             * Retorna o código-source completo do HTML do Axon OS.
+             * @returns {string} - O código-fonte HTML.
+             */
+            getSystemCode: function() {
+                this.logActivity(`Mielina: Solicitou o código-fonte do sistema.`);
+                return document.documentElement.outerHTML;
+            },
+
+            /**
+             * Retorna detalhes completos de um elemento HTML.
              * @param {string} selector - O seletor CSS do elemento.
-             * @returns {object|string} - Um objeto com detalhes do elemento ou uma mensagem de erro.
+             * @returns {object} - Um objeto com detalhes do elemento.
              */
             getHTMLElementDetails: function(selector) {
                 const element = document.querySelector(selector);
                 if (element) {
                     const details = {
-                        outerHTML: element.outerHTML,
+                        tagName: element.tagName.toLowerCase(),
                         id: element.id,
-                        classNames: Array.from(element.classList),
-                        tagName: element.tagName,
-                        attributes: {}
+                        classes: Array.from(element.classList),
+                        attributes: {},
+                        styles: {},
+                        textContent: element.textContent.trim().substring(0, 200) + (element.textContent.trim().length > 200 ? '...' : ''),
+                        innerHTML: element.innerHTML.trim().substring(0, 200) + (element.innerHTML.trim().length > 200 ? '...' : '')
                     };
                     for (let i = 0; i < element.attributes.length; i++) {
                         const attr = element.attributes[i];
                         details.attributes[attr.name] = attr.value;
                     }
+                    const computedStyle = window.getComputedStyle(element);
+                    for (let i = 0; i < computedStyle.length; i++) {
+                        const prop = computedStyle[i];
+                        details.styles[prop] = computedStyle.getPropertyValue(prop);
+                    }
                     this.logActivity(`Mielina: Obteve detalhes do elemento "${selector}"`);
                     return details;
                 } else {
-                    this.logActivity(`Mielina: Tentou obter detalhes de elemento não encontrado com seletor "${selector}"`);
+                    this.logActivity(`Mielina: Tentou obter detalhes de elemento não encontrado: "${selector}"`);
                     return `Elemento com seletor "${selector}" não encontrado.`;
                 }
             },
 
             /**
-             * Lista todos os IDs de elementos no documento.
-             * @returns {Array<string>} - Uma lista de IDs.
+             * Simula a ação de tirar uma foto no aplicativo Câmera.
              */
-            listAllElementIDs: function() {
-                const ids = Array.from(document.querySelectorAll('[id]')).map(el => el.id);
-                this.logActivity(`Mielina: Listou todos os IDs de elementos.`);
-                return ids;
-            },
-
-            /**
-             * Lista todas as classes de elementos no documento.
-             * @returns {Array<string>} - Uma lista de classes únicas.
-             */
-            listAllElementClasses: function() {
-                const classes = new Set();
-                document.querySelectorAll('[class]').forEach(el => {
-                    el.classList.forEach(cls => classes.add(cls));
-                });
-                this.logActivity(`Mielina: Listou todas as classes de elementos.`);
-                return Array.from(classes);
-            },
-
-            /**
-             * Executa código JavaScript arbitrário.
-             * ATENÇÃO: Esta é uma função de alto risco e deve ser usada com extrema cautela.
-             * @param {string} code - O código JavaScript a ser executado.
-             * @returns {any} - O resultado da execução do código.
-             */
-            executeJavaScript: function(code) {
-                try {
-                    const result = eval(code); // Usar eval é perigoso em produção
-                    this.logActivity(`Mielina: Executou código JavaScript: "${code.substring(0, 100)}..."`);
-                    return `Código JavaScript executado. Resultado: ${JSON.stringify(result)}`;
-                } catch (e) {
-                    this.logActivity(`Mielina: Erro ao executar JavaScript: "${e.message}"`);
-                    return `Erro ao executar JavaScript: ${e.message}`;
+            takePhoto: async function() {
+                const cameraWindow = systemState.openWindows.find(w => w.id === 'camera');
+                if (cameraWindow) {
+                    const captureBtn = cameraWindow.element.querySelector('#capture-btn');
+                    if (captureBtn) {
+                        captureBtn.click();
+                        this.logActivity(`Mielina: Acionou a captura de foto no aplicativo Câmera.`);
+                        return `Foto capturada com sucesso (se a câmera estiver ativa).`;
+                    } else {
+                        return `Botão de captura não encontrado no aplicativo Câmera.`;
+                    }
+                } else {
+                    return `Aplicativo Câmera não está aberto.`;
                 }
             },
 
             /**
-             * Reinicia o sistema (recarrega a página).
+             * Realiza cálculos usando a calculadora.
+             * @param {string} expression - A expressão matemática a ser calculada (ex: "2+2", "10*5", "50/2").
              */
-            restartSystem: function() {
-                this.logActivity(`Mielina: Reiniciando o sistema.`);
-                location.reload();
-                return "Sistema sendo reiniciado...";
+            calculate: function(expression) {
+                const calculatorWindow = systemState.openWindows.find(w => w.id === 'calculator');
+                if (calculatorWindow) {
+                    const display = calculatorWindow.element.querySelector('#calc-display');
+                    const buttons = calculatorWindow.element.querySelectorAll('.calc-btn');
+                    
+                    let currentInput = '0';
+                    let previousInput = '';
+                    let operation = null;
+                    let resetDisplay = false;
+
+                    function pressButton(action) {
+                        const btn = Array.from(buttons).find(b => b.dataset.action === action);
+                        if (btn) btn.click();
+                    }
+
+                    // Simular a entrada da expressão
+                    for (const char of expression) {
+                        if (!isNaN(char) || char === '.') {
+                            pressButton(char);
+                        } else if (char === '+') {
+                            pressButton('add');
+                        } else if (char === '-') {
+                            pressButton('subtract');
+                        } else if (char === '*') {
+                            pressButton('multiply');
+                        } else if (char === '/') {
+                            pressButton('divide');
+                        }
+                    }
+                    pressButton('equals'); // Pressiona o botão de igual para obter o resultado
+
+                    this.logActivity(`Mielina: Calculou a expressão "${expression}"`);
+                    return `Resultado do cálculo: ${display.textContent}`;
+                } else {
+                    return `Aplicativo Calculadora não está aberto.`;
+                }
+            },
+
+            /**
+             * Digita texto no Bloco de Notas.
+             * @param {string} text - O texto a ser digitado.
+             */
+            typeInNotepad: function(text) {
+                const notesWindow = systemState.openWindows.find(w => w.id === 'notes');
+                if (notesWindow) {
+                    const textArea = notesWindow.element.querySelector('#note-content');
+                    if (textArea) {
+                        textArea.value += text;
+                        textArea.dispatchEvent(new Event('input')); // Dispara evento para atualizar o log
+                        this.logActivity(`Mielina: Digitou texto no Bloco de Notas: "${text.substring(0, 50)}..."`);
+                        return `Texto digitado no Bloco de Notas.`;
+                    } else {
+                        return `Área de texto do Bloco de Notas não encontrada.`;
+                    }
+                } else {
+                    return `Aplicativo Bloco de Notas não está aberto.`;
+                }
+            },
+
+            /**
+             * Salva o conteúdo atual do Bloco de Notas.
+             */
+            saveNotepad: async function() {
+                const notesWindow = systemState.openWindows.find(w => w.id === 'notes');
+                if (notesWindow) {
+                    const saveBtn = notesWindow.element.querySelector('#save-note');
+                    if (saveBtn) {
+                        saveBtn.click();
+                        this.logActivity(`Mielina: Acionou o salvamento no Bloco de Notas.`);
+                        return `Comando de salvar acionado no Bloco de Notas.`;
+                    } else {
+                        return `Botão de salvar do Bloco de Notas não encontrado.`;
+                    }
+                } else {
+                    return `Aplicativo Bloco de Notas não está aberto.`;
+                }
             },
 
             // Funções de gerenciamento de janelas (re-expostas para a API)
